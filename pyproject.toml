@@ -1,0 +1,24 @@
+[project]
+name = "retakid-backend"
+version = "0.1.0"
+description = "Backend ML and Data Pipeline for Retak.id"
+dependencies = [
+    "tensorflow>=2.15.0",
+    "tensorflow-hub",
+    "tflite-support",
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "selenium",
+    "beautifulsoup4",
+    "requests",
+    "pillow",
+    "scikit-learn",
+    "duckduckgo_search",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "ipykernel",
+    "black",
+]
