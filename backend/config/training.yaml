@@ -1,0 +1,58 @@
+# Retak.id Training Configuration
+# Single source of truth for all pipeline parameters.
+#
+# Usage:
+#   config = config_loader.load_config("backend/config/training.yaml")
+
+data:
+  processed_dir: "backend/data/processed"
+  splits_dir: "backend/data/splits"
+  img_size: [224, 224]
+  batch_size: 32
+  val_split: 0.15
+  test_split: 0.15
+  seed: 42
+
+model:
+  base: "mobilenetv2"
+  weights: "imagenet"
+  input_shape: [224, 224, 3]
+  num_classes: 3
+  dropout: 0.3
+  freeze_base: true
+
+training:
+  optimizer: "adam"
+  learning_rate: 0.0001
+  loss: "categorical_crossentropy"
+  epochs: 50
+  early_stopping_patience: 10
+  reduce_lr_patience: 5
+
+augmentation:
+  random_flip:
+    horizontal: true
+    vertical: true
+  rotation_range: 30.0
+  translation_range: 0.2
+  zoom_range: 0.2
+  shear_range: 0.2
+  brightness_range: [0.7, 1.3]
+  contrast_range: [0.8, 1.2]
+  fill_mode: "nearest"
+
+quantization:
+  type: "int8"
+  representative_samples: 100
+  target_size_mb: 5
+
+export:
+  output_dir: "backend/models"
+  model_name: "retak_mobilenetv2"
+  include_metadata: true
+  class_labels: ["AMAN", "WASPADA", "BAHAYA"]
+
+logging:
+  tensorboard_dir: "backend/logs/tensorboard"
+  checkpoint_dir: "backend/models/checkpoints"
+  runs_csv: "backend/logs/runs.csv"
