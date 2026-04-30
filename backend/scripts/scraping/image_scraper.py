@@ -10,7 +10,7 @@ from io import BytesIO
 import requests
 import imagehash
 import numpy as np
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from PIL import Image, UnidentifiedImageError
 
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
@@ -139,16 +139,21 @@ class RetakScraper:
         os.makedirs(folder_path, exist_ok=True)
 
         logger.info(f"Searching for '{keyword}' (target: {max_images})...")
+        time.sleep(2)  # Delay to avoid rate limit
 
-        with DDGS() as ddgs:
-            results = ddgs.images(
-                keyword,
-                region="wt-wt",
-                safesearch="off",
-                size="Medium",
-                max_results=max_images,
-            )
-            urls = [r["image"] for r in results]
+        try:
+            with DDGS() as ddgs:
+                results = ddgs.images(
+                    keyword,
+                    region="wt-wt",
+                    safesearch="off",
+                    size="Medium",
+                    max_results=max_images,
+                )
+                urls = [r["image"] for r in results]
+        except Exception as e:
+            logger.error(f"Error searching for '{keyword}': {e}")
+            return []
 
         logger.info(f"Found {len(urls)} candidates. Downloading...")
 
