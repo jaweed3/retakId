@@ -28,6 +28,7 @@ training:
   epochs: 50
   early_stopping_patience: 10
   reduce_lr_patience: 5
+  class_weight: "balanced"  # "balanced" (auto-compute from train set), null (none), or explicit dict
 
 augmentation:
   random_flip:
