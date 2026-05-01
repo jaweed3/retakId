@@ -1,4 +1,4 @@
-.PHONY: setup scrape train evaluate export test clean clean-logs lint
+.PHONY: setup scrape validate deduplicate stats split train evaluate export deploy test docker-build docker-train lint format clean clean-logs
 
 PYTHON = uv run --python 3.11
 CONFIG = backend/config/training.yaml
@@ -44,6 +44,17 @@ evaluate:
 # Usage: make export MODEL=backend/models/checkpoints/best.keras
 export:
 	$(PYTHON) backend/src/training/export.py --model-path $(MODEL) --config $(CONFIG)
+
+# --- Deployment ---
+
+# Copy model artifacts to Android assets directory
+# Usage: make deploy ASSETS=app/src/main/assets
+ASSETS ?= app/src/main/assets
+deploy:
+	mkdir -p $(ASSETS)
+	cp backend/models/retak_mobilenetv2.tflite $(ASSETS)/
+	cp backend/models/labels.txt $(ASSETS)/
+	@echo "Deployed model to $(ASSETS)/"
 
 # --- Testing ---
 
