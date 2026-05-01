@@ -18,6 +18,7 @@ dependencies = [
     "imagehash",
     "opencv-python",
     "pyyaml",
+    "dvc>=3.67.1",
 ]
 
 [tool.uv]
