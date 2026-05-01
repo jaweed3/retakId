@@ -110,7 +110,7 @@ def load_datasets(config):
     val_ds = val_ds.prefetch(AUTOTUNE)
     test_ds = test_ds.prefetch(AUTOTUNE)
 
-    return train_ds, val_ds, test_ds
+    return train_ds, val_ds, test_ds, class_counts
 
 
 def build_model(config):
@@ -160,7 +160,46 @@ def build_model(config):
     return model
 
 
-def train(config, train_ds, val_ds):
+def compute_class_weights(class_counts: dict, class_labels: list) -> dict | None:
+    """Compute class weights for imbalanced training.
+
+    Uses sklearn's "balanced" formula: n_samples / (n_classes * n_samples_per_class)
+
+    Args:
+        class_counts: dict mapping class name → count in training set.
+        class_labels: ordered list of class names.
+
+    Returns:
+        dict mapping class index → weight, or None if counts are balanced (<2:1 ratio).
+    """
+    from sklearn.utils.class_weight import compute_class_weight as _compute
+
+    counts = [class_counts.get(cls, 0) for cls in class_labels]
+    total = sum(counts)
+    if total == 0:
+        return None
+
+    ratio = max(counts) / max(min(counts), 1)
+    if ratio < 2.0:
+        logger.info("Class distribution balanced (ratio %.1f:1), no weighting needed", ratio)
+        return None
+
+    weights = _compute(
+        class_weight="balanced",
+        classes=np.array(range(len(class_labels))),
+        y=np.concatenate([[i] * c for i, c in enumerate(counts)]),
+    )
+
+    weight_dict = {i: float(w) for i, w in enumerate(weights)}
+    logger.info(
+        "Class weights computed (ratio %.1f:1): %s",
+        ratio,
+        {class_labels[i]: f"{w:.2f}" for i, w in weight_dict.items()},
+    )
+    return weight_dict
+
+
+def train(config, train_ds, val_ds, class_weight=None):
     """Run training with full callbacks suite."""
     model = build_model(config)
 
@@ -212,6 +251,7 @@ def train(config, train_ds, val_ds):
         validation_data=val_ds,
         epochs=config.training.epochs,
         callbacks=callbacks,
+        class_weight=class_weight,
         verbose=1,
     )
 
@@ -268,7 +308,20 @@ def main(config_path: str = "backend/config/training.yaml"):
     set_seeds(config.data.seed)
     logger.info(f"Seeds: {config.data.seed}")
 
-    train_ds, val_ds, test_ds = load_datasets(config)
+    train_ds, val_ds, test_ds, class_counts = load_datasets(config)
+
+    # Compute class weights for imbalanced data
+    class_weight = None
+    cw_config = getattr(config.training, "class_weight", None)
+    if cw_config == "balanced":
+        class_weight = compute_class_weights(class_counts, config.export.class_labels)
+    elif isinstance(cw_config, dict):
+        # Map class names → indices as expected by Keras
+        class_weight = {
+            config.export.class_labels.index(k): v
+            for k, v in cw_config.items()
+        }
+        logger.info("Using explicit class weights: %s", cw_config)
 
     from backend.src.training.augment import build_augmentation
 
@@ -279,7 +332,7 @@ def main(config_path: str = "backend/config/training.yaml"):
     )
     logger.info("Augmentation applied to training set")
 
-    model, history = train(config, train_ds, val_ds)
+    model, history = train(config, train_ds, val_ds, class_weight=class_weight)
 
     from backend.src.training.evaluation import evaluate_model, plot_training_history
 
