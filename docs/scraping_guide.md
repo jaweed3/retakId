@@ -1,41 +1,78 @@
-# Scraping Guide for Retak.id
+# Scraping Guide — Retak.id
 
-Tool ini dirancang untuk mengumpulkan data tambahan secara cepat menggunakan DuckDuckGo Image Search.
+Mengumpulkan dataset retakan tanah menggunakan DuckDuckGo Image Search dengan
+pipeline kualitas otomatis.
 
 ## Cara Pakai
 
-1.  **Setup Environment**:
-    Pastikan sudah install dependencies:
-    ```bash
-    make setup
-    ```
+### 1. Setup
+```bash
+make setup
+```
 
-2.  **Jalankan Scraper**:
-    Gunakan command `make scrape` dengan argumen `KW` (Keywords) dan `LIMIT` (Jumlah gambar per keyword).
-    ```bash
-    make scrape KW="landslide soil cracks, retakan tanah longsor" LIMIT=150
-    ```
+### 2. Jalankan Scraper
+```bash
+make scrape KW="landslide soil cracks, retakan tanah longsor, ground fissure" LIMIT=150
+```
 
-3.  **Output**:
-    Gambar akan tersimpan di `backend/data/raw/<keyword_name>/`.
-    Setiap folder akan berisi:
-    -   File gambar dalam format `.jpg` (nama random UUID).
-    -   `manifest.json`: Berisi metadata URL asal untuk tracking jika diperlukan.
+Untuk keyword banyak (rekomendasi):
+```bash
+make scrape KW="landslide soil cracks, retakan tanah longsor, ground fissure, soil surface cracks landslide, soil crack texture, tanah retak, tanah merekah" LIMIT=150
+```
+
+### 3. Output
+Gambar tersimpan di `backend/data/raw/<keyword>/`:
+- File `.jpg` (nama UUID)
+- `manifest.json` — metadata URL, pHash, status download
+
+## Quality Pipeline (Otomatis)
+
+Setiap gambar yang didownload melalui 3 filter:
+
+| Filter | Parameter | Keterangan |
+|--------|-----------|------------|
+| **Duplicate Detection** | pHash exact match | Tolak gambar yang sudah ada |
+| **Near-Duplicate** | Hamming distance < 6 | Tolak gambar yang mirip (beda resolusi/URL) |
+| **Blur Detection** | Laplacian variance < 100 | Tolak gambar buram |
+| **Size Check** | Min 200×200 px | Tolak gambar terlalu kecil |
 
 ## Rekomendasi Keywords
-Untuk mendapatkan hasil yang akurat (menghindari aspal/tembok):
--   "landslide soil fissure"
--   "ground cracks earth movement"
--   "retakan tanah bukit"
--   "soil surface cracks landslide"
 
-## Cara Modifikasi
-Jika ingin mengubah logic scraping, buka `backend/scripts/scraping/image_scraper.py`:
--   **Parallelism**: Ubah `max_workers=10` di `ThreadPoolExecutor` jika koneksi sangat cepat/lambat.
--   **Image Size**: Ubah `size="Medium"` menjadi `"Large"` di `ddgs.images()` jika butuh resolusi lebih tinggi (namun loading akan lebih lama).
--   **Validation**: Saat ini script otomatis convert ke RGB JPG. Jika ingin format lain, ubah bagian `img.save()`.
+Untuk hasil akurat (retakan tanah, bukan aspal/tembok):
+- `"landslide soil fissure"`
+- `"ground cracks earth movement"`
+- `"retakan tanah bukit"`
+- `"soil surface cracks landslide"`
+- `"deep ground fissure"`
+- `"soil crack texture"`
+- `"tanah retak"`
+- `"tanah merekah"`
+- `"tanah longsor"`
+- `"retakan lereng"`
 
-## Langkah Selanjutnya (Anotasi)
-Setelah gambar didownload:
-1.  Sortir manual gambar yang tidak relevan.
-2.  Pindahkan ke folder `backend/data/processed/AMAN`, `WASPADA`, atau `BAHAYA`.
+**Tips:** Keyword yang general (tanpa "tambang") menghasilkan gambar lebih banyak dan
+lebih beragam. Model mengklasifikasi severity retakan, bukan penyebab — jadi variasi
+visual lebih penting daripada konteks tambang.
+
+## Langkah Selanjutnya (Anotasi Manual)
+
+Setelah gambar di-download:
+1. Sortir gambar yang tidak relevan (aspal, tembok, bukan tanah)
+2. Pindahkan ke `backend/data/processed/`:
+   - `AMAN/` — retakan kecil/halus, tanah masih stabil
+   - `WASPADA/` — retakan sedang, mulai membesar
+   - `BAHAYA/` — retakan besar/dalam, tanah terbelah
+3. Target: minimal 100–200 gambar per kelas
+4. Jalankan `make validate` untuk cek kualitas akhir
+
+## Data Versioning (DVC)
+
+Setelah anotasi selesai, gunakan DVC untuk share dataset dengan tim:
+```bash
+dvc add backend/data/processed/
+git add backend/data/.gitignore backend/data/processed.dvc
+git commit -m "data: annotated dataset v1"
+dvc push
+```
+
+Lihat `docs/dvc_workflow.md` untuk panduan lengkap.
