@@ -1,4 +1,4 @@
-.PHONY: setup scrape validate deduplicate stats split train evaluate export deploy test docker-build docker-train lint format clean clean-logs
+.PHONY: setup scrape validate deduplicate stats split train evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
 
 PYTHON = uv run --python 3.11
 CONFIG = backend/config/training.yaml
@@ -68,6 +68,22 @@ docker-build:
 
 docker-train:
 	docker run -v $(PWD)/backend/data:/app/backend/data -v $(PWD)/backend/models:/app/backend/models -v $(PWD)/backend/logs:/app/backend/logs retakid-train
+
+# --- Lab PC ---
+
+# Bootstrap fresh PC: install uv + Python 3.11 + deps + pull data
+# Single command for lab computers
+lab-setup:
+	bash scripts/bootstrap.sh
+
+# Pull dataset from DagsHub via DVC
+pull-data:
+	$(PYTHON) dvc pull
+
+# Full pipeline from zero: setup → pull data → check → split → train
+lab-train: pull-data validate deduplicate split train
+	@echo ""
+	@echo "Lab training complete! Model di backend/models/"
 
 # --- Utilities ---
 

@@ -1,46 +1,70 @@
 # Getting Started
 
-## Prerequisites
-- Python 3.10–3.12 (TensorFlow doesn't support 3.13+ yet)
-- [uv](https://github.com/astral-sh/uv) installed.
-- Android Studio (for app development).
+## Prerequisites (laptop sendiri)
 
-## Backend Setup
-1. Clone the repository.
-2. Run `make setup` to install dependencies using `uv`.
-3. The full pipeline is driven from the project root.
+- Python 3.10–3.12 (TensorFlow doesn't support 3.13+ yet)
+- [uv](https://github.com/astral-sh/uv) installed
+- Android Studio (for app development)
+
+## PC Lab — Zero Setup Training
+
+Kalo di PC lab dan males setup Python/TF/DVC manual, pake bootstrap script:
+
+```bash
+git clone https://github.com/jaweed3/retakId.git && cd retakId
+bash scripts/bootstrap.sh
+make train
+```
+
+**Yang dilakukan `bootstrap.sh`:**
+1. Install `uv` (Python package manager) — zero system dependency
+2. Install Python 3.11 via uv (standalone, ga ganggu system Python)
+3. Install semua dependencies (~2GB, sekali aja)
+4. Pull dataset dari DagsHub via DVC
+
+Setelah selesai, langsung bisa `make train`. Ga perlu install apa-apa manual.
+
+## PC Lab — Alternative: Docker
+
+```bash
+docker build -t retakid-train -f backend/Dockerfile .
+docker run retakid-train
+```
+
+Docker image includes: Python 3.11, TF 2.19, DVC, all deps. Auto-pulls data from DagsHub.
+
+## Backend Setup (laptop sendiri)
+
+1. Clone the repository
+2. `make setup` to install dependencies via `uv`
+3. `make pull-data` to download dataset from DagsHub DVC
+4. Pipeline siap
 
 ## Full ML Pipeline
 
 ```bash
-# 1. Scrape dataset (5-10 keywords recommended, 150 images each)
+# Data (kalo belum ada di DagsHub)
 make scrape KW="landslide soil cracks, retakan tanah longsor, ground fissure, soil surface cracks" LIMIT=150
+# ... manual annotation into data/processed/AMAN|WASPADA|BAHAYA ...
 
-# 2. Manually annotate images into data/processed/AMAN/, WASPADA/, BAHAYA/
+# Validation
+make validate       # Check dataset integrity
+make deduplicate    # Cross-class near-duplicate detection
+make stats          # Dataset statistics & class distribution
+make split          # Stratified 70/15/15 train/val/test split
 
-# 3. Validate dataset integrity
-make validate
+# Training
+make train          # Full pipeline: train → evaluate → export TFLite INT8
+make test           # 16 tests
 
-# 4. Check for cross-class duplicates
-make deduplicate
-
-# 5. View dataset statistics
-make stats
-
-# 6. Stratified train/val/test split
-make split
-
-# 7. Train the model (includes evaluation + TFLite export)
-make train
-
-# 8. Monitor training
+# Monitor
 tensorboard --logdir backend/logs/tensorboard
 
-# 9. (Optional) Export from checkpoint
+# Export from checkpoint
 make export MODEL=backend/models/checkpoints/best.keras
 
-# 10. Run tests
-make test
+# Deploy to Android app
+make deploy ASSETS=app/src/main/assets
 ```
 
 ## Makefile Targets
@@ -48,6 +72,9 @@ make test
 | Target | Description |
 |--------|-------------|
 | `make setup` | Install dependencies via uv |
+| `make lab-setup` | Bootstrap fresh PC (install uv + Python + deps + data) |
+| `make pull-data` | Pull dataset from DagsHub via DVC |
+| `make lab-train` | Full pipeline: pull data → validate → dedup → split → train |
 | `make scrape KW="..." LIMIT=100` | Scrape images from DuckDuckGo |
 | `make validate` | Check dataset for corrupt/bad images |
 | `make deduplicate` | Detect cross-class near-duplicates |
@@ -56,6 +83,7 @@ make test
 | `make train` | Full training pipeline (train → eval → export) |
 | `make evaluate` | Evaluate a trained model checkpoint |
 | `make export MODEL=path` | Export TFLite from checkpoint |
+| `make deploy` | Copy model + labels to Android assets |
 | `make test` | Run pytest suite (16 tests) |
 | `make docker-build` | Build Docker training image |
 | `make docker-train` | Run training in Docker |
@@ -71,4 +99,6 @@ After training:
 - `backend/models/checkpoints/best.keras` — Best Keras checkpoint
 
 ## Model Integration
-Copy `retak_mobilenetv2.tflite` and `labels.txt` to the Android app's `app/src/main/assets/` directory.
+```bash
+make deploy ASSETS=app/src/main/assets
+```
