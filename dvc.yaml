@@ -1,0 +1,29 @@
+stages:
+  scrape:
+    cmd: uv run python backend/scripts/scraping/image_scraper.py --limit 100
+    deps:
+      - backend/scripts/scraping/image_scraper.py
+    outs:
+      - backend/data/raw:
+          persist: true
+
+  validate:
+    cmd: uv run python backend/scripts/processing/validate_dataset.py --data-dir backend/data/processed
+    deps:
+      - backend/scripts/processing/validate_dataset.py
+      - backend/data/processed
+    metrics:
+      - backend/data/dataset_stats.json:
+          cache: false
+
+  train:
+    cmd: uv run python backend/src/training/train.py
+    deps:
+      - backend/src/training/train.py
+      - backend/data/processed
+      - backend/config/training.yaml
+    outs:
+      - backend/models/latest_model.keras
+    metrics:
+      - backend/logs/metrics.json:
+          cache: false
