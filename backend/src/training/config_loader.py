@@ -104,8 +104,61 @@ def load_config(config_path: str) -> _ConfigNamespace:
 
 def load_config_dict(config_path: str) -> dict:
     """Load config as a plain dict without namespace wrapping.
-
     Useful for passing to functions that expect dicts.
     """
     ns = load_config(config_path)
     return ns.to_dict()
+
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Deep merge override dict into base dict. Override keys take precedence."""
+    result = dict(base)
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def load_config_with_overrides(
+    base_path: str = "backend/config/training.yaml",
+    override_path: str | None = None,
+) -> _ConfigNamespace:
+    """Load base config, then apply experiment overrides.
+
+    Args:
+        base_path: Path to the full training.yaml config.
+        override_path: Path to an experiment YAML with only the keys to override.
+                       Can be None (just load base).
+
+    Returns:
+        _ConfigNamespace with merged configuration.
+    """
+    with open(base_path) as f:
+        data = yaml.safe_load(f)
+
+    if override_path:
+        with open(override_path) as f:
+            overrides = yaml.safe_load(f)
+        data = _deep_merge(data, overrides)
+
+    project_root = Path(base_path).parent.parent.parent
+    for key in ["processed_dir", "splits_dir"]:
+        if key in data.get("data", {}):
+            p = Path(data["data"][key])
+            if not p.is_absolute():
+                data["data"][key] = str(project_root / p)
+    for key in ["tensorboard_dir", "checkpoint_dir", "runs_csv"]:
+        if key in data.get("logging", {}):
+            p = Path(data["logging"][key])
+            if not p.is_absolute():
+                data["logging"][key] = str(project_root / p)
+    for key in ["output_dir"]:
+        if key in data.get("export", {}):
+            p = Path(data["export"][key])
+            if not p.is_absolute():
+                data["export"][key] = str(project_root / p)
+
+    _validate_config(data)
+    return _ConfigNamespace(data)

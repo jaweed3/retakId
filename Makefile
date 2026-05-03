@@ -1,4 +1,4 @@
-.PHONY: setup scrape validate deduplicate stats split train evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
+.PHONY: setup scrape validate deduplicate stats split train tune evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
 
 PYTHON = uv run --python 3.11
 CONFIG = backend/config/training.yaml
@@ -39,6 +39,15 @@ evaluate:
 	_, _, test_ds = load_datasets(config); \
 	model = tf.keras.models.load_model('backend/models/checkpoints/best.keras'); \
 	evaluate_model(model, test_ds, config.export.class_labels, output_dir='backend/logs')"
+
+# Hyperparameter tuning — run all experiment variants
+tune:
+	bash scripts/run_experiments.sh
+
+# Run single experiment variant
+# Usage: make train-exp EXP=backend/config/experiments/v3b_more_layers.yaml
+train-exp:
+	$(PYTHON) backend/src/training/train.py --config backend/config/training.yaml --override $(EXP)
 
 # Export TFLite from a trained model checkpoint
 # Usage: make export MODEL=backend/models/checkpoints/best.keras

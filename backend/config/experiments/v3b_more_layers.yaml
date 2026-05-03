@@ -1,0 +1,13 @@
+# v3b: More fine-tune layers. Hypothesis: WASPADA needs more capacity for subtle crack patterns.
+model:
+  dropout: 0.5
+  fine_tune_at: 120                # 34 layers vs 24 baseline
+training:
+  learning_rate: 0.000005
+  epochs: 70
+  class_weight: "balanced"
+augmentation:
+  rotation_range: 45.0
+  zoom_range: 0.3
+  brightness_range: [0.5, 1.5]
+  contrast_range: [0.5, 1.5]
