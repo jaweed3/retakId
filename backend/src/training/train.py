@@ -311,20 +311,29 @@ def evaluate_and_export(config, model, train_ds, test_ds):
     return eval_results, tflite_path, labels_path
 
 
-def main(config_path: str = "backend/config/training.yaml"):
+def main(config_path: str = "backend/config/training.yaml", override_path: str | None = None):
     sys.path.insert(0, ".")
-    from backend.src.training.config_loader import load_config
-    config = load_config(config_path)
+    from backend.src.training.config_loader import load_config_with_overrides
+
+    config = load_config_with_overrides(
+        base_path="backend/config/training.yaml",
+        override_path=override_path,
+    )
 
     # MLflow setup
     mlflow = setup_mlflow(config)
 
-    with mlflow.start_run(run_name=datetime.now().strftime("%Y%m%d_%H%M%S")):
-        logger.info(f"Config: {config_path}")
+    # Run name includes experiment name
+    exp_name = Path(override_path).stem if override_path else "default"
+    run_name = f"{exp_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    with mlflow.start_run(run_name=run_name):
+        logger.info(f"Config: {config_path}, override: {override_path or 'none'}")
         logger.info(
             f"Model: {config.model.base}, classes: {config.export.class_labels}, "
             f"LR: {config.training.learning_rate}, dropout: {config.model.dropout}, "
-            f"fine_tune_at: {getattr(config.model, 'fine_tune_at', None)}"
+            f"fine_tune_at: {getattr(config.model, 'fine_tune_at', None)}, "
+            f"class_weight: {getattr(config.training, 'class_weight', None)}"
         )
 
         set_seeds(config.data.seed)
@@ -373,7 +382,9 @@ def main(config_path: str = "backend/config/training.yaml"):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Train Retak.id model v2")
+    parser = argparse.ArgumentParser(description="Train Retak.id model")
     parser.add_argument("--config", type=str, default="backend/config/training.yaml")
+    parser.add_argument("--override", type=str, default=None,
+                        help="Path to experiment override YAML")
     args = parser.parse_args()
-    main(args.config)
+    main(args.config, args.override)
