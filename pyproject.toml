@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Backend ML and Data Pipeline for Retak.id"
 requires-python = ">=3.10, <3.13"
 dependencies = [
-    "tensorflow>=2.15.0",
+    "tensorflow[and-cuda]>=2.15.0",
     "tensorflow-hub",
     "numpy",
     "pandas",
