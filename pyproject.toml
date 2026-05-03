@@ -19,6 +19,9 @@ dependencies = [
     "opencv-python",
     "pyyaml",
     "dvc>=3.67.1",
+    "ddgs",
+    "fake-useragent",
+    "mlflow",
 ]
 
 [tool.uv]

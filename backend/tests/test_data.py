@@ -128,6 +128,9 @@ def test_config_loader():
     config = load_config("backend/config/training.yaml")
     assert config.model.base == "mobilenetv2"
     assert config.model.num_classes == 3
-    assert config.model.dropout == 0.3
-    assert config.training.learning_rate == 0.0001
+    assert config.model.dropout == 0.5
+    assert config.training.learning_rate == 0.000005
+    assert config.training.epochs == 70
     assert config.export.class_labels == ["AMAN", "WASPADA", "BAHAYA"]
+    assert config.model.freeze_base == False
+    assert config.model.fine_tune_at == 130
