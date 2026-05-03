@@ -1,0 +1,20 @@
+artifact_path: file:///home/diiy2/retakId/backend/logs/mlruns/744905712429104068/models/m-6ffd6ba283cf48eb83ef5a5902a66082/artifacts
+flavors:
+  keras:
+    data: data
+    keras_backend: tensorflow
+    keras_version: 3.14.0
+    save_exported_model: false
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.keras
+    python_version: 3.11.15
+mlflow_version: 3.11.1
+model_id: m-6ffd6ba283cf48eb83ef5a5902a66082
+model_size_bytes: 20568171
+model_uuid: m-6ffd6ba283cf48eb83ef5a5902a66082
+prompts: null
+run_id: a7ff37ab20744060bf822019f4908acf
+utc_time_created: '2026-05-03 22:07:52.037783'

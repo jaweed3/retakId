@@ -1,0 +1,10 @@
+artifact_location: file:///home/diiy2/retakId/backend/logs/mlruns/744905712429104068/models/m-bebc7f18d2364f2cbdbe2e2342137804/artifacts
+creation_timestamp: 1777827703026
+experiment_id: '744905712429104068'
+last_updated_timestamp: 1777827703923
+model_id: m-bebc7f18d2364f2cbdbe2e2342137804
+model_type: null
+name: keras_model
+source_run_id: 0aaa94548d5549e1840af07da7d28eaf
+status: 2
+status_message: null

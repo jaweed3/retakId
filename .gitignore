@@ -24,7 +24,7 @@ backend/models/*.keras
 backend/models/*.pb
 
 # Logs & Visualization
-backend/logs/
+#backend/logs/
 
 # --- Tools & OS ---
 .ipynb_checkpoints/

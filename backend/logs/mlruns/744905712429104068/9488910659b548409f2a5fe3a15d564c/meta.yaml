@@ -1,0 +1,14 @@
+artifact_uri: file:///home/diiy2/retakId/backend/logs/mlruns/744905712429104068/9488910659b548409f2a5fe3a15d564c/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '744905712429104068'
+lifecycle_stage: active
+run_id: 9488910659b548409f2a5fe3a15d564c
+run_name: '20260502_155612'
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1777712172626
+status: 1
+tags: []
+user_id: diiy2
