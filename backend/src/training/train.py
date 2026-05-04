@@ -92,20 +92,63 @@ def load_datasets(config):
 
 
 def build_model(config):
-    """Build MobileNetV2 with progressive fine-tuning support.
+    """Build model from tf.keras.applications with progressive fine-tuning.
 
-    - If freeze_base=True: freezes all base layers (transfer learning)
-    - If freeze_base=False and fine_tune_at is set: unfreezes layers from fine_tune_at onwards
+    Supports any Keras Applications model: mobilenetv2, mobilenetv3small,
+    efficientnetb0, convnexttiny, efficientnetv2s, etc.
+
+    Config:
+        model.base: model name (lowercase, matching keras.applications)
+        model.fine_tune_at: layer index to start unfreezing (model-specific)
     """
+    import importlib
+
     INPUT_SHAPE = tuple(config.model.input_shape)
+    model_name = config.model.base.lower()
+    logger.info(f"Building {model_name} (weights={config.model.weights})...")
 
-    logger.info(f"Building {config.model.base} (weights={config.model.weights})...")
+    # Dynamically load model class and preprocess function
+    try:
+        app_mod = importlib.import_module(f"tensorflow.keras.applications.{model_name}")
+    except ModuleNotFoundError:
+        # Try common aliases
+        aliases = {
+            "mobilenetv3small": "mobilenet_v3",
+            "mobilenetv3large": "mobilenet_v3",
+        }
+        mod_name = aliases.get(model_name, model_name)
+        try:
+            app_mod = importlib.import_module(f"tensorflow.keras.applications.{mod_name}")
+        except ModuleNotFoundError:
+            available = [
+                n for n in dir(tf.keras.applications)
+                if n[0].isupper() and not n.startswith("_")
+            ]
+            raise ValueError(
+                f"Unknown model '{model_name}'. Available: {available[:15]}..."
+            )
 
-    base_model = tf.keras.applications.MobileNetV2(
+    # Get the model class (e.g., MobileNetV2, EfficientNetB0)
+    model_cls = getattr(app_mod, model_name.replace("_", "").replace("-", ""), None)
+    if model_cls is None:
+        # Try PascalCase variants
+        for attr in dir(app_mod):
+            if attr.lower().replace("_", "") == model_name.replace("_", "").replace("-", ""):
+                model_cls = getattr(app_mod, attr)
+                break
+    if model_cls is None:
+        raise ValueError(f"Cannot find model class for '{model_name}' in {app_mod.__name__}")
+
+    # Get preprocess_input
+    preprocess_fn = getattr(app_mod, "preprocess_input", None)
+    if preprocess_fn is None:
+        from tensorflow.keras.applications.imagenet_utils import preprocess_input
+
+    # Build base model
+    base_model = model_cls(
         input_shape=INPUT_SHAPE,
         include_top=False,
         weights=config.model.weights,
-        alpha=1.0,
     )
 
     # Fine-tuning logic
@@ -114,29 +157,29 @@ def build_model(config):
 
     if freeze_base:
         base_model.trainable = False
-        logger.info("Base model fully frozen (transfer learning mode)")
+        logger.info(f"{model_name}: fully frozen (transfer learning)")
     elif fine_tune_at is not None:
-        # Freeze all layers first, then unfreeze from fine_tune_at onwards
         base_model.trainable = True
         for layer in base_model.layers[:fine_tune_at]:
             layer.trainable = False
         trainable_count = sum(1 for l in base_model.layers if l.trainable)
+        total_layers = len(base_model.layers)
         logger.info(
-            f"Fine-tuning: layers {fine_tune_at}+ unfrozen "
-            f"({trainable_count}/{len(base_model.layers)} layers trainable)"
+            f"{model_name}: layers {fine_tune_at}+ unfrozen "
+            f"({trainable_count}/{total_layers} layers, {trainable_count/total_layers*100:.0f}%)"
         )
     else:
         base_model.trainable = True
-        logger.info("All base layers unfrozen (full fine-tuning)")
+        logger.info(f"{model_name}: all layers unfrozen (full fine-tuning)")
 
     inputs = tf.keras.Input(shape=INPUT_SHAPE)
-    x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
+    x = preprocess_fn(inputs)
     x = base_model(x, training=not freeze_base)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dropout(config.model.dropout)(x)
     outputs = tf.keras.layers.Dense(config.model.num_classes, activation="softmax")(x)
 
-    model = tf.keras.Model(inputs, outputs, name="retak_mobilenetv2")
+    model = tf.keras.Model(inputs, outputs, name=f"retak_{model_name}")
 
     lr = config.training.learning_rate
     model.compile(

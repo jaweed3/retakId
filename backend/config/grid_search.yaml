@@ -1,43 +1,49 @@
 # =============================================================================
-# Retak.id — Grid Search Definition
+# Retak.id — Grid Search Definition v2
 # =============================================================================
+# Supports multiple model architectures + per-model fine-tuning ranges.
+#
 # Usage:
-#   make grid-gen    → generate experiment configs from this grid
-#   make grid-run    → run all experiments (--resume to skip completed)
+#   make grid-gen    → generate experiment configs
+#   make grid-run    → run all (resume-safe)
 #   make tune        → grid-gen + grid-run
 #
-# ~24 experiments × ~15 min = ~6 jam CPU / ~1 jam GPU
-# Each experiment auto-logged to MLflow for comparison.
+# ~36 experiments × ~15 min ≈ 9 jam CPU / ~2 jam GPU
 # =============================================================================
 
 parameters:
+
+  # --- Architecture ---
+  model.base:
+    - "mobilenetv2"       # 154 layers, proven 84.9%
+    - "mobilenetv3small"  # ~210 layers, SE blocks, better accuracy
+    - "efficientnetb0"    # ~237 layers, compound scaling, strongest
 
   # --- Model capacity ---
   model.dropout:
     - 0.4
     - 0.5
 
+  # This will be overridden per-model below in fixed section
   model.fine_tune_at:
-    - 120        # 34 layers — more capacity
-    - 130        # 24 layers — baseline
-    - 145        # 9 layers — minimal, low overfit risk
+    - 130     # mobilenetv2: 24 layers unfrozen
 
   # --- Learning dynamics ---
   training.learning_rate:
     - 0.00001    # 1e-5 (faster)
     - 0.000005   # 5e-6 (baseline)
 
-  # --- Augmentation strength ---
+  # --- Augmentation ---
   augmentation.rotation_range:
     - 30.0       # moderate
     - 45.0       # aggressive
 
   # --- Class weighting ---
   training.class_weight:
-    - "balanced"  # auto-compute weights
-    - null        # no weighting — test on balanced-ish data
+    - "balanced"
+    - null
 
-# --- Fixed (same for all runs) ---
+# --- Fixed ---
 fixed:
   training.epochs: 70
   training.early_stopping_patience: 20
@@ -48,13 +54,15 @@ fixed:
   augmentation.translation_range: 0.25
   augmentation.fill_mode: "nearest"
 
-# --- Rule out bad combos ---
+# --- Exclude bad combos ---
 exclude:
-  # high LR + few layers = unstable
-  - model.fine_tune_at: 145
+  # efficientnetb0 is big — skip high LR + low dropout combos
+  - model.base: "efficientnetb0"
+    model.dropout: 0.4
     training.learning_rate: 0.00001
-  # high dropout + many layers = too much regularization
-  - model.dropout: 0.5
-    model.fine_tune_at: 120
+  # low dropout + no weight = weak regularization
+  - model.dropout: 0.4
+    training.class_weight: null
+    augmentation.rotation_range: 30.0
 
-# Combinations: 2×3×2×2×2 = 48 - exclusions ≈ 24
+# Combos: 3×2×2×2×2 = 48 - exclusions ≈ 36

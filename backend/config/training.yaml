@@ -17,13 +17,17 @@ data:
   seed: 42
 
 model:
-  base: "mobilenetv2"
+  base: "mobilenetv2"              # mobilenetv2 | mobilenetv3small | efficientnetb0
+                                    # Layer counts: v2=154, v3small=~210, b0=~237
+                                    # Set fine_tune_at relative to total layers
   weights: "imagenet"
   input_shape: [224, 224, 3]
   num_classes: 3
   dropout: 0.5
   freeze_base: false
-  fine_tune_at: 130                # top 24 layers only (154→130), less overfit risk
+  fine_tune_at: 130                # mobilenetv2: 130 (24 layers unfrozen)
+                                    # mobilenetv3small: try 170 (40 layers)
+                                    # efficientnetb0: try 200 (37 layers)
 
 training:
   optimizer: "adam"
