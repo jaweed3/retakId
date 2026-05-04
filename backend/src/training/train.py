@@ -189,36 +189,42 @@ def setup_mlflow(config):
     import mlflow
     import os as _os
 
-    # Check env var first
     cloud_uri = _os.environ.get("MLFLOW_TRACKING_URI", "")
     config_uri = getattr(config.logging, "mlflow_uri", "backend/logs/mlruns")
 
     if cloud_uri:
-        # Cloud mode — DagsHub or any hosted MLflow
         mlflow.set_tracking_uri(cloud_uri)
-        auth_msg = ""
-        if _os.environ.get("MLFLOW_TRACKING_USERNAME"):
-            auth_msg = " (authenticated)"
-        logger.info(f"MLflow cloud: {cloud_uri}{auth_msg}")
+        auth_msg = "authenticated" if _os.environ.get("MLFLOW_TRACKING_USERNAME") else "no auth"
+        logger.info(f"MLflow cloud: {cloud_uri} ({auth_msg})")
     elif config_uri and ("://" in str(config_uri) or str(config_uri).startswith("http")):
-        # Config specifies a remote URL
         mlflow.set_tracking_uri(str(config_uri))
         logger.info(f"MLflow remote: {config_uri}")
     else:
-        # Local filesystem fallback
         abs_uri = str(Path(config_uri).resolve())
         mlflow.set_tracking_uri(f"file://{abs_uri}")
         logger.info(f"MLflow local: {abs_uri}")
 
     mlflow.set_experiment("retak-soil-cracks")
-
-    # Enable TensorFlow autologging
-    mlflow.tensorflow.autolog(
-        log_models=False,
-        log_input_examples=False,
-    )
-
     return mlflow
+
+
+class MLflowMetricsCallback(tf.keras.callbacks.Callback):
+    """Custom callback to log training metrics to MLflow each epoch.
+
+    More reliable than autolog for remote tracking (DagsHub).
+    """
+    def __init__(self, mlflow_module):
+        super().__init__()
+        self.mlflow = mlflow_module
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        metrics = {}
+        for k, v in logs.items():
+            if isinstance(v, (int, float)):
+                metrics[k] = v
+        if metrics:
+            self.mlflow.log_metrics(metrics, step=epoch)
 
 
 def train(config, train_ds, val_ds, class_weight=None):
@@ -253,6 +259,8 @@ def train(config, train_ds, val_ds, class_weight=None):
             patience=config.training.reduce_lr_patience,
             min_lr=1e-7, verbose=1,
         ),
+        # Manual MLflow logging — more reliable than autolog for remote
+        MLflowMetricsCallback(mlflow),
     ]
 
     # Log hyperparams to MLflow
