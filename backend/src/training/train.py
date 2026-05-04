@@ -127,11 +127,15 @@ def build_model(config):
 
     mod_name, class_name, preproc_mod = MODEL_REGISTRY[model_key]
 
-    # Import module (e.g., tensorflow.keras.applications.mobilenet_v2)
-    app_mod = importlib.import_module(f"tensorflow.keras.applications.{mod_name}")
-    model_cls = getattr(app_mod, class_name)
+    # Get model class from tf.keras.applications (main namespace)
+    import tensorflow.keras.applications as keras_apps
+    model_cls = getattr(keras_apps, class_name, None)
+    if model_cls is None:
+        # Fallback: try submodule (e.g., mobilenet_v2.MobileNetV2)
+        app_mod = importlib.import_module(f"tensorflow.keras.applications.{mod_name}")
+        model_cls = getattr(app_mod, class_name)
 
-    # Get preprocess_input from the correct module
+    # Get preprocess_input
     preproc_module = importlib.import_module(
         f"tensorflow.keras.applications.{preproc_mod}"
     )
