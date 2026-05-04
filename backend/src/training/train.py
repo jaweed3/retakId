@@ -150,7 +150,7 @@ def build_model(config):
 
     if freeze_base:
         base_model.trainable = False
-        logger.info(f"{model_name}: fully frozen (transfer learning)")
+        logger.info(f"{model_key}: fully frozen (transfer learning)")
     elif fine_tune_at is not None:
         base_model.trainable = True
         for layer in base_model.layers[:fine_tune_at]:
@@ -158,12 +158,12 @@ def build_model(config):
         trainable_count = sum(1 for l in base_model.layers if l.trainable)
         total_layers = len(base_model.layers)
         logger.info(
-            f"{model_name}: layers {fine_tune_at}+ unfrozen "
+            f"{model_key}: layers {fine_tune_at}+ unfrozen "
             f"({trainable_count}/{total_layers} layers, {trainable_count/total_layers*100:.0f}%)"
         )
     else:
         base_model.trainable = True
-        logger.info(f"{model_name}: all layers unfrozen (full fine-tuning)")
+        logger.info(f"{model_key}: all layers unfrozen (full fine-tuning)")
 
     inputs = tf.keras.Input(shape=INPUT_SHAPE)
     x = preprocess_fn(inputs)
@@ -172,7 +172,7 @@ def build_model(config):
     x = tf.keras.layers.Dropout(config.model.dropout)(x)
     outputs = tf.keras.layers.Dense(config.model.num_classes, activation="softmax")(x)
 
-    model = tf.keras.Model(inputs, outputs, name=f"retak_{model_name}")
+    model = tf.keras.Model(inputs, outputs, name=f"retak_{model_key}")
 
     lr = config.training.learning_rate
     model.compile(
