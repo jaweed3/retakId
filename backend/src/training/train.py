@@ -179,21 +179,45 @@ def compute_class_weights(class_counts: dict, class_labels: list) -> dict | None
 
 
 def setup_mlflow(config):
-    """Initialize MLflow tracking (local filesystem, no server needed)."""
-    import mlflow
+    """Initialize MLflow tracking — cloud (DagsHub) or local.
 
-    mlflow_uri = getattr(config.logging, "mlflow_uri", "backend/logs/mlruns")
-    abs_uri = str(Path(mlflow_uri).resolve())
-    mlflow.set_tracking_uri(f"file://{abs_uri}")
+    Priority:
+      1. MLFLOW_TRACKING_URI env var (set in shell)
+      2. Config mlflow_uri if it's a URL (http/https)
+      3. Local filesystem (default)
+    """
+    import mlflow
+    import os as _os
+
+    # Check env var first
+    cloud_uri = _os.environ.get("MLFLOW_TRACKING_URI", "")
+    config_uri = getattr(config.logging, "mlflow_uri", "backend/logs/mlruns")
+
+    if cloud_uri:
+        # Cloud mode — DagsHub or any hosted MLflow
+        mlflow.set_tracking_uri(cloud_uri)
+        auth_msg = ""
+        if _os.environ.get("MLFLOW_TRACKING_USERNAME"):
+            auth_msg = " (authenticated)"
+        logger.info(f"MLflow cloud: {cloud_uri}{auth_msg}")
+    elif config_uri and ("://" in str(config_uri) or str(config_uri).startswith("http")):
+        # Config specifies a remote URL
+        mlflow.set_tracking_uri(str(config_uri))
+        logger.info(f"MLflow remote: {config_uri}")
+    else:
+        # Local filesystem fallback
+        abs_uri = str(Path(config_uri).resolve())
+        mlflow.set_tracking_uri(f"file://{abs_uri}")
+        logger.info(f"MLflow local: {abs_uri}")
+
     mlflow.set_experiment("retak-soil-cracks")
 
     # Enable TensorFlow autologging
     mlflow.tensorflow.autolog(
-        log_models=False,  # we log manually for control
+        log_models=False,
         log_input_examples=False,
     )
 
-    logger.info(f"MLflow tracking: {abs_uri}")
     return mlflow
 
 

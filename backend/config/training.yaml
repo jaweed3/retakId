@@ -61,4 +61,8 @@ logging:
   tensorboard_dir: "backend/logs/tensorboard"
   checkpoint_dir: "backend/models/checkpoints"
   runs_csv: "backend/logs/runs.csv"
-  mlflow_uri: "backend/logs/mlruns"   # local MLflow tracking (no server needed)
+  mlflow_uri: "backend/logs/mlruns"
+    # Use DagsHub cloud MLflow (lihat experiments dari mana aja):
+    #   export MLFLOW_TRACKING_URI=https://dagshub.com/jaweed3/retakId.mlflow
+    #   export MLFLOW_TRACKING_USERNAME=jaweed3
+    #   export MLFLOW_TRACKING_PASSWORD=<dagshub_token>
