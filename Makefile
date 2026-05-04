@@ -1,4 +1,4 @@
-.PHONY: setup scrape validate deduplicate stats split train tune evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
+.PHONY: setup scrape validate deduplicate stats split train tune grid-gen grid-run evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
 
 PYTHON = uv run --python 3.11
 CONFIG = backend/config/training.yaml
@@ -40,8 +40,26 @@ evaluate:
 	model = tf.keras.models.load_model('backend/models/checkpoints/best.keras'); \
 	evaluate_model(model, test_ds, config.export.class_labels, output_dir='backend/logs')"
 
-# Hyperparameter tuning — run all experiment variants
-tune:
+# --- Hyperparameter Tuning ---
+
+# Generate experiment configs from grid
+grid-gen:
+	$(PYTHON) scripts/generate_grid.py
+	@echo "Grid configs generated. Run 'make grid-run' to start."
+
+# Run all grid experiments (with resume support — re-run if SSH disconnects)
+grid-run:
+	bash scripts/run_grid.sh
+
+# Dry-run: show experiment count without running
+grid-dry:
+	$(PYTHON) scripts/generate_grid.py --dry-run
+
+# Full tuning pipeline: generate + run
+tune: grid-gen grid-run
+
+# Run all experiment variants (legacy)
+tune-legacy:
 	bash scripts/run_experiments.sh
 
 # Run single experiment variant
