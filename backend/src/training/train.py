@@ -94,55 +94,48 @@ def load_datasets(config):
 def build_model(config):
     """Build model from tf.keras.applications with progressive fine-tuning.
 
-    Supports any Keras Applications model: mobilenetv2, mobilenetv3small,
-    efficientnetb0, convnexttiny, efficientnetv2s, etc.
-
     Config:
-        model.base: model name (lowercase, matching keras.applications)
-        model.fine_tune_at: layer index to start unfreezing (model-specific)
+        model.base: mobilenetv2 | mobilenetv3small | efficientnetb0 | convnexttiny
+        model.fine_tune_at: layer index to start unfreezing
     """
+
+    # Map user-friendly names → (module, class, preprocess_module)
+    MODEL_REGISTRY = {
+        "mobilenetv2":      ("mobilenet_v2",    "MobileNetV2",     "mobilenet_v2"),
+        "mobilenetv3small": ("mobilenet_v3",    "MobileNetV3Small", "mobilenet_v3"),
+        "mobilenetv3large": ("mobilenet_v3",    "MobileNetV3Large", "mobilenet_v3"),
+        "efficientnetb0":   ("efficientnet",    "EfficientNetB0",  "efficientnet"),
+        "efficientnetb1":   ("efficientnet",    "EfficientNetB1",  "efficientnet"),
+        "efficientnetb2":   ("efficientnet",    "EfficientNetB2",  "efficientnet"),
+        "convnexttiny":     ("convnext",        "ConvNeXtTiny",    "convnext"),
+        "convnextsmall":    ("convnext",        "ConvNeXtSmall",   "convnext"),
+        "densenet121":      ("densenet",        "DenseNet121",     "densenet"),
+        "resnet50":         ("resnet50",        "ResNet50",        "resnet50"),
+    }
+
     import importlib
 
     INPUT_SHAPE = tuple(config.model.input_shape)
-    model_name = config.model.base.lower()
-    logger.info(f"Building {model_name} (weights={config.model.weights})...")
+    model_key = config.model.base.lower().replace("-", "").replace("_", "")
+    logger.info(f"Building {model_key} (weights={config.model.weights})...")
 
-    # Dynamically load model class and preprocess function
-    try:
-        app_mod = importlib.import_module(f"tensorflow.keras.applications.{model_name}")
-    except ModuleNotFoundError:
-        # Try common aliases
-        aliases = {
-            "mobilenetv3small": "mobilenet_v3",
-            "mobilenetv3large": "mobilenet_v3",
-        }
-        mod_name = aliases.get(model_name, model_name)
-        try:
-            app_mod = importlib.import_module(f"tensorflow.keras.applications.{mod_name}")
-        except ModuleNotFoundError:
-            available = [
-                n for n in dir(tf.keras.applications)
-                if n[0].isupper() and not n.startswith("_")
-            ]
-            raise ValueError(
-                f"Unknown model '{model_name}'. Available: {available[:15]}..."
-            )
+    if model_key not in MODEL_REGISTRY:
+        available = list(MODEL_REGISTRY.keys())
+        raise ValueError(
+            f"Unknown model '{config.model.base}'. Available: {available}"
+        )
 
-    # Get the model class (e.g., MobileNetV2, EfficientNetB0)
-    model_cls = getattr(app_mod, model_name.replace("_", "").replace("-", ""), None)
-    if model_cls is None:
-        # Try PascalCase variants
-        for attr in dir(app_mod):
-            if attr.lower().replace("_", "") == model_name.replace("_", "").replace("-", ""):
-                model_cls = getattr(app_mod, attr)
-                break
-    if model_cls is None:
-        raise ValueError(f"Cannot find model class for '{model_name}' in {app_mod.__name__}")
+    mod_name, class_name, preproc_mod = MODEL_REGISTRY[model_key]
 
-    # Get preprocess_input
-    preprocess_fn = getattr(app_mod, "preprocess_input", None)
-    if preprocess_fn is None:
-        from tensorflow.keras.applications.imagenet_utils import preprocess_input
+    # Import module (e.g., tensorflow.keras.applications.mobilenet_v2)
+    app_mod = importlib.import_module(f"tensorflow.keras.applications.{mod_name}")
+    model_cls = getattr(app_mod, class_name)
+
+    # Get preprocess_input from the correct module
+    preproc_module = importlib.import_module(
+        f"tensorflow.keras.applications.{preproc_mod}"
+    )
+    preprocess_fn = getattr(preproc_module, "preprocess_input")
 
     # Build base model
     base_model = model_cls(
