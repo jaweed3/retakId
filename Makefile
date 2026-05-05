@@ -87,14 +87,16 @@ export:
 deploy-model:
 	@echo "Deploying model to mobile-app branch..."
 	git stash --include-untracked 2>/dev/null || true
-	git checkout mobile-app 2>/dev/null || git checkout -b mobile-app
+	-git branch -D mobile-app 2>/dev/null
+	git checkout --orphan mobile-app
 	git checkout main -- mobile-app/ backend/models/retak_mobilenetv2.tflite backend/models/labels.txt 2>/dev/null || true
 	cp backend/models/retak_mobilenetv2.tflite mobile-app/app/src/main/assets/ 2>/dev/null || true
 	cp backend/models/labels.txt mobile-app/app/src/main/assets/ 2>/dev/null || true
-	git add mobile-app/app/src/main/assets/retak_mobilenetv2.tflite mobile-app/app/src/main/assets/labels.txt 2>/dev/null || true
-	git diff --cached --quiet || git commit -m "model: update TFLite"
-	git push origin mobile-app
+	git add mobile-app/ backend/models/retak_mobilenetv2.tflite backend/models/labels.txt 2>/dev/null || true
+	git commit -m "model: TFLite + labels"
+	git push origin mobile-app --force
 	git checkout main
+	-git branch -D mobile-app 2>/dev/null
 	git stash pop 2>/dev/null || true
 	@echo "Model deployed to origin/mobile-app. Adam: git pull origin mobile-app"
 
