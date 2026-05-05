@@ -16,9 +16,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.unidagontor.retakid.ui.viewmodel.BerandaViewModel
 import com.unidagontor.retakid.ui.theme.*
 
-// ─── Data model sementara (nanti dari Firestore) ────────────────
+// ─── Data model (nanti dari Firestore) ────────────────
 data class LaporanItem(
     val id: String,
     val namaLokasi: String,
@@ -29,42 +31,40 @@ data class LaporanItem(
     val terverifikasi: Int       // jumlah konfirmasi warga
 )
 
-val dummyLaporan = listOf(
-    LaporanItem("1", "Lereng Jenangan Utara",  "BAHAYA",  "Retakan lebar ±15cm, tanah bergerak",       "30 mnt lalu",  "Adam T.",   5),
-    LaporanItem("2", "Jalan Perbatasan Ngrayun","WASPADA", "Retakan memanjang di bahu jalan",           "2 jam lalu",   "Budi S.",   2),
-    LaporanItem("3", "Tambang Timur RT 04",    "BAHAYA",  "Suara gemuruh bawah tanah, warga mengungsi","1 jam lalu",   "Citra M.",  8),
-    LaporanItem("4", "Desa Setono",            "AMAN",    "Retakan kecil akibat kering musim",         "5 jam lalu",   "Dewi R.",   1),
-    LaporanItem("5", "Lereng Selatan Pos 2",   "WASPADA", "Pohon miring, tanah lembek pasca hujan",    "3 jam lalu",   "Eko P.",    3),
-)
-
-
-
 @Composable
-fun BerandaTab() {
+fun BerandaTab(viewModel: BerandaViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Column(modifier = Modifier.fillMaxSize().background(Surface)) {
 
         // Header
         BerandaHeader()
 
         // Ringkasan statistik
-        StatsSummaryRow(laporan = dummyLaporan)
+        StatsSummaryRow(laporan = uiState.laporanList)
 
         // Feed laporan
-        LazyColumn(
-            contentPadding       = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement  = Arrangement.spacedBy(10.dp)
-        ) {
-            item {
-                Text(
-                    "Laporan Terbaru",
-                    fontWeight = FontWeight.Bold,
-                    fontSize   = 16.sp,
-                    color      = TextPrimary,
-                    modifier   = Modifier.padding(bottom = 4.dp)
-                )
+        if (uiState.isLoading && uiState.laporanList.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = GreenPrimary)
             }
-            items(dummyLaporan) { laporan ->
-                LaporanCard(laporan = laporan)
+        } else {
+            LazyColumn(
+                contentPadding       = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement  = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    Text(
+                        "Laporan Terbaru",
+                        fontWeight = FontWeight.Bold,
+                        fontSize   = 16.sp,
+                        color      = TextPrimary,
+                        modifier   = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+                items(uiState.laporanList) { laporan ->
+                    LaporanCard(laporan = laporan)
+                }
             }
         }
     }

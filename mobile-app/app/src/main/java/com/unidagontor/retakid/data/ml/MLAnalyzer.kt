@@ -2,6 +2,7 @@ package com.unidagontor.retakid.data.ml
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.unidagontor.retakid.util.BitmapUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -30,10 +31,10 @@ class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
             .build()
 
         try {
-            // "model.tflite" adalah nama default. User perlu menyesuaikan atau menamai filenya model.tflite
+
             classifier = ImageClassifier.createFromFileAndOptions(
                 context,
-                "model.tflite",
+                "retak_mobilenetv2.tflite",
                 options
             )
         } catch (e: Exception) {
@@ -46,14 +47,16 @@ class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
             setupClassifier()
         }
 
-        // Jika model tetap tidak bisa dimuat (misal file tidak ada), gunakan simulasi agar tidak crash
+
         if (classifier == null) {
             delay(1000)
             return@withContext DetectionResult.entries[Random.nextInt(DetectionResult.entries.size)]
         }
 
+        val argbBitmap = BitmapUtils.ensureARGB8888(bitmap)
+
         val imageProcessor = ImageProcessor.Builder().build()
-        val tensorImage = imageProcessor.process(TensorImage.fromBitmap(bitmap))
+        val tensorImage = imageProcessor.process(TensorImage.fromBitmap(argbBitmap))
         
         val results = classifier?.classify(tensorImage)
         val topResult = results?.firstOrNull()?.categories?.firstOrNull()?.label?.uppercase()

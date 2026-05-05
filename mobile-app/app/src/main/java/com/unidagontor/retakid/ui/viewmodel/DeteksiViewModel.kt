@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -81,25 +82,31 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
 
         _uiState.update { it.copy(isSubmitting = true) }
 
-        val report = hashMapOf(
-            "namaLokasi" to namaLokasi,
-            "status" to state.detectionResult.name,
-            "catatan" to catatan,
-            "latitude" to (state.location?.latitude ?: 0.0),
-            "longitude" to (state.location?.longitude ?: 0.0),
-            "timestamp" to System.currentTimeMillis(),
-            "pelapor" to "User", // Hardcoded for now
-            "terverifikasi" to 0
-        )
+        viewModelScope.launch {
+            try {
+                // Pastikan lokasi sudah ada, jika belum coba fetch lagi sekali
+                val finalLocation = state.location ?: locationService.getCurrentLocation()
 
-        db.collection("laporan")
-            .add(report)
-            .addOnSuccessListener {
+                val report = hashMapOf(
+                    "namaLokasi" to namaLokasi,
+                    "status" to state.detectionResult.name,
+                    "catatan" to catatan,
+                    "latitude" to (finalLocation?.latitude ?: 0.0),
+                    "longitude" to (finalLocation?.longitude ?: 0.0),
+                    "timestamp" to System.currentTimeMillis(),
+                    "pelapor" to "User",
+                    "terverifikasi" to 0
+                )
+
+                db.collection("laporan")
+                    .add(report)
+                    .await()
+
                 _uiState.update { it.copy(isSubmitting = false, stage = DeteksiStage.SUCCESS) }
-            }
-            .addOnFailureListener { e ->
+            } catch (e: Exception) {
                 _uiState.update { it.copy(isSubmitting = false, error = "Gagal mengirim laporan: ${e.message}") }
             }
+        }
     }
 
     fun reset() {
