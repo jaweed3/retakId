@@ -1,4 +1,4 @@
-.PHONY: setup scrape validate deduplicate stats split train tune grid-gen grid-run evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
+.PHONY: setup scrape validate deduplicate stats split train tune grid-gen grid-run cv register list-models deploy-registered evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
 
 PYTHON = uv run --python 3.11
 CONFIG = backend/config/training.yaml
@@ -71,6 +71,26 @@ train-exp:
 # Usage: make export MODEL=backend/models/checkpoints/best.keras
 export:
 	$(PYTHON) backend/src/training/export.py --model-path $(MODEL) --config $(CONFIG)
+
+# --- Model Registry ---
+
+# Cross-validate best config (k=5 folds)
+cv:
+	$(PYTHON) scripts/cross_validate.py --config $(CONFIG)
+
+# Evaluate + register model to MLflow Registry
+# Usage: make register RUN_ID=<mlflow_run_id>
+register:
+	$(PYTHON) scripts/register_model.py --run-id $(RUN_ID)
+
+# List registered models
+list-models:
+	$(PYTHON) scripts/register_model.py --list
+
+# Download best registered model for Android
+# Usage: make deploy-registered ASSETS=app/src/main/assets
+deploy-registered:
+	$(PYTHON) scripts/register_model.py --download --output $(ASSETS)
 
 # --- Deployment ---
 

@@ -1,0 +1,44 @@
+# =============================================================================
+# Retak.id — Model Promotion Benchmark
+# =============================================================================
+# Defines minimum thresholds for a model to be promoted to "production".
+# Used by scripts/register_model.py to compare and register best models.
+#
+# Philosophy:
+#   - BAHAYA recall > accuracy. Missing a danger crack is FATAL.
+#   - Macro F1 ensures all 3 classes perform well, not just majority.
+#   - Cross-validation consistency prevents lucky seed promotions.
+# =============================================================================
+
+thresholds:
+  # Overall
+  test_accuracy: 0.82
+  macro_f1: 0.75
+  weighted_f1: 0.82
+
+  # Per-class recall (MUST-PASS — weighted by severity)
+  per_class_recall:
+    AMAN: 0.75       # OK if some safe cracks are flagged
+    WASPADA: 0.60    # OK to miss some warning signs (they'll be re-checked)
+    BAHAYA: 0.72     # CRITICAL: cannot miss danger. Higher than WASPADA.
+
+  # Per-class precision
+  per_class_precision:
+    BAHAYA: 0.70     # Don't cry wolf too often
+
+  # Quantization
+  int8_agreement: 0.90
+  model_size_mb: 5.0
+
+  # Cross-validation (consistency check)
+  cv_folds: 5
+  cv_min_mean_accuracy: 0.80
+  cv_max_std: 0.03    # max 3% std across folds
+
+# Promotion rules: model must pass ALL threshold checks
+# AND beat previous best on at least 2 of these 4 primary metrics:
+primary_metrics:
+  - test_accuracy
+  - macro_f1
+  - "per_class_recall.BAHAYA"
+  - int8_agreement
