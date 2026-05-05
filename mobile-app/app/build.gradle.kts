@@ -79,9 +79,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
 //    Location
     implementation("com.google.android.gms:play-services-location:21.2.0")
-//    TensorFlow Lite
-    implementation("org.tensorflow:tensorflow-lite-task-vision:0.4.4")
-    implementation("org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4")
+//    TensorFlow Lite (raw Interpreter — no metadata dependency)
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
 //    CameraX
     implementation("androidx.camera:camera-camera2:1.3.3")
     implementation("androidx.camera:camera-lifecycle:1.3.3")
