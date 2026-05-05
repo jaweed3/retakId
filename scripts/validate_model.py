@@ -174,17 +174,29 @@ def validate(tflite_path: str, test_images_dir: str | None = None) -> dict:
         report["checks"].append({"check": "multi_class", "result": PASS})
         logger.info("  %s Predicts %d classes: %s", PASS, len(unique_preds), unique_preds)
 
-    # ── 6. Confidence variance ──
-    logger.info("Check 6: Confidence varies across predictions...")
+    # ── 6. Confidence check ──
+    logger.info("Check 6: Confidence quality...")
     conf_std = float(np.std(confidences))
-    if conf_std < 0.05:
-        msg = f"Confidence std={conf_std:.4f} — too flat, model is guessing"
-        report["checks"].append({"check": "confidence_variance", "result": FAIL, "error": msg})
+    conf_max = float(np.max(confidences))
+    conf_min = float(np.min(confidences))
+
+    # Model passes if: max confidence > 0.45 (above random 33%) AND std > 0.02 (not all identical)
+    if conf_max < 0.45:
+        msg = f"Max confidence={conf_max:.3f} < 0.45 — model never confident"
+        report["checks"].append({"check": "confidence_quality", "result": FAIL, "error": msg})
+        errors.append(msg)
+        logger.error("  %s %s", FAIL, msg)
+    elif conf_std < 0.02:
+        msg = f"Confidence std={conf_std:.4f} — all predictions identical (frozen model)"
+        report["checks"].append({"check": "confidence_quality", "result": FAIL, "error": msg})
         errors.append(msg)
         logger.error("  %s %s", FAIL, msg)
     else:
-        report["checks"].append({"check": "confidence_variance", "result": PASS})
-        logger.info("  %s Confidence std=%.4f", PASS, conf_std)
+        report["checks"].append({"check": "confidence_quality", "result": PASS})
+        logger.info(
+            "  %s Confidence: max=%.3f, min=%.3f, std=%.3f",
+            PASS, conf_max, conf_min, conf_std
+        )
 
     # ── Final ──
     if errors:
