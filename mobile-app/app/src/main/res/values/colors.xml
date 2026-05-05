@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="green_primary">#2E7D32</color>
+    <color name="green_dark">#1B5E20</color>
+    <color name="brown_secondary">#8D6E63</color>
+    <color name="brown_dark">#5D4037</color>
+    <color name="status_aman">#4CAF50</color>
+    <color name="status_waspada">#FF9800</color>
+    <color name="status_bahaya">#F44336</color>
+    <color name="background_light">#F8F9FA</color>
+    <color name="surface_white">#FFFFFF</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+
+</resources>
