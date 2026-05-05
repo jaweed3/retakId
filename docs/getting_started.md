@@ -1,70 +1,102 @@
-# Getting Started
+# Getting Started — Retak.id
 
-## Prerequisites (laptop sendiri)
-
-- Python 3.10–3.12 (TensorFlow doesn't support 3.13+ yet)
-- [uv](https://github.com/astral-sh/uv) installed
-- Android Studio (for app development)
-
-## PC Lab — Zero Setup Training
-
-Kalo di PC lab dan males setup Python/TF/DVC manual, pake bootstrap script:
+## PC Lab — Zero Setup (sekali aja)
 
 ```bash
 git clone https://github.com/jaweed3/retakId.git && cd retakId
 bash scripts/bootstrap.sh
-make train
 ```
 
-**Yang dilakukan `bootstrap.sh`:**
-1. Install `uv` (Python package manager) — zero system dependency
-2. Install Python 3.11 via uv (standalone, ga ganggu system Python)
-3. Install semua dependencies (~2GB, sekali aja)
-4. Pull dataset dari DagsHub via DVC
-
-Setelah selesai, langsung bisa `make train`. Ga perlu install apa-apa manual.
-
-## PC Lab — Alternative: Docker
+## Quick Reference Card
 
 ```bash
-docker build -t retakid-train -f backend/Dockerfile .
-docker run retakid-train
+# ===== DATA PIPELINE =====
+make scrape KW="landslide soil cracks, retakan tanah" LIMIT=150   # Scrape dataset
+make validate                                                        # Cek corrupt images
+make deduplicate                                                     # Cross-class dedup
+make stats                                                           # Dataset statistics
+make split                                                           # 70/15/15 train/val/test
+
+# ===== TRAINING =====
+make train                                       # Single training run
+make grid-gen && make grid-run                   # Grid search (36 experiments, resume-safe)
+
+# ===== EVALUATION =====
+make cv                                          # 5-fold cross-validation
+make evaluate                                    # Evaluate checkpoint on test set
+
+# ===== MODEL REGISTRY =====
+make register RUN_ID=<mlflow_run_id>             # Promote model (check benchmark + compare)
+make list-models                                 # List registered models
+make deploy-registered ASSETS=app/src/main/assets # Download best model for Android
+
+# ===== MONITORING =====
+mlflow ui --backend-store-uri file://$(pwd)/backend/logs/mlruns  # Local MLflow
+# Cloud: buka https://dagshub.com/jaweed3/retakId.mlflow
+
+# ===== TESTING =====
+make test                                        # 16 pytest tests
+
+# ===== UTILS =====
+make lint                                        # Check formatting
+make format                                      # Auto-format code
+make clean                                       # Remove cache
 ```
 
-Docker image includes: Python 3.11, TF 2.19, DVC, all deps. Auto-pulls data from DagsHub.
-
-## Backend Setup (laptop sendiri)
-
-1. Clone the repository
-2. `make setup` to install dependencies via `uv`
-3. `make pull-data` to download dataset from DagsHub DVC
-4. Pipeline siap
-
-## Full ML Pipeline
+## Full Workflow (Training → Production)
 
 ```bash
-# Data (kalo belum ada di DagsHub)
-make scrape KW="landslide soil cracks, retakan tanah longsor, ground fissure, soil surface cracks" LIMIT=150
-# ... manual annotation into data/processed/AMAN|WASPADA|BAHAYA ...
+# 1. Setup data (sekali aja, kalo belum)
+make validate && make deduplicate && make split
 
-# Validation
-make validate       # Check dataset integrity
-make deduplicate    # Cross-class near-duplicate detection
-make stats          # Dataset statistics & class distribution
-make split          # Stratified 70/15/15 train/val/test split
+# 2. Grid search (auto-gen configs + run semua)
+make grid-gen && make grid-run
 
-# Training
-make train          # Full pipeline: train → evaluate → export TFLite INT8
-make test           # 16 tests
+# 3. Cari run ID terbaik dari MLflow dashboard
+# Buka https://dagshub.com/jaweed3/retakId.mlflow
+# Copy run ID terbaik (misal: abc123def456)
 
-# Monitor
-tensorboard --logdir backend/logs/tensorboard
+# 4. Cross-validation — cek konsistensi
+make cv
+# Output: mean ± std per metric. Lolos kalo accuracy std < 3%.
 
-# Export from checkpoint
-make export MODEL=backend/models/checkpoints/best.keras
+# 5. Register — promote jadi best model
+make register RUN_ID=abc123def456
+# Cek benchmark: BAHAYA recall ≥72%, accuracy ≥82%, macro F1 ≥75%
+# Auto-compare vs champion sebelumnya. Lolos kalo ≥2 primary metrics lebih baik.
 
-# Deploy to Android app
-make deploy ASSETS=app/src/main/assets
+# 6. Lihat registered models
+make list-models
+
+# 7. Deploy ke app Android
+make deploy-registered ASSETS=app/src/main/assets
+```
+
+## Model Promotion Rules
+
+Model dipromote ke "Staging" kalo memenuhi:
+
+| Metric | Threshold | Severity |
+|--------|-----------|----------|
+| BAHAYA recall | ≥ 72% | **CRITICAL** |
+| Test accuracy | ≥ 82% | Required |
+| Macro F1 | ≥ 75% | Required |
+| AMAN recall | ≥ 75% | Required |
+| INT8 agreement | ≥ 90% | Required |
+| CV accuracy std | < 3% | Required |
+
+Plus: harus beat champion sebelumnya di minimal 2 dari 4 primary metrics.
+
+## DagsHub Cloud Setup
+
+```bash
+# Sekali aja — set env vars
+export MLFLOW_TRACKING_URI=https://dagshub.com/jaweed3/retakId.mlflow
+export MLFLOW_TRACKING_USERNAME=jaweed3
+export MLFLOW_TRACKING_PASSWORD=<token_dagshub>
+
+# Training auto-log ke cloud. Dashboard:
+# https://dagshub.com/jaweed3/retakId.mlflow
 ```
 
 ## Makefile Targets
@@ -72,33 +104,35 @@ make deploy ASSETS=app/src/main/assets
 | Target | Description |
 |--------|-------------|
 | `make setup` | Install dependencies via uv |
-| `make lab-setup` | Bootstrap fresh PC (install uv + Python + deps + data) |
+| `make lab-setup` | Bootstrap fresh PC (uv + Python + deps + data) |
 | `make pull-data` | Pull dataset from DagsHub via DVC |
-| `make lab-train` | Full pipeline: pull data → validate → dedup → split → train |
 | `make scrape KW="..." LIMIT=100` | Scrape images from DuckDuckGo |
 | `make validate` | Check dataset for corrupt/bad images |
 | `make deduplicate` | Detect cross-class near-duplicates |
 | `make stats` | Print dataset statistics |
 | `make split` | Stratified 70/15/15 train/val/test split |
 | `make train` | Full training pipeline (train → eval → export) |
+| `make grid-gen` | Generate experiment configs from grid |
+| `make grid-run` | Run all grid experiments (resume-safe) |
+| `make tune` | grid-gen + grid-run |
+| `make cv` | 5-fold cross-validation |
+| `make register RUN_ID=<id>` | Promote model to MLflow Registry |
+| `make list-models` | List registered models |
 | `make evaluate` | Evaluate a trained model checkpoint |
 | `make export MODEL=path` | Export TFLite from checkpoint |
-| `make deploy` | Copy model + labels to Android assets |
+| `make deploy` | Copy model + labels to Android assets (manual) |
+| `make deploy-registered` | Download best registered model (auto) |
 | `make test` | Run pytest suite (16 tests) |
 | `make docker-build` | Build Docker training image |
 | `make docker-train` | Run training in Docker |
-| `make lint` | Check code formatting |
-| `make format` | Auto-format code with black |
 
 ## Model Artifacts
 
 After training:
 - `backend/models/retak_mobilenetv2.tflite` — INT8 quantized model (<5MB)
-- `backend/models/retak_mobilenetv2_int8.tflite` — INT8 variant
 - `backend/models/labels.txt` — Class labels (AMAN, WASPADA, BAHAYA)
 - `backend/models/checkpoints/best.keras` — Best Keras checkpoint
 
-## Model Integration
-```bash
-make deploy ASSETS=app/src/main/assets
-```
+Registered models also available via:
+- `make deploy-registered` — download best from MLflow Registry
+- DagsHub MLflow UI → Model Registry tab
