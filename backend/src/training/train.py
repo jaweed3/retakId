@@ -99,18 +99,18 @@ def build_model(config):
         model.fine_tune_at: layer index to start unfreezing
     """
 
-    # Map user-friendly names → (module, class, preprocess_module)
+    # Map user-friendly names → (module, class)
     MODEL_REGISTRY = {
-        "mobilenetv2":      ("mobilenet_v2",    "MobileNetV2",     "mobilenet_v2"),
-        "mobilenetv3small": ("mobilenet_v3",    "MobileNetV3Small", "mobilenet_v3"),
-        "mobilenetv3large": ("mobilenet_v3",    "MobileNetV3Large", "mobilenet_v3"),
-        "efficientnetb0":   ("efficientnet",    "EfficientNetB0",  "efficientnet"),
-        "efficientnetb1":   ("efficientnet",    "EfficientNetB1",  "efficientnet"),
-        "efficientnetb2":   ("efficientnet",    "EfficientNetB2",  "efficientnet"),
-        "convnexttiny":     ("convnext",        "ConvNeXtTiny",    "convnext"),
-        "convnextsmall":    ("convnext",        "ConvNeXtSmall",   "convnext"),
-        "densenet121":      ("densenet",        "DenseNet121",     "densenet"),
-        "resnet50":         ("resnet50",        "ResNet50",        "resnet50"),
+        "mobilenetv2":      ("mobilenet_v2",    "MobileNetV2"),
+        "mobilenetv3small": ("mobilenet_v3",    "MobileNetV3Small"),
+        "mobilenetv3large": ("mobilenet_v3",    "MobileNetV3Large"),
+        "efficientnetb0":   ("efficientnet",    "EfficientNetB0"),
+        "efficientnetb1":   ("efficientnet",    "EfficientNetB1"),
+        "efficientnetb2":   ("efficientnet",    "EfficientNetB2"),
+        "convnexttiny":     ("convnext",        "ConvNeXtTiny"),
+        "convnextsmall":    ("convnext",        "ConvNeXtSmall"),
+        "densenet121":      ("densenet",        "DenseNet121"),
+        "resnet50":         ("resnet50",        "ResNet50"),
     }
 
     import importlib
@@ -125,21 +125,15 @@ def build_model(config):
             f"Unknown model '{config.model.base}'. Available: {available}"
         )
 
-    mod_name, class_name, preproc_mod = MODEL_REGISTRY[model_key]
+    mod_name, class_name = MODEL_REGISTRY[model_key]
 
     # Get model class from tf.keras.applications (main namespace)
     import tensorflow.keras.applications as keras_apps
     model_cls = getattr(keras_apps, class_name, None)
     if model_cls is None:
-        # Fallback: try submodule (e.g., mobilenet_v2.MobileNetV2)
+        # Fallback: try submodule
         app_mod = importlib.import_module(f"tensorflow.keras.applications.{mod_name}")
         model_cls = getattr(app_mod, class_name)
-
-    # Get preprocess_input
-    preproc_module = importlib.import_module(
-        f"tensorflow.keras.applications.{preproc_mod}"
-    )
-    preprocess_fn = getattr(preproc_module, "preprocess_input")
 
     # Build base model
     base_model = model_cls(
@@ -169,8 +163,11 @@ def build_model(config):
         base_model.trainable = True
         logger.info(f"{model_key}: all layers unfrozen (full fine-tuning)")
 
+    # Model expects float32 [0, 255] input — TFLite-friendly
+    # Rescaling(1./127.5, -1.0) = pixel/127.5 - 1.0 → exactly MobileNetV2 preprocessing
+    # TFLite converter properly quantizes Rescaling for uint8 input
     inputs = tf.keras.Input(shape=INPUT_SHAPE)
-    x = preprocess_fn(inputs)
+    x = tf.keras.layers.Rescaling(1.0 / 127.5, offset=-1.0)(inputs)
     x = base_model(x, training=not freeze_base)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dropout(config.model.dropout)(x)
