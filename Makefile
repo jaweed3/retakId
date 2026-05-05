@@ -1,4 +1,4 @@
-.PHONY: setup scrape validate deduplicate stats split train tune grid-gen grid-run cv register list-models deploy-registered evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
+.PHONY: setup scrape validate deduplicate stats split train validate-model train-and-deploy tune grid-gen grid-run cv register list-models deploy-registered evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
 
 PYTHON = uv run --python 3.11
 CONFIG = backend/config/training.yaml
@@ -28,6 +28,14 @@ split:
 
 train:
 	$(PYTHON) backend/src/training/train.py --config $(CONFIG)
+
+# Validate exported model matches Android contract (run before deploy!)
+validate-model:
+	$(PYTHON) scripts/validate_model.py --tflite backend/models/retak_mobilenetv2.tflite
+	@echo "Model validated — safe to deploy"
+
+# Full pipeline: train → validate → deploy
+train-and-deploy: train validate-model deploy-model
 
 evaluate:
 	$(PYTHON) -c "\
