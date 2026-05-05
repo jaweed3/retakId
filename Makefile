@@ -72,6 +72,24 @@ train-exp:
 export:
 	$(PYTHON) backend/src/training/export.py --model-path $(MODEL) --config $(CONFIG)
 
+# --- Deploy Model to mobile-app branch (Adam) ---
+
+# Push only the TFLite model to mobile-app branch
+# Adam pulls only mobile-app branch → small, fast
+deploy-model:
+	@echo "Deploying model to mobile-app branch..."
+	git stash --include-untracked 2>/dev/null || true
+	git checkout mobile-app 2>/dev/null || git checkout -b mobile-app
+	git checkout main -- mobile-app/ backend/models/retak_mobilenetv2.tflite backend/models/labels.txt 2>/dev/null || true
+	cp backend/models/retak_mobilenetv2.tflite mobile-app/app/src/main/assets/ 2>/dev/null || true
+	cp backend/models/labels.txt mobile-app/app/src/main/assets/ 2>/dev/null || true
+	git add mobile-app/app/src/main/assets/retak_mobilenetv2.tflite mobile-app/app/src/main/assets/labels.txt 2>/dev/null || true
+	git diff --cached --quiet || git commit -m "model: update TFLite"
+	git push origin mobile-app
+	git checkout main
+	git stash pop 2>/dev/null || true
+	@echo "Model deployed to origin/mobile-app. Adam: git pull origin mobile-app"
+
 # --- Model Registry ---
 
 # Cross-validate best config (k=5 folds)
