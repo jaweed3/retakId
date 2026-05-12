@@ -26,6 +26,12 @@ backend/models/*.pb
 # Logs & Visualization
 backend/logs/
 
+# --- Web App ---
+web-app/node_modules/
+web-app/dist/
+web-app/.env.local
+web-app/tsconfig.tsbuildinfo
+
 # --- Tools & OS ---
 .ipynb_checkpoints/
 .vscode/
