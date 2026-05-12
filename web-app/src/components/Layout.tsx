@@ -14,15 +14,42 @@ export function Layout() {
   const location = useLocation();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    cn('flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-      isActive ? 'bg-primary-surface text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30');
+    cn(
+      'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+      isActive
+        ? 'bg-primary-surface text-primary'
+        : 'text-text-secondary hover:text-text-primary hover:bg-divider/30',
+    );
 
-  const mobileActive = (to: string) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+  const mobileLinkClass = (to: string) => {
+    const isActive =
+      to === '/'
+        ? location.pathname === '/'
+        : location.pathname.startsWith(to);
+    return cn(
+      'flex flex-col items-center gap-1 py-1 px-3 text-xs font-medium transition-colors min-w-0',
+      isActive
+        ? 'text-primary'
+        : 'text-text-secondary/60',
+    );
+  };
+
+  const mobileIconClass = (to: string) => {
+    const isActive =
+      to === '/'
+        ? location.pathname === '/'
+        : location.pathname.startsWith(to);
+    return cn(
+      'h-5 w-5',
+      isActive ? 'text-primary' : 'text-text-secondary/50',
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
-      {/* Sidebar (desktop) */}
+      {/* ─── Sidebar (desktop) ─── */}
       <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-divider bg-card">
+        {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-divider">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-white font-bold text-sm">R</span>
@@ -32,20 +59,25 @@ export function Layout() {
             <p className="text-[10px] text-text-secondary">Crowdsourcing Dashboard</p>
           </div>
         </div>
+
+        {/* Nav */}
         <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} className={linkClass} end={item.to === '/'}>
-              <item.icon className="h-5 w-5" />{item.label}
+              <item.icon className="h-5 w-5" />
+              {item.label}
             </NavLink>
           ))}
         </nav>
+
+        {/* Theme toggle */}
         <div className="px-3 py-3 border-t border-divider flex items-center justify-between">
           <span className="text-xs text-text-secondary">Tampilan</span>
           <ThemeToggle />
         </div>
       </aside>
 
-      {/* Main */}
+      {/* ─── Main content ─── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-divider bg-card shrink-0">
@@ -57,17 +89,32 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:text-text-primary hover:bg-divider/40 lg:hidden" aria-label="Toggle menu">
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:text-text-primary hover:bg-divider/40 transition-colors lg:hidden"
+              aria-label="Toggle menu"
+            >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </header>
-        <div className="flex-1 overflow-auto"><Outlet /></div>
-        {/* Bottom nav (mobile) */}
+
+        {/* Page content — scrollable */}
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
+
+        {/* ─── Bottom nav (mobile) ─── */}
         <nav className="lg:hidden flex items-center justify-around border-t border-divider bg-card py-1.5 shrink-0">
           {NAV_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} className={cn('flex flex-col items-center gap-1 py-1 px-3 text-xs font-medium min-w-0', mobileActive(item.to) ? 'text-primary' : 'text-text-secondary/60')} end={item.to === '/'}>
-              <item.icon className={cn('h-5 w-5', mobileActive(item.to) ? 'text-primary' : 'text-text-secondary/50')} />{item.label}
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={mobileLinkClass(item.to)}
+              end={item.to === '/'}
+            >
+              <item.icon className={mobileIconClass(item.to)} />
+              {item.label}
             </NavLink>
           ))}
         </nav>

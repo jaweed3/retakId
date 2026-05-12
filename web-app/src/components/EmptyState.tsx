@@ -1,12 +1,14 @@
 import { FileX } from 'lucide-react';
 
+interface EmptyStateProps {
+  title?: string;
+  description?: string;
+}
+
 export function EmptyState({
   title = 'Belum ada laporan',
   description = 'Laporan retakan tanah dari aplikasi akan muncul di sini.',
-}: {
-  title?: string;
-  description?: string;
-}) {
+}: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-20">
       <FileX className="h-12 w-12 text-text-secondary/40" />

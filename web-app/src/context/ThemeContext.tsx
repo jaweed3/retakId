@@ -7,7 +7,10 @@ interface ThemeContextValue {
   toggle: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: 'light', toggle: () => {} });
+const ThemeContext = createContext<ThemeContextValue>({
+  theme: 'light',
+  toggle: () => {},
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
@@ -18,11 +21,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle('dark', theme === 'dark');
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
     localStorage.setItem('retakid-theme', theme);
   }, [theme]);
 
-  const toggle = () => setTheme((p) => (p === 'light' ? 'dark' : 'light'));
+  const toggle = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 
   return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>;
 }

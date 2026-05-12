@@ -1,7 +1,16 @@
 import { ShieldCheck, AlertTriangle, Skull } from 'lucide-react';
 import { cn } from '../utils/cn';
 
-interface Stats { aman: number; waspada: number; bahaya: number }
+interface Stats {
+  aman: number;
+  waspada: number;
+  bahaya: number;
+}
+
+interface StatsSummaryCardsProps {
+  counts: Stats;
+  isLoading?: boolean;
+}
 
 function SkeletonCard() {
   return (
@@ -15,21 +24,50 @@ function SkeletonCard() {
   );
 }
 
-export function StatsSummaryCards({ counts, isLoading }: { counts: Stats; isLoading?: boolean }) {
+export function StatsSummaryCards({ counts, isLoading }: StatsSummaryCardsProps) {
   if (isLoading) {
-    return <div className="grid grid-cols-3 gap-2 sm:gap-3"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>;
+    return (
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    );
   }
 
   const items = [
-    { label: 'Aman', count: counts.aman, icon: ShieldCheck, color: 'text-aman', bg: 'bg-aman-bg' },
-    { label: 'Waspada', count: counts.waspada, icon: AlertTriangle, color: 'text-waspada', bg: 'bg-waspada-bg' },
-    { label: 'Bahaya', count: counts.bahaya, icon: Skull, color: 'text-bahaya', bg: 'bg-bahaya-bg' },
+    {
+      label: 'Aman',
+      count: counts.aman,
+      icon: ShieldCheck,
+      color: 'text-aman',
+      bg: 'bg-aman-bg',
+    },
+    {
+      label: 'Waspada',
+      count: counts.waspada,
+      icon: AlertTriangle,
+      color: 'text-waspada',
+      bg: 'bg-waspada-bg',
+    },
+    {
+      label: 'Bahaya',
+      count: counts.bahaya,
+      icon: Skull,
+      color: 'text-bahaya',
+      bg: 'bg-bahaya-bg',
+    },
   ];
 
   return (
     <div className="grid grid-cols-3 gap-2 sm:gap-3">
       {items.map((item) => (
-        <div key={item.label} className={cn('flex items-center gap-2 sm:gap-3 rounded-xl bg-card px-3 py-3 sm:px-4 shadow-sm border border-divider/50')}>
+        <div
+          key={item.label}
+          className={cn(
+            'flex items-center gap-2 sm:gap-3 rounded-xl bg-card px-3 py-3 sm:px-4 shadow-sm border border-divider/50',
+          )}
+        >
           <div className={cn('flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full', item.bg)}>
             <item.icon className={cn('h-4 w-4 sm:h-5 sm:w-5', item.color)} />
           </div>
