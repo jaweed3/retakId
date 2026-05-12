@@ -1,197 +1,108 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Accuracy-84.9%25-success?style=for-the-badge" alt="Accuracy">
-  <img src="https://img.shields.io/badge/Model_Size-2.6MB-blue?style=for-the-badge" alt="Model Size">
-  <img src="https://img.shields.io/badge/Inference-<50ms-orange?style=for-the-badge" alt="Inference">
-  <img src="https://img.shields.io/badge/Platform-Android-green?style=for-the-badge" alt="Platform">
-  <img src="https://img.shields.io/badge/Offline-First-black?style=for-the-badge" alt="Offline">
-</p>
+# Retak.id — Platform Crowdsourcing Deteksi Dini Retakan Tanah
 
-<h1 align="center">Retak.id</h1>
-<h3 align="center">Crowdsourcing Early Detection of Landslide Soil Cracks</h3>
-<p align="center"><strong>IYREF 2026 Semi-Final · Climate Resilience & Local Wisdom</strong></p>
+MVP untuk **IYREF 2026 Semi-Final** — Kategori _Climate Resilience & Local Wisdom_. Retak.id adalah platform crowdsourcing berbasis Android dan Web untuk deteksi dini retakan tanah longsor di **Jenangan, Ponorogo**.
 
----
+## Ringkasan
 
-## The Problem
+Retak.id memungkinkan warga dan petugas BPBD untuk mendeteksi, melaporkan, dan memantau retakan tanah secara _offline-first_. Aplikasi Android menggunakan CameraX + TensorFlow Lite (INT8) untuk klasifikasi retakan langsung di perangkat **tanpa koneksi internet**. Laporan dikirim ke backend Supabase dan ditampilkan di **web dashboard** untuk agregasi dan pemantauan publik.
 
-**Jenangan, Ponorogo.** 41 landslides in 4 months. Illegal mining strips vegetation, destabilizes slopes. Roads cut off. Communities isolated. BPBD lacks real-time field data.
-
-Existing solutions — IoT sensors, satellite imagery — are **too expensive** and **can't reach** rural villages.
-
-**What if every citizen with a smartphone could detect landslides before they happen?**
-
----
-
-## Our Solution
-
-**Retak.id** — an Android app that classifies soil crack severity from a single photo. **On-device. Offline. Free.**
-
-<p align="center">
-  <strong>Point camera → Take photo → Instant risk level</strong>
-</p>
-
-| Risk Level | Description | Action |
-|------------|-------------|--------|
-| **AMAN** (Safe) | Minor natural cracks | No immediate action |
-| **WASPADA** (Caution) | Significant cracks developing | Monitor + report to RT/RW |
-| **BAHAYA** (Danger) | Critical ground displacement | Evacuate + contact BPBD |
-
-### Why This Works
-
-1. **Zero infrastructure.** Runs on smartphones people already own. No cell signal needed — works deep in rural slopes.
-2. **Hyperlocal coverage.** Citizens cover every path, every hillside, every day. No static sensor can match that.
-3. **Evidence-based advocacy.** Aggregated citizen reports become hard data to push for illegal mining enforcement.
-
----
-
-## Architecture
+## Arsitektur Sistem
 
 ```
-┌────────────────── ANDROID APP ──────────────────┐
-│                                                   │
-│  CameraX → Bitmap → Resize 224×224 → uint8 RGB   │
-│                ↓                                  │
-│     TFLite INT8 Model (2.6MB, on-device)         │
-│                ↓                                  │
-│     AMAN / WASPADA / BAHAYA + Confidence         │
-│                                                   │
-└───────────────────────────────────────────────────┘
-
-┌────────────────── ML PIPELINE ──────────────────┐
-│                                                   │
-│  Scrape → Validate → Deduplicate → Split          │
-│     ↓                                              │
-│  MobileNetV2/V3 + Fine-Tuning + Augmentation     │
-│     ↓                                              │
-│  INT8 PTQ → TFLite Export → Model Registry       │
-│     ↓                                              │
-│  Deploy → Android assets/                         │
-│                                                   │
-└───────────────────────────────────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   ANDROID APP   │────▶│    SUPABASE      │◀────│   WEB DASHBOARD  │
+│  (Kotlin/TFLite)│     │  (PostgreSQL)    │     │  (React/Vite)    │
+│                 │     │  + Auth          │     │                  │
+│  CameraX        │     │  + Storage       │     │  Peta interaktif │
+│  TFLite INT8    │     │  + Realtime      │     │  List laporan    │
+│  Offline-first  │     │                  │     │  Filter + Search │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
 ```
 
----
+## Struktur Proyek
+
+| Direktori | Deskripsi | Teknologi |
+|-----------|-----------|-----------|
+| `web-app/` | **Web Dashboard** — Peta, list laporan, filter, detail | React, Vite, TypeScript, Leaflet, Tailwind CSS |
+| `backend/` | **ML Pipeline** — Scraping, training, quantization, export | Python, TensorFlow, DVC, MLflow |
+| `docs/` | **Dokumentasi teknis** — Arsitektur, model detail, kontrak inference | Markdown |
+| `mobile-app/` | **Android App** — Kamera, inferensi TFLite, laporan | Kotlin, Jetpack Compose, CameraX |
+
+> **Catatan**: Android app berada di branch `mobile-app` karena dikembangkan paralel dengan ML pipeline.
+
+## Tech Stack Lengkap
+
+| Layer | Teknologi |
+|-------|-----------|
+| **Mobile** | Kotlin, Jetpack Compose, CameraX, TensorFlow Lite (INT8) |
+| **Web** | React 18, Vite 6, TypeScript, Tailwind CSS 3, Leaflet, React Router 6 |
+| **ML** | Python 3.11, TensorFlow 2.15+, MobileNetV2 (transfer learning), INT8 PTQ |
+| **Backend (BaaS)** | Supabase — PostgreSQL, Auth, Storage, Realtime |
+| **Data Pipeline** | DuckDuckGo Image Scraping, perceptual hashing, OpenCV |
+| **Experiment Tracking** | MLflow, DagsHub |
+| **Data Versioning** | DVC (remote: DagsHub S3-compatible) |
+| **Package Manager** | `uv` (Python), `npm` (Node.js) |
+| **Testing** | pytest (16 tests) |
+| **Deploy** | Vercel (web), Docker (training) |
 
 ## Model Performance
 
 | Metric | Value |
 |--------|-------|
 | **Test Accuracy** | **84.9%** |
-| Best Val Accuracy | 81.6% |
 | Model Size (INT8) | 2.6 MB |
-| FP32 → INT8 Agreement | 93.75% |
-| Inference Latency | <50ms (Pixel 4a) |
+| Inference Latency | <50ms |
 | Input | uint8 [1, 224, 224, 3] RGB |
 | Classes | AMAN / WASPADA / BAHAYA |
 
 ### Dataset
 
-| Class | Samples | Source |
-|-------|---------|--------|
-| AMAN | 2,011 | Scraped + manually annotated |
-| WASPADA | 766 | Scraped + manually annotated |
-| BAHAYA | 768 | Scraped + manually annotated |
-| **Total** | **3,545** | 70+ DDG search queries |
+| Class | Samples |
+|-------|---------|
+| AMAN | 2,009 |
+| WASPADA | 768 |
+| BAHAYA | 767 |
+| **Total** | **3,547** |
 
-### Training Evolution
+## Cara Menjalankan
 
-```
-Baseline (frozen)   ████████░░░░░░░░░░  73.0%
-+ Fine-tuning       █████████░░░░░░░░░  76.7%
-+ Conservative FT   ██████████░░░░░░░░  81.8%
-+ Clean Labels      ██████████░░░░░░░░  84.9%  ← Production
-```
-
----
-
-## Quick Start
+### Web Dashboard
 
 ```bash
-# Clone & bootstrap (auto-installs Python, deps, pulls data)
-git clone https://github.com/jaweed3/retakId.git && cd retakId
-bash scripts/bootstrap.sh
-
-# Train
-make split && make train
-
-# Validate model before release
-make validate-model
-
-# Deploy to Android
-make deploy-model
-
-# Full pipeline
-make train-and-deploy
+cd web-app
+cp .env.example .env.local     # Isi VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY
+npm install
+npm run dev                     # Development server di http://localhost:5173
 ```
 
----
+### ML Pipeline
 
-## Project Structure
-
-```
-retakId/
-├── mobile-app/                  # Android App (Kotlin + Jetpack Compose)
-│   └── app/src/main/
-│       ├── assets/              # TFLite model + labels
-│       ├── java/.../data/ml/    # TFLite Interpreter + preprocessing
-│       └── java/.../ui/         # CameraX + Compose screens
-│
-├── backend/
-│   ├── config/                  # YAML configs + grid search + benchmark
-│   ├── scripts/
-│   │   ├── scraping/            # DDG scraper (dedup + blur + quality)
-│   │   └── processing/          # Dataset validation + split + stats
-│   ├── src/training/            # Train + evaluate + export + augment
-│   ├── tests/                   # 16 automated tests
-│   └── models/                  # Model artifacts + model card
-│
-├── docs/                        # Architecture, inference contract, guides
-├── scripts/                     # Bootstrap, grid search, CV, registry
-├── Makefile                     # 20+ targets
-└── pyproject.toml               # Dependencies (uv)
+```bash
+cd backend
+uv sync                         # Install dependencies
+make scrape                     # Scraping gambar retakan
+make train                      # Training + evaluasi + export TFLite
+make test                       # Jalankan pytest
 ```
 
----
+## Quick Links
 
-## Engineering Highlights
+| Dokumen | Isi |
+|---------|-----|
+| [DOKUMENTASI.md](DOKUMENTASI.md) | Dokumentasi lengkap seluruh proyek |
+| [docs/architecture.md](docs/architecture.md) | Arsitektur teknis Edge-First |
+| [docs/getting_started.md](docs/getting_started.md) | Panduan setup dari nol |
+| [docs/model_detail.md](docs/model_detail.md) | Detail model ML + hasil eksperimen |
+| [docs/inference_contract.md](docs/inference_contract.md) | Kontrak input/output TFLite |
 
-| Area | What We Built |
-|------|--------------|
-| **Reproducibility** | Config-driven pipeline, fixed seeds, locked deps, Docker, one-command bootstrap |
-| **Experiment Tracking** | MLflow on DagsHub cloud — every run logged with params, metrics, artifacts |
-| **Model Registry** | Automated promotion: benchmark thresholds + cross-validation + champion comparison |
-| **Data Quality** | Perceptual hash dedup, blur detection, size filtering, cross-class leak prevention |
-| **Validation Gate** | Pre-deployment TFLite test mirrors Android inference exactly — broken models blocked |
-| **Grid Search** | Auto-generated config combinations with resume support for disconnected SSH |
-| **Minimal Footprint** | 2.6MB INT8 model. No server. No API. No cloud dependency. |
+## Tim
 
----
+| Nama | Peran |
+|------|-------|
+| **Farrel Ghozy** | Data Acquisition & Annotation, Web Dashboard |
+| **Adam Nurwahid** | Android Development |
+| **Jaweed (Fatih)** | ML Pipeline & Infrastructure |
 
-## Team — SAYA AKAN LAWAN
-
-| Role | Member |
-|------|--------|
-| **ML Engineer** | Jaweed — pipeline, training, quantization, model registry |
-| **Data Acquisition** | Farrel — scraping infrastructure, dataset annotation, DVC |
-| **Android Developer** | Adam — Kotlin, CameraX, TFLite integration, UI/UX |
-
-Universitas Darussalam Gontor, Ponorogo
-
----
-
-## Documentation
-
-- [Getting Started](docs/getting_started.md) — full command reference
-- [Architecture](docs/architecture.md) — system design & data flow
-- [Model Details](docs/model_detail.md) — architecture, training, quantization
-- [Inference Contract](docs/inference_contract.md) — Android integration spec
-- [Android Integration](docs/android_integration.md) — copy-paste Kotlin guide
-- [Model Card](backend/models/model_card.md) — performance & limitations
-- [DVC Workflow](docs/dvc_workflow.md) — dataset versioning
-- [Portfolio Blog](docs/portfolio_blog.md) — ML engineering case study
-
----
-
-## License
+## Lisensi
 
 MIT · IYREF 2026 Submission
