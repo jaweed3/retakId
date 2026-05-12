@@ -12,25 +12,28 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.unidagontor.retakid.data.SupabaseClient
 import com.unidagontor.retakid.ui.theme.GreenPrimary
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
-import com.google.firebase.auth.FirebaseAuth
+import io.github.jan.supabase.auth.auth
+
+// Tidak ada lagi import Firebase
 
 sealed class BottomNav(val route: String, val title: String, val icon: ImageVector) {
     object Beranda : BottomNav("beranda", "Beranda", Icons.Default.Home)
     object Deteksi : BottomNav("deteksi", "Deteksi", Icons.Default.AddCircle)
-    object Peta : BottomNav("peta", "Peta", Icons.Default.LocationOn)
-    object Profil : BottomNav("profil", "Profil", Icons.Default.Person)
+    object Peta    : BottomNav("peta",    "Peta",    Icons.Default.LocationOn)
+    object Profil  : BottomNav("profil",  "Profil",  Icons.Default.Person)
 }
 
 @Composable
 fun RetakIdApp() {
-    val navController = rememberNavController()
-    val context = LocalContext.current
+    val navController     = rememberNavController()
+    val context           = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("RetakIdPrefs", Context.MODE_PRIVATE)
 
     NavHost(navController = navController, startDestination = "splash") {
@@ -39,17 +42,26 @@ fun RetakIdApp() {
             SplashScreen(
                 onSplashFinished = {
                     val isOnboardingFinished = sharedPreferences.getBoolean("ONBOARDING_FINISHED", false)
-                    val currentUser = FirebaseAuth.getInstance().currentUser
+
+                    // Ganti FirebaseAuth.getInstance().currentUser
+                    // dengan Supabase currentSessionOrNull() — synchronous, baca dari cache memory
+                    val hasSession = SupabaseClient.client.auth.currentSessionOrNull() != null
 
                     when {
                         !isOnboardingFinished -> {
-                            navController.navigate("onboarding") { popUpTo("splash") { inclusive = true } }
+                            navController.navigate("onboarding") {
+                                popUpTo("splash") { inclusive = true }
+                            }
                         }
-                        currentUser != null -> {
-                            navController.navigate("main") { popUpTo("splash") { inclusive = true } }
+                        hasSession -> {
+                            navController.navigate("main") {
+                                popUpTo("splash") { inclusive = true }
+                            }
                         }
                         else -> {
-                            navController.navigate("login") { popUpTo("splash") { inclusive = true } }
+                            navController.navigate("login") {
+                                popUpTo("splash") { inclusive = true }
+                            }
                         }
                     }
                 }
@@ -60,7 +72,9 @@ fun RetakIdApp() {
             OnboardingScreen(
                 onFinishOnboarding = {
                     sharedPreferences.edit().putBoolean("ONBOARDING_FINISHED", true).apply()
-                    navController.navigate("login") { popUpTo("onboarding") { inclusive = true } }
+                    navController.navigate("login") {
+                        popUpTo("onboarding") { inclusive = true }
+                    }
                 }
             )
         }
@@ -80,7 +94,7 @@ fun RetakIdApp() {
             RegisterScreen(
                 onRegisterSuccess = {
                     navController.navigate("main") {
-                        popUpTo("login") { inclusive = true }
+                        popUpTo("login")    { inclusive = true }
                         popUpTo("register") { inclusive = true }
                     }
                 },
@@ -105,28 +119,28 @@ fun RetakIdApp() {
 @Composable
 fun MainContainerScreen(onLogout: () -> Unit) {
     val bottomNavController = rememberNavController()
-    val items = listOf(BottomNav.Beranda, BottomNav.Deteksi, BottomNav.Peta, BottomNav.Profil)
-    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val items               = listOf(BottomNav.Beranda, BottomNav.Deteksi, BottomNav.Peta, BottomNav.Profil)
+    val navBackStackEntry   by bottomNavController.currentBackStackEntryAsState()
+    val currentRoute        = navBackStackEntry?.destination?.route
 
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = Color.White) {
                 items.forEach { item ->
                     NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title) },
+                        icon     = { Icon(item.icon, contentDescription = item.title) },
+                        label    = { Text(item.title) },
                         selected = currentRoute == item.route,
-                        onClick = {
+                        onClick  = {
                             bottomNavController.navigate(item.route) {
                                 popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState    = true
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = GreenPrimary,
-                            indicatorColor = Color(0xFFE8F5E9)
+                            indicatorColor    = Color(0xFFE8F5E9)
                         )
                     )
                 }
@@ -134,19 +148,14 @@ fun MainContainerScreen(onLogout: () -> Unit) {
         }
     ) { innerPadding ->
         NavHost(
-            navController = bottomNavController,
+            navController    = bottomNavController,
             startDestination = BottomNav.Beranda.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier         = Modifier.padding(innerPadding)
         ) {
-
             composable(BottomNav.Beranda.route) { BerandaTab() }
             composable(BottomNav.Deteksi.route) { DeteksiTab() }
-            composable(BottomNav.Peta.route) { PetaTab() }
-
-
-            composable(BottomNav.Profil.route) {
-                ProfilScreen(onLogout = onLogout)
-            }
+            composable(BottomNav.Peta.route)    { PetaTab() }
+            composable(BottomNav.Profil.route)  { ProfilScreen(onLogout = onLogout) }
         }
     }
 }
