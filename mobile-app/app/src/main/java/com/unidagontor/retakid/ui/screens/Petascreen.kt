@@ -110,7 +110,7 @@ fun OsmdroidMapView(
                 setTileSource(TileSourceFactory.MAPNIK) // OpenStreetMap
                 setMultiTouchControls(true)
                 controller.setZoom(14.0)
-                // Pusatkan ke Jenangan, Ponorogo
+
                 controller.setCenter(GeoPoint(-7.876, 111.470))
             }
         },
@@ -204,7 +204,7 @@ private fun WeatherLoading() {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = GreenPrimary, strokeWidth = 2.dp)
-        Text("Memuat data cuaca Jenangan…", color = TextSecondary, fontSize = 14.sp)
+        Text("Memuat data cuaca di lokasi anda…", color = TextSecondary, fontSize = 14.sp)
     }
 }
 
@@ -224,7 +224,6 @@ private fun WeatherError(message: String, onRetry: () -> Unit) {
 private fun WeatherContent(data: WeatherData) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
 
-        // Baris atas: ikon + suhu + kondisi
         Row(
             verticalAlignment      = Alignment.CenterVertically,
             horizontalArrangement  = Arrangement.SpaceBetween,
