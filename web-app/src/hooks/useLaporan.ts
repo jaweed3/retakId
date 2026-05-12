@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Laporan, StatusFilter } from '../types/laporan';
-import { supabase } from '../lib/supabase';
+import { supabase, requireSupabase } from '../lib/supabase';
 
 interface UseLaporanOptions {
   status?: StatusFilter;
@@ -34,27 +34,29 @@ function mapRow(row: Record<string, unknown>): Laporan {
   };
 }
 
+const EMPTY_COUNTS = { total: 0, aman: 0, waspada: 0, bahaya: 0 };
+
 export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
   const { status = 'SEMUA', limit = PAGE_SIZE, page = 0 } = options;
 
   const [data, setData] = useState<Laporan[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [counts, setCounts] = useState({ total: 0, aman: 0, waspada: 0, bahaya: 0 });
+  const [counts, setCounts] = useState(EMPTY_COUNTS);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+    const client = requireSupabase();
+
     setIsLoading(true);
     setError(null);
 
     try {
-      // Hitung per-status sekaligus
-      const [countResult] = await Promise.all([
-        supabase.rpc('get_laporan_counts').maybeSingle(),
-      ]);
-
-      // Fetch data dengan filter
-      let query = supabase
+      let query = client
         .from('laporan')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
@@ -71,21 +73,22 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
       setData((rows || []).map(mapRow));
       setTotalCount(count || 0);
 
-      // Parse counts dari RPC, fallback ke client-side count
-      if (countResult?.data) {
-        const c = countResult.data as Record<string, number>;
-        setCounts({
-          total: (c.aman || 0) + (c.waspada || 0) + (c.bahaya || 0),
-          aman: c.aman || 0,
-          waspada: c.waspada || 0,
-          bahaya: c.bahaya || 0,
-        });
-      } else {
-        // Fallback: ambil total dari query tanpa filter
-        const { count: total } = await supabase
+      // Ambil count per status
+      try {
+        const results = await Promise.all([
+          client.from('laporan').select('*', { count: 'exact', head: true }).eq('status', 'AMAN'),
+          client.from('laporan').select('*', { count: 'exact', head: true }).eq('status', 'WASPADA'),
+          client.from('laporan').select('*', { count: 'exact', head: true }).eq('status', 'BAHAYA'),
+        ]);
+        const aman = results[0].count || 0;
+        const waspada = results[1].count || 0;
+        const bahaya = results[2].count || 0;
+        setCounts({ total: aman + waspada + bahaya, aman, waspada, bahaya });
+      } catch {
+        const { count: total } = await client
           .from('laporan')
           .select('*', { count: 'exact', head: true });
-        setCounts((prev) => ({ ...prev, total: total || 0 }));
+        setCounts({ total: total || 0, aman: 0, waspada: 0, bahaya: 0 });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat data');
@@ -100,7 +103,10 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
 
   // Realtime subscription
   useEffect(() => {
-    const channel = supabase
+    if (!supabase) return;
+    const client = requireSupabase();
+
+    const channel = client
       .channel('laporan-realtime')
       .on(
         'postgres_changes',
@@ -112,7 +118,7 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      client.removeChannel(channel);
     };
   }, [fetchData]);
 

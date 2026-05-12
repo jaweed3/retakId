@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, MapPin, User, Calendar, ShieldCheck, ExternalLink } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, requireSupabase } from '../lib/supabase';
 import type { Laporan } from '../types/laporan';
 import { StatusBadge } from '../components/StatusBadge';
 import { MapView } from '../components/MapView';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorState } from '../components/ErrorState';
 import { formatRelativeTime } from '../utils/formatDate';
-import { cn } from '../utils/cn';
 
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,39 +18,49 @@ export function ReportDetailPage() {
 
   useEffect(() => {
     if (!id) return;
+    if (!supabase) {
+      setError('Koneksi database belum dikonfigurasi.');
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
-    supabase
-      .from('laporan')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: fetchError }) => {
-        if (fetchError) {
-          setError(fetchError.message);
-        } else if (!data) {
-          setError('Laporan tidak ditemukan.');
-        } else {
-          setReport({
-            id: data.id as string,
-            nama_lokasi: data.nama_lokasi as string,
-            status: data.status as Laporan['status'],
-            catatan: (data.catatan as string) || '',
-            latitude: data.latitude as number,
-            longitude: data.longitude as number,
-            foto_url: (data.foto_url as string) || null,
-            pelapor: (data.pelapor as string) || 'Anonim',
-            terverifikasi: (data.terverifikasi as number) || 0,
-            created_at: data.created_at as string,
-          });
-        }
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || 'Gagal memuat laporan.');
-        setIsLoading(false);
-      });
+    const fetchReport = async () => {
+      const client = requireSupabase();
+      const { data, error: fetchError } = await client
+        .from('laporan')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        setError(fetchError.message);
+      } else if (!data) {
+        setError('Laporan tidak ditemukan.');
+      } else {
+        const row = data as Record<string, unknown>;
+        setReport({
+          id: row.id as string,
+          nama_lokasi: row.nama_lokasi as string,
+          status: row.status as Laporan['status'],
+          catatan: (row.catatan as string) || '',
+          latitude: row.latitude as number,
+          longitude: row.longitude as number,
+          foto_url: (row.foto_url as string) || null,
+          pelapor: (row.pelapor as string) || 'Anonim',
+          terverifikasi: (row.terverifikasi as number) || 0,
+          created_at: row.created_at as string,
+        });
+      }
+      setIsLoading(false);
+    };
+
+    fetchReport().catch((err: Error) => {
+      setError(err.message || 'Gagal memuat laporan.');
+      setIsLoading(false);
+    });
   }, [id]);
 
   const miniMapReport = useMemo(() => (report ? [report] : []), [report]);
