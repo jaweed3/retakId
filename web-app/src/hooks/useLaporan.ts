@@ -117,7 +117,11 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
     fetchData();
   }, [fetchData]);
 
-  // Realtime subscription — unique channel per hook instance
+  // Stable ref for the subscription callback (avoids re-subscribing on filter changes)
+  const fetchRef = useRef(fetchData);
+  fetchRef.current = fetchData;
+
+  // Realtime subscription — unique channel per hook instance, created once
   const channelId = useRef(`laporan-rt-${Math.random().toString(36).slice(2, 8)}`);
 
   useEffect(() => {
@@ -130,7 +134,7 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'laporan' },
         () => {
-          fetchData();
+          fetchRef.current();
         },
       )
       .subscribe();
@@ -138,7 +142,7 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
     return () => {
       client.removeChannel(channel);
     };
-  }, [fetchData]);
+  }, []); // subscribe once, callback always points to latest fetchData via ref
 
   return { data, totalCount, counts, isLoading, error, refetch: fetchData };
 }
