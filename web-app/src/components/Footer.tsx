@@ -24,7 +24,9 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-3">
-              <img src="/retak-favicon.svg" alt="Retak.id" className="h-8 w-8 rounded-lg shadow-sm" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light shadow-sm">
+                <MapPin className="h-4 w-4 text-white" />
+              </div>
               <div>
                 <span className="text-base font-bold text-text-primary">Retak.id</span>
                 <span className="text-[10px] text-text-secondary block -mt-0.5">Crowdsourcing Dashboard</span>
