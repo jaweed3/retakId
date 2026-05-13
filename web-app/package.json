@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
+    "@tensorflow/tfjs": "^4.22.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "exifr": "^7.1.3",

@@ -24,6 +24,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -41,10 +42,27 @@ export default defineConfig({
               expiration: { maxAgeSeconds: 86400 },
             },
           },
+          {
+            urlPattern: /\/models\/retak\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'model-cache',
+              expiration: { maxAgeSeconds: 86400 * 30 },
+            },
+          },
         ],
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          tfjs: ['@tensorflow/tfjs'],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': '/src',
