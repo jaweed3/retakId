@@ -4,7 +4,6 @@ import type { Laporan } from '../types/laporan';
 import { LaporanMapPopup } from './LaporanMapPopup';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorState } from './ErrorState';
-import { EmptyState } from './EmptyState';
 
 interface MapViewProps {
   reports: Laporan[];
@@ -28,14 +27,14 @@ function createIcon(status: string): L.DivIcon {
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
-      width:22px;height:22px;
+      width:24px;height:24px;
       background:${color};
       border-radius:50%;
       border:3px solid white;
-      box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      box-shadow:0 2px 6px rgba(0,0,0,0.35);
     "></div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
     popupAnchor: [0, -14],
   });
 }
@@ -49,40 +48,15 @@ export function MapView({
   zoom = 13,
   className = 'h-[60vh] lg:h-full',
 }: MapViewProps) {
-  if (isLoading) {
-    return (
-      <div className={`flex items-center justify-center rounded-xl bg-divider/20 ${className}`}>
-        <LoadingSpinner text="Memuat peta..." />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`flex items-center justify-center rounded-xl bg-divider/20 ${className}`}>
-        <ErrorState message={error} onRetry={onRetry ?? undefined} />
-      </div>
-    );
-  }
-
-  if (reports.length === 0) {
-    return (
-      <div className={`flex items-center justify-center rounded-xl bg-divider/20 ${className}`}>
-        <EmptyState
-          title="Belum ada titik laporan"
-          description="Laporan dari aplikasi mobile akan muncul di peta ini."
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className={`rounded-xl overflow-hidden ${className}`}>
+    <div className={`relative rounded-xl overflow-hidden ${className}`}>
+      {/* Map selalu render — biar peta Ponorogo selalu kelihatan */}
       <MapContainer
         center={center}
         zoom={zoom}
-        className="h-full w-full"
+        className="h-full w-full z-0"
         scrollWheelZoom
+        zoomControl={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -100,6 +74,35 @@ export function MapView({
           </Marker>
         ))}
       </MapContainer>
+
+      {/* Overlay: loading / error / empty */}
+      {isLoading && (
+        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/70 backdrop-blur-sm">
+          <LoadingSpinner text="Memuat peta..." />
+        </div>
+      )}
+
+      {!isLoading && error && (
+        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/80 backdrop-blur-sm">
+          <ErrorState message={error} onRetry={onRetry ?? undefined} />
+        </div>
+      )}
+
+      {!isLoading && !error && reports.length === 0 && (
+        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/40 backdrop-blur-[2px] pointer-events-none">
+          <div className="bg-card/90 backdrop-blur rounded-2xl shadow-lg px-6 py-5 text-center max-w-xs border border-divider/50">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-surface mx-auto mb-3">
+              <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
+                <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold text-text-primary mb-1">Belum ada titik laporan</p>
+            <p className="text-xs text-text-secondary">
+              Laporan retakan tanah dari aplikasi mobile akan muncul di peta ini secara real-time.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -37,9 +37,9 @@
 
   --color-text-primary: #E8E8E8;
   --color-text-secondary: #A0A0A0;
-  --color-surface: #121212;
-  --color-card: #1E1E1E;
-  --color-divider: #333333;
+  --color-surface: #0F0F0F;
+  --color-card: #1A1A1A;
+  --color-divider: #2A2A2A;
 }
 
 /* ─── Base ─── */
@@ -47,11 +47,14 @@ body {
   background-color: var(--color-surface);
   color: var(--color-text-primary);
   transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ─── Leaflet overrides ─── */
 .leaflet-container {
   background: var(--color-surface) !important;
+  font-family: inherit;
 }
 
 .dark .leaflet-tile {
@@ -62,19 +65,28 @@ body {
 .dark .leaflet-popup-tip {
   background: var(--color-card);
   color: var(--color-text-primary);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
 }
 
 /* ─── Custom scrollbar ─── */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-divider);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary);
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-divider); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
+
+/* ─── Glass effect ─── */
+.glass {
+  background: var(--color-card);
+  backdrop-filter: blur(12px);
 }

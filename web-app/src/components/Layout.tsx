@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { LayoutDashboard, FileText, MapPin } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '../utils/cn';
 
@@ -10,69 +9,57 @@ const NAV_ITEMS = [
 ];
 
 export function Layout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
       'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
       isActive
-        ? 'bg-primary-surface text-primary'
+        ? 'bg-primary-surface text-primary font-semibold'
         : 'text-text-secondary hover:text-text-primary hover:bg-divider/30',
     );
 
-  const mobileLinkClass = (to: string) => {
-    const isActive =
-      to === '/'
-        ? location.pathname === '/'
-        : location.pathname.startsWith(to);
-    return cn(
-      'flex flex-col items-center gap-1 py-1 px-3 text-xs font-medium transition-colors min-w-0',
-      isActive
-        ? 'text-primary'
-        : 'text-text-secondary/60',
-    );
-  };
-
-  const mobileIconClass = (to: string) => {
-    const isActive =
-      to === '/'
-        ? location.pathname === '/'
-        : location.pathname.startsWith(to);
-    return cn(
-      'h-5 w-5',
-      isActive ? 'text-primary' : 'text-text-secondary/50',
-    );
-  };
+  const mobileActive = (to: string) =>
+    to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
       {/* ─── Sidebar (desktop) ─── */}
-      <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-divider bg-card">
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-divider bg-card">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-divider">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-white font-bold text-sm">R</span>
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-text-primary">Retak.id</h1>
-            <p className="text-[10px] text-text-secondary">Crowdsourcing Dashboard</p>
+        <div className="px-5 py-5 border-b border-divider">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-light shadow-md shadow-primary/25">
+              <MapPin className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-text-primary leading-tight">Retak.id</h1>
+              <p className="text-[11px] text-text-secondary">Crowdsourcing Dashboard</p>
+            </div>
           </div>
         </div>
 
         {/* Nav */}
         <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
           {NAV_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} className={linkClass} end={item.to === '/'}>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={linkClass}
+              end={item.to === '/'}
+            >
               <item.icon className="h-5 w-5" />
               {item.label}
             </NavLink>
           ))}
         </nav>
 
-        {/* Theme toggle */}
-        <div className="px-3 py-3 border-t border-divider flex items-center justify-between">
-          <span className="text-xs text-text-secondary">Tampilan</span>
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-divider flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="text-xs text-text-secondary">Live</span>
+          </div>
           <ThemeToggle />
         </div>
       </aside>
@@ -80,40 +67,39 @@ export function Layout() {
       {/* ─── Main content ─── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-divider bg-card shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-              <span className="text-white font-bold text-xs">R</span>
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-divider bg-card/80 backdrop-blur shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light shadow-sm">
+              <MapPin className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-text-primary">Retak.id</h1>
+            <div>
+              <h1 className="text-sm font-bold text-text-primary leading-tight">Retak.id</h1>
+              <p className="text-[10px] text-text-secondary">Dashboard</p>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:text-text-primary hover:bg-divider/40 transition-colors lg:hidden"
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
           </div>
         </header>
 
-        {/* Page content — scrollable */}
+        {/* Page content */}
         <div className="flex-1 overflow-auto">
           <Outlet />
         </div>
 
         {/* ─── Bottom nav (mobile) ─── */}
-        <nav className="lg:hidden flex items-center justify-around border-t border-divider bg-card py-1.5 shrink-0">
+        <nav className="lg:hidden flex items-center justify-around border-t border-divider bg-card/80 backdrop-blur py-1.5 shrink-0 safe-bottom">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              className={mobileLinkClass(item.to)}
+              className={cn(
+                'flex flex-col items-center gap-0.5 py-1 px-4 text-[10px] font-medium min-w-0 transition-colors',
+                mobileActive(item.to) ? 'text-primary' : 'text-text-secondary/50',
+              )}
               end={item.to === '/'}
             >
-              <item.icon className={mobileIconClass(item.to)} />
+              <item.icon className={cn('h-5 w-5', mobileActive(item.to) ? 'text-primary' : 'text-text-secondary/40')} />
               {item.label}
             </NavLink>
           ))}
