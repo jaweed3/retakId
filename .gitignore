@@ -32,6 +32,10 @@ web-app/dist/
 web-app/.env.local
 web-app/tsconfig.tsbuildinfo
 
+# --- Android ---
+mobile-app/app/google-services.json
+mobile-app/local.properties
+
 # --- Tools & OS ---
 .ipynb_checkpoints/
 .vscode/
