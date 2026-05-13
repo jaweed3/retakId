@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink } from 'lucide-react';
+import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLaporan } from '../hooks/useLaporan';
@@ -14,6 +14,19 @@ import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { formatRelativeTime } from '../utils/formatDate';
 import type { Laporan, ReportStatus } from '../types/laporan';
+
+function isAuthError(err: { message?: string; code?: string }): boolean {
+  if (!err) return false;
+  const msg = (err.message || '').toLowerCase();
+  return (
+    msg.includes('jwt') ||
+    msg.includes('auth') ||
+    msg.includes('unauthorized') ||
+    msg.includes('session') ||
+    err.code === 'PGRST301' ||
+    err.code === '401'
+  );
+}
 
 export function AdminDashboardPage() {
   const { user, signOut } = useAuth();
@@ -45,9 +58,20 @@ export function AdminDashboardPage() {
     setActionLoading(false);
 
     if (error) {
+      if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; }
       toast('error', `Gagal verifikasi: ${error.message}`);
     } else {
       toast('success', `Laporan "${report.nama_lokasi}" berhasil diverifikasi.`);
+      // Audit trail
+      try {
+        await (client as any).from('riwayat_penanganan').insert({
+          laporan_id: report.id,
+          nama_lokasi: report.nama_lokasi,
+          status: report.status,
+          ditangani_oleh: user?.email || 'admin',
+          tindakan: 'diverifikasi',
+        });
+      } catch { /* best effort */ }
       refetch();
     }
   }, [refetch, toast]);
@@ -77,6 +101,7 @@ export function AdminDashboardPage() {
     setDeleteTarget(null);
 
     if (error) {
+      if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; }
       toast('error', `Gagal menghapus: ${error.message}`);
     } else {
       toast('success', `Laporan "${deleteTarget.nama_lokasi}" berhasil dihapus.`);
@@ -94,9 +119,21 @@ export function AdminDashboardPage() {
     setEditTarget(null);
 
     if (error) {
+      if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; }
       toast('error', `Gagal menyimpan: ${error.message}`);
     } else {
       toast('success', 'Laporan berhasil diperbarui.');
+      // Audit trail
+      try {
+        await (client as any).from('riwayat_penanganan').insert({
+          laporan_id: id,
+          nama_lokasi: updates.nama_lokasi,
+          status: updates.status,
+          ditangani_oleh: user?.email || 'admin',
+          tindakan: 'diedit',
+          detail: updates,
+        });
+      } catch { /* best effort */ }
       refetch();
     }
   }, [refetch, toast]);
@@ -107,6 +144,14 @@ export function AdminDashboardPage() {
     if (search && !r.nama_lokasi.toLowerCase().includes(search.toLowerCase()) && !r.pelapor.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  // Auto-redirect if data fetch fails with auth error
+  useEffect(() => {
+    if (error && isAuthError({ message: error })) {
+      signOut();
+      navigate('/admin/login');
+    }
+  }, [error, signOut, navigate]);
 
   if (isLoading) return <LoadingSpinner text="Memuat data..." />;
 
@@ -124,13 +169,22 @@ export function AdminDashboardPage() {
               <p className="text-[10px] sm:text-xs text-text-secondary">{user?.email}</p>
             </div>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 rounded-lg border border-divider px-3 py-1.5 text-xs text-text-secondary hover:text-bahaya hover:border-bahaya/30 transition-colors"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Keluar
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/admin/riwayat"
+              className="flex items-center gap-2 rounded-lg border border-divider px-3 py-1.5 text-xs text-text-secondary hover:text-primary hover:border-primary/30 transition-colors"
+            >
+              <History className="h-3.5 w-3.5" />
+              Riwayat
+            </Link>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 rounded-lg border border-divider px-3 py-1.5 text-xs text-text-secondary hover:text-bahaya hover:border-bahaya/30 transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Keluar
+            </button>
+          </div>
         </div>
       </header>
 
