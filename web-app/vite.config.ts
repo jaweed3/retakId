@@ -23,8 +23,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,tflite}'],
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -50,6 +50,14 @@ export default defineConfig({
               expiration: { maxAgeSeconds: 86400 * 30 },
             },
           },
+          {
+            urlPattern: /\/wasm\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wasm-cache',
+              expiration: { maxAgeSeconds: 86400 * 30 },
+            },
+          },
         ],
       },
     }),
@@ -57,9 +65,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          tfjs: ['@tensorflow/tfjs'],
-        },
+        manualChunks: undefined,
       },
     },
   },
