@@ -25,13 +25,11 @@
 -keep class org.tensorflow.lite.gpu.** { *; }
 -dontwarn org.tensorflow.lite.**
 
-# Firebase
--keep class com.google.firebase.** { *; }
+# Google Play Services (Location, Auth)
 -keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 
-# Data classes for Firestore
+# Data classes for serialization
 -keep class com.unidagontor.retakid.data.** { *; }
 -keep class com.unidagontor.retakid.ui.viewmodel.** { *; }
 
