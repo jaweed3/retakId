@@ -74,10 +74,6 @@ class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
             val maxIdx = probs.indices.maxByOrNull { probs[it] } ?: 0
             val confidence = probs[maxIdx]
 
-            if (confidence < 0.4f) {
-                return@withContext MLResult(DetectionResult.AMAN, confidence)
-            }
-
             val result = when (maxIdx) {
                 0 -> DetectionResult.AMAN
                 1 -> DetectionResult.WASPADA
