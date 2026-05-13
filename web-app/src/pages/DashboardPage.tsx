@@ -15,20 +15,20 @@ export function DashboardPage() {
   return (
     <div className="h-full flex flex-col">
       {/* ─── Panel Info — solid, bukan overlay ─── */}
-      <div className="shrink-0 bg-card border-b border-divider px-4 sm:px-6 py-4">
+      <div className="shrink-0 bg-card border-b border-divider px-3 sm:px-6 py-3 sm:py-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-4">
-            <h2 className="text-base font-bold text-text-primary">
+          <div className="mb-3 sm:mb-4">
+            <h2 className="text-sm sm:text-base font-bold text-text-primary">
               Dashboard Pemantauan
             </h2>
-            <p className="text-xs text-text-secondary mt-0.5">
+            <p className="text-[11px] sm:text-xs text-text-secondary mt-0.5">
               Retakan tanah di Jenangan, Ponorogo
             </p>
           </div>
 
           {/* Stats + Filter */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <StatsSummaryCards counts={counts} isLoading={isLoading} />
             <FilterStatusBar
               current={statusFilter}

@@ -70,33 +70,33 @@ export function ReportDetailPage() {
   if (!report) return <ErrorState message="Laporan tidak ditemukan." />;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="max-w-3xl mx-auto px-3 py-4 sm:px-4 sm:py-6">
       {/* Back */}
       <Link
         to="/reports"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary mb-4 transition-colors"
+        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary mb-3 sm:mb-4 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Kembali
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-6">
+      <div className="flex items-start justify-between gap-2 sm:gap-3 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-lg font-bold text-text-primary flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary shrink-0" />
+          <h1 className="text-base sm:text-lg font-bold text-text-primary flex items-center gap-2">
+            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             {report.nama_lokasi}
           </h1>
-          <p className="text-xs text-text-secondary mt-1">
+          <p className="text-[11px] sm:text-xs text-text-secondary mt-1">
             Dilaporkan {formatRelativeTime(report.created_at)}
           </p>
         </div>
-        <StatusBadge status={report.status} className="text-sm px-3 py-1" />
+        <StatusBadge status={report.status} className="text-xs sm:text-sm px-2.5 py-0.5 sm:px-3 sm:py-1" />
       </div>
 
       {/* Photo */}
       {report.foto_url && !imgError && (
-        <div className="rounded-xl overflow-hidden bg-divider/20 mb-6">
+        <div className="rounded-xl overflow-hidden bg-divider/20 mb-4 sm:mb-6">
           <img
             src={report.foto_url}
             alt={`Foto retakan di ${report.nama_lokasi}`}
@@ -107,13 +107,13 @@ export function ReportDetailPage() {
       )}
 
       {report.foto_url && imgError && (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-divider/20 py-12 mb-6">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-divider/20 py-10 sm:py-12 mb-4 sm:mb-6">
           <p className="text-sm text-text-secondary">Foto tidak dapat dimuat</p>
         </div>
       )}
 
       {/* Info grid */}
-      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 mb-4 sm:mb-6">
         <InfoItem icon={User} label="Pelapor" value={report.pelapor} />
         <InfoItem icon={Calendar} label="Waktu" value={formatRelativeTime(report.created_at)} />
         <InfoItem icon={MapPin} label="Koordinat" value={`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`} />
@@ -122,8 +122,8 @@ export function ReportDetailPage() {
 
       {/* Catatan */}
       {report.catatan && (
-        <div className="rounded-xl bg-card border border-divider/50 p-4 mb-6">
-          <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
+        <div className="rounded-xl bg-card border border-divider/50 p-3 sm:p-4 mb-4 sm:mb-6">
+          <h3 className="text-[11px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
             Catatan
           </h3>
           <p className="text-sm text-text-primary whitespace-pre-wrap">{report.catatan}</p>
@@ -131,7 +131,7 @@ export function ReportDetailPage() {
       )}
 
       {/* Mini map */}
-      <div className="rounded-xl overflow-hidden border border-divider/50 mb-6">
+      <div className="rounded-xl overflow-hidden border border-divider/50 mb-4 sm:mb-6">
         <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-divider/50">
           <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
             Lokasi
@@ -167,15 +167,15 @@ function InfoItem({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-card border border-divider/50 px-4 py-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-surface">
-        <Icon className="h-4 w-4 text-primary" />
+    <div className="flex items-center gap-2.5 sm:gap-3 rounded-xl bg-card border border-divider/50 px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-primary-surface">
+        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide">
+        <p className="text-[9px] sm:text-[10px] font-semibold text-text-secondary uppercase tracking-wide">
           {label}
         </p>
-        <p className="text-sm font-medium text-text-primary truncate">{value}</p>
+        <p className="text-xs sm:text-sm font-medium text-text-primary truncate">{value}</p>
       </div>
     </div>
   );

@@ -24,17 +24,17 @@ export function ReportsPage() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="max-w-5xl mx-auto px-3 py-4 sm:px-4 sm:py-6">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-text-primary mb-1">Daftar Laporan</h2>
-        <p className="text-sm text-text-secondary">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-base sm:text-lg font-bold text-text-primary mb-1">Daftar Laporan</h2>
+        <p className="text-xs sm:text-sm text-text-secondary">
           Semua laporan retakan tanah dari masyarakat.
         </p>
       </div>
 
       {/* Search + Filter */}
-      <div className="space-y-3 mb-6">
+      <div className="space-y-2.5 sm:space-y-3 mb-4 sm:mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary/50" />
           <input
@@ -45,7 +45,7 @@ export function ReportsPage() {
               setPage(0);
             }}
             placeholder="Cari lokasi atau nama pelapor..."
-            className="w-full rounded-xl border border-divider bg-card py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
+            className="w-full rounded-xl border border-divider bg-card py-2 sm:py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
           />
         </div>
         <FilterStatusBar current={statusFilter} onChange={setStatusFilter} counts={counts} />

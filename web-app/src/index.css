@@ -85,6 +85,11 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--color-divider); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
 
+/* ─── Safe area ─── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* ─── Glass effect ─── */
 .glass {
   background: var(--color-card);

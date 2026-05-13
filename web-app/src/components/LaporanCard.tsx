@@ -25,11 +25,11 @@ export function LaporanCard({ report }: LaporanCardProps) {
         BORDER_COLORS[report.status],
       )}
     >
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <MapPin className="h-4 w-4 shrink-0 text-primary" />
-            <h3 className="text-sm font-semibold text-text-primary truncate">
+            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-primary" />
+            <h3 className="text-xs sm:text-sm font-semibold text-text-primary truncate">
               {report.nama_lokasi}
             </h3>
           </div>
@@ -37,10 +37,10 @@ export function LaporanCard({ report }: LaporanCardProps) {
         </div>
 
         {report.catatan && (
-          <p className="text-xs text-text-secondary mb-3 line-clamp-2">{report.catatan}</p>
+          <p className="text-[11px] sm:text-xs text-text-secondary mb-2 sm:mb-3 line-clamp-2">{report.catatan}</p>
         )}
 
-        <div className="flex items-center justify-between text-xs text-text-secondary/70">
+        <div className="flex items-center justify-between text-[11px] sm:text-xs text-text-secondary/70">
           <div className="flex items-center gap-1.5">
             <User className="h-3 w-3" />
             <span>{report.pelapor}</span>
