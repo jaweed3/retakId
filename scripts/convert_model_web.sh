@@ -20,6 +20,12 @@ if [ ! -f "$TFLITE_PATH" ]; then
   exit 1
 fi
 
+# tensorflowjs blm kompatibel dgn numpy 2.x — pin ke <2
+if python -c "import numpy; assert numpy.__version__ >= '2'" 2>/dev/null; then
+  echo "→ numpy 2.x terdeteksi, pin ke numpy<2 untuk konversi..."
+  pip install 'numpy<2' -q
+fi
+
 mkdir -p "$OUTPUT_DIR"
 
 echo "Converting: $TFLITE_PATH → $OUTPUT_DIR"

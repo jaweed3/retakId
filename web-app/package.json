@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@litertjs/core": "^2.5.0",
     "@supabase/supabase-js": "^2.49.1",
     "@tensorflow/tfjs": "^4.22.0",
     "clsx": "^2.1.1",
@@ -19,6 +20,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-helmet-async": "^3.0.0",
+    "react-is": "^19.2.6",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.28.0",
     "recharts": "^3.8.1",

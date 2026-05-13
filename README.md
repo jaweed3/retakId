@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Platform-Android%20%26%20Web-green?style=for-the-badge" alt="Platform">
   <img src="https://img.shields.io/badge/Web-Dashboard-teal?style=for-the-badge" alt="Web">
   <img src="https://img.shields.io/badge/Offline-First-black?style=for-the-badge" alt="Offline">
-  <img src="https://img.shields.io/badge/Client_ML-TensorFlow.js-FF6F00?style=for-the-badge" alt="TFJS">
+  <img src="https://img.shields.io/badge/Client_ML-LiteRT.js-34A853?style=for-the-badge" alt="LiteRT">
 </p>
 
 <h1 align="center">Retak.id</h1>
@@ -56,8 +56,8 @@ Existing solutions — IoT sensors, satellite imagery — are **too expensive** 
 │  CameraX        │     │  + Storage       │     │  Peta interaktif  │
 │  TFLite INT8    │     │  + Realtime      │     │  List laporan     │
 │  Offline-first  │     │                  │     │  Filter + Search  │
-└─────────────────┘     └──────────────────┘     │  ML Auto-Detect   │
-                                                  │  (TFJS + WebGL)   │
+└─────────────────┘     └──────────────────┘     │  ML Auto-Detect    │
+                                                  │  (LiteRT Wasm)     │
                                                   └───────────────────┘
 ```
 
@@ -76,9 +76,9 @@ CameraX → Bitmap → Resize 224×224 → uint8 RGB
 ### Web Dashboard (client-side inference)
 
 ```
-Upload foto → Canvas resize 224×224 → float32 RGB [0, 255]
+Upload foto → Canvas resize 224×224 → uint8 RGB [0, 255]
                ↓
-  TFJS GraphModel (8.5MB, WebGL GPU via browser)
+  LiteRT Wasm (.tflite, 2.6MB, XNNPack CPU/WebGPU)
                ↓
   AMAN / WASPADA / BAHAYA + Confidence
                ↓
@@ -94,7 +94,7 @@ MobileNetV2 + Fine-Tuning + Augmentation
     ↓
 INT8 PTQ → TFLite Export → Model Registry
     ↓
-Deploy → Android assets/ + Web (TFLite → TFJS converted)
+Deploy → Android assets/ + Web (native .tflite)
 ```
 
 ---
@@ -136,7 +136,7 @@ Baseline (frozen)   ████████░░░░░░░░░░  73.0
 | Layer | Teknologi |
 |-------|-----------|
 | **Mobile** | Kotlin, Jetpack Compose, CameraX, TensorFlow Lite (INT8) |
-| **Web** | React 18, Vite 6, TypeScript, Tailwind CSS 3, Leaflet, React Router 6, TensorFlow.js (WebGL) |
+| **Web** | React 18, Vite 6, TypeScript, Tailwind CSS 3, Leaflet, React Router 6, LiteRT.js (Wasm/WebGPU) |
 | **ML** | Python 3.11, TensorFlow 2.15+, MobileNetV2 (transfer learning), INT8 PTQ |
 | **Backend (BaaS)** | Supabase — PostgreSQL, Auth, Storage, Realtime |
 | **Data Pipeline** | DuckDuckGo Image Scraping, perceptual hashing, OpenCV |
@@ -156,12 +156,12 @@ retakId/
 │   ├── src/
 │   │   ├── components/           # MapView, LaporanCard, FilterStatusBar, dll
 │   │   ├── pages/                # DashboardPage, ReportsPage, ReportFormPage
-│   │   ├── hooks/                # useLaporan, useModelInference (TFJS)
+│   │   ├── hooks/                # useLaporan, useModelInference (LiteRT)
 │   │   ├── context/              # ThemeContext (dark/light mode)
 │   │   ├── utils/                # preprocess (image → tensor), cn, statusColors
 │   │   └── lib/                  # Supabase client
 │   └── public/
-│       └── models/retak/         # TFJS GraphModel (converted from TFLite)
+│       └── models/retak/         # TFLite model (native .tflite)
 │
 ├── mobile-app/                   # Android App (Kotlin + Jetpack Compose)
 │   └── app/src/main/
@@ -200,10 +200,10 @@ npm install
 npm run dev                     # http://localhost:5173
 ```
 
-> **Client-side ML**: Untuk mengaktifkan deteksi otomatis di form laporan,
-> jalankan `bash scripts/convert_model_web.sh` di device yang memiliki
-> `tensorflowjs` Python package. Hasil konversi ditaruh di
-> `web-app/public/models/retak/` dan di-cache PWA selama 30 hari.
+> **Client-side ML**: Deteksi otomatis via LiteRT.js (WebAssembly/XNNPack).
+> Model `.tflite` di `web-app/public/models/retak/` langsung di-load tanpa
+> konversi. Jalankan `bash scripts/deploy_model_web.sh` untuk menyalin model
+> terbaru dari Android assets. Wasm & model di-cache PWA selama 30 hari.
 
 ### ML Pipeline
 
@@ -240,7 +240,7 @@ git checkout mobile-app
 | **Model Registry** | Automated promotion: benchmark thresholds + cross-validation + champion comparison |
 | **Data Quality** | Perceptual hash dedup, blur detection, size filtering, cross-class leak prevention |
 | **Validation Gate** | Pre-deployment TFLite test mirrors Android inference exactly — broken models blocked |
-| **Client-Side ML** | TensorFlow.js with WebGL backend runs the same model in-browser — photo upload auto-detects crack severity without any server round-trip |
+| **Client-Side ML** | LiteRT.js loads native .tflite via WebAssembly (XNNPack) — photo upload auto-detects crack severity without any server round-trip, ~2.6MB model, optional WebGPU acceleration |
 | **Grid Search** | Auto-generated config combinations with resume support for disconnected SSH |
 | **Minimal Footprint** | 2.6MB INT8 model. No server. No API. No cloud dependency. |
 
