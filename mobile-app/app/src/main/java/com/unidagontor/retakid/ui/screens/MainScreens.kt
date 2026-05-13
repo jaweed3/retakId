@@ -87,9 +87,11 @@ fun DeteksiTab(vm: DeteksiViewModel = viewModel()) {
             }
             DeteksiStage.RESULT -> {
                 val displayResult = state.riskFactorReport?.finalResult ?: state.mlResult?.detectionResult
+                val displayConfidence = state.mlResult?.confidence ?: 0f
                 if (displayResult != null) {
                     ResultView(
                         result = displayResult,
+                        confidence = displayConfidence,
                         report = state.riskFactorReport,
                         image = state.capturedImage,
                         onProceed = { vm.proceedToReport() },
@@ -281,6 +283,7 @@ fun AnalyzingEnvView() {
 @Composable
 fun ResultView(
     result: DetectionResult,
+    confidence: Float,
     report: com.unidagontor.retakid.data.risk.RiskFactorReport?,
     image: Bitmap?,
     onProceed: () -> Unit,
@@ -347,6 +350,50 @@ fun ResultView(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+        }
+
+        if (confidence < 0.4f) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(
+                color = StatusBahaya.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = StatusBahaya)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "Gambar bukan retakan tanah? Pastikan memotret permukaan tanah",
+                        color = StatusBahaya,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        } else if (confidence < 0.6f) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(
+                color = StatusWaspada.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = StatusWaspada)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "Hasil tidak pasti — ambil foto ulang dengan pencahayaan lebih baik",
+                        color = StatusWaspada,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
 
