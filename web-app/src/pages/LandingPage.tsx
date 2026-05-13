@@ -29,7 +29,7 @@ export function LandingPage() {
 
       {/* ═══ Section 4: Edukasi Banner ═══ */}
       <section className="bg-card">
-        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-10 sm:py-14">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 pb-10 sm:pb-14">
           <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
             <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-primary-surface ring-2 ring-primary/20">
               <BookOpen className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
@@ -59,12 +59,12 @@ export function LandingPage() {
       {/* ═══ Section 5: Peta ═══ */}
       <MiniMapPreview />
 
-      {/* Divider: Peta → Download */}
-      <SectionDivider variant="fade" />
+      {/* Divider: Peta → Download (surface → card) */}
+      <SectionDivider variant="fade" className="from-surface to-card" />
 
       {/* ═══ Section 6: Download CTA ═══ */}
       <section id="download" className="bg-card scroll-mt-20">
-        <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-24">
+        <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-12 sm:py-16">
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
             {/* QR placeholder */}
             <div className="flex h-32 w-32 sm:h-40 sm:w-40 shrink-0 items-center justify-center rounded-2xl bg-surface border-2 border-dashed border-divider">

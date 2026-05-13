@@ -87,8 +87,9 @@ export function MiniMapPreview() {
           </p>
         </div>
 
-        <div className="rounded-2xl overflow-hidden border border-divider shadow-lg">
-          <MapContainer
+        <div className="rounded-2xl shadow-lg">
+          <div className="rounded-2xl overflow-hidden border border-divider">
+            <MapContainer
             center={JENANGAN_CENTER}
             zoom={13}
             className="h-[300px] sm:h-[380px] w-full z-0"
@@ -104,6 +105,7 @@ export function MiniMapPreview() {
               <Marker key={i} position={p.pos} icon={createMarkerIcon(p.status)} />
             ))}
           </MapContainer>
+          </div>
         </div>
 
         <Legend />
