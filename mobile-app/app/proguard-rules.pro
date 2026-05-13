@@ -19,3 +19,31 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# TensorFlow Lite
+-keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.gpu.** { *; }
+-dontwarn org.tensorflow.lite.**
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+
+# Data classes for Firestore
+-keep class com.unidagontor.retakid.data.** { *; }
+-keep class com.unidagontor.retakid.ui.viewmodel.** { *; }
+
+# Kotlin Coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-dontwarn kotlinx.coroutines.**
+
+# OSMDroid
+-dontwarn org.osmdroid.**
+-keep class org.osmdroid.** { *; }
+
+# Keep Retrofit/OkHttp if used
+-dontwarn okhttp3.**
+-dontwarn retrofit2.**
