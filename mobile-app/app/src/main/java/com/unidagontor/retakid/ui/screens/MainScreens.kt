@@ -82,13 +82,20 @@ fun DeteksiTab(vm: DeteksiViewModel = viewModel()) {
             DeteksiStage.ANALYZING -> {
                 AnalyzingView()
             }
+            DeteksiStage.ANALYZING_ENV -> {
+                AnalyzingEnvView()
+            }
             DeteksiStage.RESULT -> {
-                ResultView(
-                    result = state.detectionResult,
-                    image = state.capturedImage,
-                    onProceed = { vm.proceedToReport() },
-                    onRetry = { vm.reset() }
-                )
+                val displayResult = state.riskFactorReport?.finalResult ?: state.mlResult?.detectionResult
+                if (displayResult != null) {
+                    ResultView(
+                        result = displayResult,
+                        report = state.riskFactorReport,
+                        image = state.capturedImage,
+                        onProceed = { vm.proceedToReport() },
+                        onRetry = { vm.reset() }
+                    )
+                }
             }
             DeteksiStage.REPORT_FORM -> {
                 ReportFormView(
@@ -253,8 +260,28 @@ fun AnalyzingView() {
 }
 
 @Composable
+fun AnalyzingEnvView() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(color = GreenPrimary)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Menganalisis faktor lingkungan...", fontWeight = FontWeight.Medium, color = TextPrimary)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "Elevasi, kemiringan, cuaca, & jenis tanah",
+            fontSize = 13.sp,
+            color = TextSecondary
+        )
+    }
+}
+
+@Composable
 fun ResultView(
-    result: DetectionResult?,
+    result: DetectionResult,
+    report: com.unidagontor.retakid.data.risk.RiskFactorReport?,
     image: Bitmap?,
     onProceed: () -> Unit,
     onRetry: () -> Unit
@@ -263,7 +290,7 @@ fun ResultView(
         modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Hasil Analisis ML", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text("Hasil Analisis", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
 
         if (image != null) {
@@ -346,6 +373,11 @@ fun ResultView(
             }
         }
 
+        if (report != null) {
+            Spacer(modifier = Modifier.height(20.dp))
+            EnvironmentFactorCard(report = report)
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
@@ -359,6 +391,111 @@ fun ResultView(
         TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
             Text("Coba Lagi", color = TextSecondary)
         }
+    }
+}
+
+@Composable
+fun EnvironmentFactorCard(report: com.unidagontor.retakid.data.risk.RiskFactorReport) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Surface(
+        color = Color.White,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 2.dp
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Faktor Lingkungan", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text(if (expanded) "Sembunyikan" else "Detail", fontSize = 12.sp, color = GreenPrimary)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "Skor Risiko: ${"%.0f".format(report.finalScore * 100)}%",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = when {
+                    report.finalScore <= 0.33 -> StatusAman
+                    report.finalScore <= 0.66 -> StatusWaspada
+                    else -> StatusBahaya
+                }
+            )
+
+            if (report.isUpgraded) {
+                Text(
+                    "↑ Meningkat dari hasil ML karena faktor lingkungan",
+                    fontSize = 11.sp,
+                    color = StatusWaspada
+                )
+            } else if (report.isDowngraded) {
+                Text(
+                    "↓ Menurun karena faktor lingkungan mendukung",
+                    fontSize = 11.sp,
+                    color = StatusAman
+                )
+            }
+
+            if (expanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                report.factors.forEach { factor ->
+                    FactorRow(factor)
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FactorRow(factor: com.unidagontor.retakid.data.risk.FactorContribution) {
+    val color = when (factor.riskLabel) {
+        com.unidagontor.retakid.data.risk.RiskLabel.RENDAH -> StatusAman
+        com.unidagontor.retakid.data.risk.RiskLabel.SEDANG -> StatusWaspada
+        com.unidagontor.retakid.data.risk.RiskLabel.TINGGI -> StatusBahaya
+        com.unidagontor.retakid.data.risk.RiskLabel.SANGAT_TINGGI -> StatusBahaya
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(factor.factor.displayName, fontSize = 13.sp, color = TextPrimary, modifier = Modifier.width(130.dp))
+
+        Text(factor.rawValue, fontSize = 13.sp, color = TextSecondary, modifier = Modifier.width(80.dp))
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Divider)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(factor.score.toFloat().coerceIn(0f, 1f))
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(color)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(factor.riskLabel.emoji, fontSize = 12.sp)
     }
 }
 
