@@ -1,4 +1,4 @@
-.PHONY: setup scrape train evaluate export test clean clean-logs lint
+.PHONY: setup scrape validate deduplicate stats split train validate-model train-and-deploy tune grid-gen grid-run cv register list-models deploy-registered evaluate export deploy test docker-build docker-train lab-setup pull-data lint format clean clean-logs
 
 PYTHON = uv run --python 3.11
 CONFIG = backend/config/training.yaml
@@ -29,6 +29,14 @@ split:
 train:
 	$(PYTHON) backend/src/training/train.py --config $(CONFIG)
 
+# Validate exported model matches Android contract (run before deploy!)
+validate-model:
+	$(PYTHON) scripts/validate_model.py --tflite backend/models/retak_mobilenetv2.tflite
+	@echo "Model validated — safe to deploy"
+
+# Full pipeline: train → validate → deploy
+train-and-deploy: train validate-model deploy-model
+
 evaluate:
 	$(PYTHON) -c "\
 	from backend.src.training.config_loader import load_config; \
@@ -40,10 +48,88 @@ evaluate:
 	model = tf.keras.models.load_model('backend/models/checkpoints/best.keras'); \
 	evaluate_model(model, test_ds, config.export.class_labels, output_dir='backend/logs')"
 
+# --- Hyperparameter Tuning ---
+
+# Generate experiment configs from grid
+grid-gen:
+	$(PYTHON) scripts/generate_grid.py
+	@echo "Grid configs generated. Run 'make grid-run' to start."
+
+# Run all grid experiments (with resume support — re-run if SSH disconnects)
+grid-run:
+	bash scripts/run_grid.sh
+
+# Dry-run: show experiment count without running
+grid-dry:
+	$(PYTHON) scripts/generate_grid.py --dry-run
+
+# Full tuning pipeline: generate + run
+tune: grid-gen grid-run
+
+# Run all experiment variants (legacy)
+tune-legacy:
+	bash scripts/run_experiments.sh
+
+# Run single experiment variant
+# Usage: make train-exp EXP=backend/config/experiments/v3b_more_layers.yaml
+train-exp:
+	$(PYTHON) backend/src/training/train.py --config backend/config/training.yaml --override $(EXP)
+
 # Export TFLite from a trained model checkpoint
 # Usage: make export MODEL=backend/models/checkpoints/best.keras
 export:
 	$(PYTHON) backend/src/training/export.py --model-path $(MODEL) --config $(CONFIG)
+
+# --- Deploy Model to mobile-app branch (Adam) ---
+
+# Push only the TFLite model to mobile-app branch
+# Adam pulls only mobile-app branch → small, fast
+deploy-model:
+	@echo "Deploying model to mobile-app branch..."
+	git stash --include-untracked 2>/dev/null || true
+	-git branch -D mobile-app 2>/dev/null
+	git checkout --orphan mobile-app
+	git checkout main -- mobile-app/ backend/models/retak_mobilenetv2.tflite backend/models/labels.txt 2>/dev/null || true
+	cp backend/models/retak_mobilenetv2.tflite mobile-app/app/src/main/assets/ 2>/dev/null || true
+	cp backend/models/labels.txt mobile-app/app/src/main/assets/ 2>/dev/null || true
+	git add mobile-app/ backend/models/retak_mobilenetv2.tflite backend/models/labels.txt 2>/dev/null || true
+	git commit -m "model: TFLite + labels"
+	git push origin mobile-app --force
+	git checkout main
+	-git branch -D mobile-app 2>/dev/null
+	git stash pop 2>/dev/null || true
+	@echo "Model deployed to origin/mobile-app. Adam: git pull origin mobile-app"
+
+# --- Model Registry ---
+
+# Cross-validate best config (k=5 folds)
+cv:
+	$(PYTHON) scripts/cross_validate.py --config $(CONFIG)
+
+# Evaluate + register model to MLflow Registry
+# Usage: make register RUN_ID=<mlflow_run_id>
+register:
+	$(PYTHON) scripts/register_model.py --run-id $(RUN_ID)
+
+# List registered models
+list-models:
+	$(PYTHON) scripts/register_model.py --list
+
+# Download best registered model for Android
+# Usage: make deploy-registered ASSETS=app/src/main/assets
+deploy-registered:
+	$(PYTHON) scripts/register_model.py --download --output $(ASSETS)
+
+# --- Deployment ---
+
+# Copy model artifacts to Android assets directory
+# Usage: make deploy ASSETS=app/src/main/assets
+ASSETS ?= app/src/main/assets
+deploy:
+	mkdir -p $(ASSETS)
+	cp backend/models/retak_mobilenetv2.tflite $(ASSETS)/
+	cp backend/models/labels.txt $(ASSETS)/
+	@echo "Deployed model to $(ASSETS)/"
 
 # --- Testing ---
 
@@ -57,6 +143,22 @@ docker-build:
 
 docker-train:
 	docker run -v $(PWD)/backend/data:/app/backend/data -v $(PWD)/backend/models:/app/backend/models -v $(PWD)/backend/logs:/app/backend/logs retakid-train
+
+# --- Lab PC ---
+
+# Bootstrap fresh PC: install uv + Python 3.11 + deps + pull data
+# Single command for lab computers
+lab-setup:
+	bash scripts/bootstrap.sh
+
+# Pull dataset from DagsHub via DVC
+pull-data:
+	$(PYTHON) dvc pull
+
+# Full pipeline from zero: setup → pull data → check → split → train
+lab-train: pull-data validate deduplicate split train
+	@echo ""
+	@echo "Lab training complete! Model di backend/models/"
 
 # --- Utilities ---
 

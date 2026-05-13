@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Light Theme ─── */
+:root {
+  --color-primary: #2E7D32;
+  --color-primary-light: #4CAF50;
+  --color-primary-surface: #E8F5E9;
+
+  --color-aman: #388E3C;
+  --color-aman-bg: #E8F5E9;
+  --color-waspada: #F57C00;
+  --color-waspada-bg: #FFF3E0;
+  --color-bahaya: #D32F2F;
+  --color-bahaya-bg: #FFEBEE;
+
+  --color-text-primary: #1B1B1B;
+  --color-text-secondary: #6D6D6D;
+  --color-surface: #F5F5F5;
+  --color-card: #FFFFFF;
+  --color-divider: #E0E0E0;
+}
+
+/* ─── Dark Theme ─── */
+.dark {
+  --color-primary: #4CAF50;
+  --color-primary-light: #66BB6A;
+  --color-primary-surface: #1B3A1B;
+
+  --color-aman: #4CAF50;
+  --color-aman-bg: #1B3A1B;
+  --color-waspada: #FF9800;
+  --color-waspada-bg: #3A2E1B;
+  --color-bahaya: #EF5350;
+  --color-bahaya-bg: #3A1B1B;
+
+  --color-text-primary: #E8E8E8;
+  --color-text-secondary: #A0A0A0;
+  --color-surface: #0F0F0F;
+  --color-card: #1A1A1A;
+  --color-divider: #2A2A2A;
+}
+
+/* ─── Base ─── */
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Leaflet overrides ─── */
+.leaflet-container {
+  background: var(--color-surface) !important;
+  font-family: inherit;
+}
+
+.dark .leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+  background: var(--color-card);
+  color: var(--color-text-primary);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* ─── Custom scrollbar ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-divider); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
+
+/* ─── Glass effect ─── */
+.glass {
+  background: var(--color-card);
+  backdrop-filter: blur(12px);
+}

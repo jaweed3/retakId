@@ -1,0 +1,24 @@
+# Python
+**/__pycache__/
+**/.ipynb_checkpoints/
+**/.pytest_cache/
+.venv/
+venv/
+
+# DVC internals
+.dvc/cache/
+.dvc/tmp/
+
+# Training artifacts (reproducible from config + data)
+backend/models/checkpoints/
+backend/models/*.tflite
+backend/logs/tensorboard/
+backend/logs/*.csv
+backend/logs/*.png
+
+# Splits (reproducible from processed + seed)
+backend/data/splits/
+
+# OS
+.DS_Store
+Thumbs.db

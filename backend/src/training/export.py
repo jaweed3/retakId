@@ -66,7 +66,7 @@ def export_tflite(
     converter.representative_dataset = representative_dataset
     converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
     converter.inference_input_type = tf.uint8
-    converter.inference_output_type = tf.uint8
+    # Keep output as float32 — Android reads FloatArray for softmax
 
     tflite_int8 = converter.convert()
     int8_path = output_dir / f"{model_name}_int8.tflite"
