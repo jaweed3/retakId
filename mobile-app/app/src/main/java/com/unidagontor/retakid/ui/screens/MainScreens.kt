@@ -1,11 +1,16 @@
 package com.unidagontor.retakid.ui.screens
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -94,6 +99,7 @@ fun DeteksiTab(vm: DeteksiViewModel = viewModel()) {
                         confidence = displayConfidence,
                         report = state.riskFactorReport,
                         image = state.capturedImage,
+                        location = state.location,
                         onProceed = { vm.proceedToReport() },
                         onRetry = { vm.reset() }
                     )
@@ -286,9 +292,11 @@ fun ResultView(
     confidence: Float,
     report: com.unidagontor.retakid.data.risk.RiskFactorReport?,
     image: Bitmap?,
+    location: com.unidagontor.retakid.data.location.LocationData?,
     onProceed: () -> Unit,
     onRetry: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -415,6 +423,96 @@ fun ResultView(
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // --- Action buttons based on status ---
+        when (result) {
+            DetectionResult.BAHAYA -> {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:112")
+                        }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusBahaya),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Phone, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Hubungi BPBD (112)")
+                }
+            }
+            else -> {}
+        }
+
+        if (result != DetectionResult.AMAN) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val shareContent = buildShareText(result, location, report)
+
+            OutlinedButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareContent)
+                        setPackage("com.whatsapp")
+                    }
+                    try {
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                        val fallback = Intent.createChooser(intent.apply { setPackage(null) }, "Bagikan ke...")
+                        context.startActivity(fallback)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Bagikan ke WhatsApp")
+            }
+
+            if (result == DetectionResult.WASPADA) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("Laporan Retakan", buildShareText(result, location, report))
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "Teks laporan disalin ke clipboard", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Laporkan ke RT / RW")
+                }
+            }
+        } else {
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(
+                color = StatusAman.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = StatusAman)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "Pantau Berkala — Kondisi tanah masih aman, tetap waspada terutama saat hujan.",
+                        color = StatusAman,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -659,6 +757,34 @@ fun SuccessView(onFinish: () -> Unit) {
 
 
 
+
+private fun buildShareText(
+    result: DetectionResult,
+    location: com.unidagontor.retakid.data.location.LocationData?,
+    report: com.unidagontor.retakid.data.risk.RiskFactorReport?
+): String {
+    val status = result.label
+    val lat = location?.let { "%.6f".format(it.latitude) } ?: "-"
+    val lon = location?.let { "%.6f".format(it.longitude) } ?: "-"
+    val score = report?.let { "${"%.0f".format(it.finalScore * 100)}%" } ?: "?"
+
+    val factors = report?.factors?.joinToString("\n") { f ->
+        "• ${f.factor.displayName}: ${f.rawValue} ${f.riskLabel.emoji}"
+    } ?: ""
+
+    return buildString {
+        appendLine("Saya menemukan retakan tanah dengan status $status.")
+        appendLine("Koordinat: $lat, $lon")
+        appendLine("Skor Risiko: $score")
+        if (factors.isNotBlank()) {
+            appendLine()
+            appendLine("Faktor Lingkungan:")
+            append(factors)
+        }
+        appendLine()
+        append("Mohon tindak lanjut.")
+    }
+}
 
 @Composable
 fun ProfilTab() {
