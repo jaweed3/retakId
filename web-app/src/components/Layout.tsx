@@ -26,12 +26,12 @@ export function Layout() {
       <header className="hidden lg:flex items-center justify-between h-16 shrink-0 border-b border-divider bg-card px-6">
         {/* Left: Logo */}
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light shadow-sm shadow-primary/25">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-light shadow-md shadow-primary/25">
             <MapPin className="h-4.5 w-4.5 text-white" />
           </div>
           <div>
-            <span className="text-sm font-bold text-text-primary">Retak.id</span>
-            <span className="text-[10px] text-text-secondary ml-2">Crowdsourcing Dashboard</span>
+            <span className="text-base font-bold text-text-primary">Retak.id</span>
+            <span className="text-xs text-text-secondary ml-2">Crowdsourcing Dashboard</span>
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export function Layout() {
         </header>
 
         {/* Page content */}
-        <div className="flex-1 overflow-auto scroll-smooth">
+        <div className="flex-1 overflow-auto scroll-smooth" data-main-content>
           <Outlet />
           <Footer />
         </div>

@@ -223,20 +223,36 @@ export function AboutPage() {
             {TEAM.map((member) => (
               <div
                 key={member.name}
-                className="rounded-2xl bg-surface border border-divider/60 p-6 sm:p-7 text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                className="group relative rounded-2xl bg-surface border border-divider/40 p-6 sm:p-7 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               >
-                <div className={`h-20 w-20 sm:h-24 sm:w-24 mx-auto rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center mb-4 sm:mb-5 shadow-lg`}>
-                  <span className="text-2xl sm:text-3xl font-bold text-white">
-                    {member.name.charAt(0)}
-                  </span>
+                {/* Top accent bar */}
+                <div className={`absolute top-0 left-8 right-8 h-1 rounded-b-sm bg-gradient-to-r ${member.color} opacity-70 group-hover:opacity-100 transition-opacity`} />
+
+                {/* Avatar */}
+                <div className="relative mx-auto mb-5 sm:mb-6 w-fit">
+                  <div className={`h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center shadow-lg ring-4 ring-card dark:ring-card`}>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                      {member.name.charAt(0)}
+                    </span>
+                  </div>
+                  {/* Decorative dot */}
+                  <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card border-2 border-divider">
+                    <div className={`h-2.5 w-2.5 rounded-full bg-gradient-to-br ${member.color}`} />
+                  </div>
                 </div>
-                <h3 className="text-sm sm:text-base font-bold text-text-primary">
+
+                {/* Name */}
+                <h3 className="text-sm sm:text-base font-bold text-text-primary mb-1.5">
                   {member.name}
                 </h3>
-                <p className="text-[11px] sm:text-xs text-primary font-semibold mt-1 mb-3">
+
+                {/* Role badge */}
+                <div className="inline-flex items-center rounded-full bg-primary-surface/60 border border-primary/10 px-3 py-1 text-[11px] sm:text-xs font-medium text-primary mb-3">
                   {member.role}
-                </p>
-                <p className="text-xs text-text-secondary leading-relaxed">
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-text-secondary leading-relaxed max-w-xs mx-auto">
                   {member.desc}
                 </p>
               </div>
