@@ -97,7 +97,18 @@ fun MainContainerScreen(onNavigateToDetail: (String) -> Unit = {}) {
             composable(BottomNav.Beranda.route) { BerandaTab(onLaporanClick = onNavigateToDetail) }
             composable(BottomNav.Deteksi.route) { DeteksiTab() }
             composable(BottomNav.Peta.route) { PetaTab() }
-            composable(BottomNav.Profil.route) { ProfilTab() }
+            composable(BottomNav.Profil.route) {
+                ProfilTab(
+                    onSignOut = {
+                        navController.navigate("login") {
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        }
+                    },
+                    onRiwayatClick = { laporanId ->
+                        onNavigateToDetail(laporanId)
+                    }
+                )
+            }
         }
     }
 }
