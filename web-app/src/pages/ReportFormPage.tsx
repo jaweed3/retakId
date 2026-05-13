@@ -27,6 +27,9 @@ const STATUS_OPTIONS: { value: ReportStatus; label: string; desc: string; detail
   { value: 'BAHAYA', label: 'Bahaya', desc: 'Retakan kritis, segera evakuasi', detail: 'Hubungi BPBD segera' },
 ];
 
+const CONFIDENCE_THRESHOLD_LOW = 0.4;
+const CONFIDENCE_THRESHOLD_MEDIUM = 0.6;
+
 const CONFIDENCE_COLORS: Record<ReportStatus, string> = {
   AMAN: 'bg-aman-bg text-aman border-aman/30',
   WASPADA: 'bg-waspada-bg text-waspada border-waspada/30',
@@ -219,11 +222,25 @@ export function ReportFormPage() {
                   Deteksi otomatis gagal. Pilih manual di bawah.
                 </div>
               ) : predictionConfidence != null ? (
-                <div className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs ${CONFIDENCE_COLORS[form.status]}`}>
-                  <Cpu className="h-3.5 w-3.5 shrink-0" />
-                  AI mendeteksi: <strong>{STATUS_OPTIONS.find(s => s.value === form.status)?.label}</strong>
-                  {' '}({(predictionConfidence * 100).toFixed(0)}% yakin)
-                  <span className="ml-auto text-[10px] opacity-60">Override manual di bawah</span>
+                <div className="space-y-2">
+                  <div className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs ${CONFIDENCE_COLORS[form.status]}`}>
+                    <Cpu className="h-3.5 w-3.5 shrink-0" />
+                    AI mendeteksi: <strong>{STATUS_OPTIONS.find(s => s.value === form.status)?.label}</strong>
+                    {' '}({(predictionConfidence * 100).toFixed(0)}% yakin)
+                    <span className="ml-auto text-[10px] opacity-60">Override manual di bawah</span>
+                  </div>
+                  {predictionConfidence < CONFIDENCE_THRESHOLD_LOW && (
+                    <div className="flex items-start gap-2 rounded-xl bg-bahaya-bg/70 border border-bahaya/20 px-3.5 py-2.5 text-xs text-bahaya">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>Gambar bukan retakan tanah? Pastikan memotret permukaan tanah</span>
+                    </div>
+                  )}
+                  {predictionConfidence >= CONFIDENCE_THRESHOLD_LOW && predictionConfidence < CONFIDENCE_THRESHOLD_MEDIUM && (
+                    <div className="flex items-start gap-2 rounded-xl bg-waspada-bg/70 border border-waspada/20 px-3.5 py-2.5 text-xs text-waspada">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>Hasil tidak pasti — ambil foto ulang dengan pencahayaan lebih baik</span>
+                    </div>
+                  )}
                 </div>
               ) : !isModelReady && modelError ? (
                 <div className="flex items-center gap-2 rounded-xl bg-waspada-bg border border-waspada/20 px-3.5 py-2.5 text-xs text-waspada">
