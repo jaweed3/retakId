@@ -1,24 +1,25 @@
-#!/usr/bin/env python3
+#!/usr/bin/env uv run
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "tensorflowjs==4.21.0",
+#     "numpy<2",
+#     "tensorflow<2.19",
+# ]
+# ///
 """Convert INT8 TFLite → TFJS Graph Model for web-app.
 
-Monkey-patches numpy for tensorflowjs compatibility (np.object/np.bool
-removed in numpy 2.x), then runs the converter.
+Uses uv to auto-create an isolated environment — no dependency conflicts
+with the main project.
 
 Usage:
-    python scripts/convert_model_web.py
-    python scripts/convert_model_web.py --tflite path/to/model.tflite
+    uv run scripts/convert_model_web.py
+    uv run scripts/convert_model_web.py --tflite path/to/model.tflite
 """
 
 import sys
 import argparse
 from pathlib import Path
-
-# --- numpy compat: restore aliases removed in numpy 2.x ---
-import numpy as np
-np.object = object
-np.bool = bool
-
-# --- now safe to import tensorflowjs ---
 from tensorflowjs.converters.converter import convert  # noqa: E402
 
 
@@ -62,7 +63,8 @@ def main() -> None:
 
     print("✓ Done! Files:")
     for f in sorted(output_dir.iterdir()):
-        print(f"  {f.name} ({f.stat().st_size / 1024:.0f} KB)")
+        if f.is_file() and f.name != ".gitkeep":
+            print(f"  {f.name} ({f.stat().st_size / 1024:.0f} KB)")
 
 
 if __name__ == "__main__":

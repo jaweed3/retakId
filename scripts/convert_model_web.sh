@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Convert INT8 TFLite → TFJS Graph Model untuk web-app.
-# Delegates to Python wrapper for numpy compatibility handling.
+# Menggunakan uv run dengan inline metadata — environment terisolasi,
+# gak kena dependency hell dari project utama.
 #
 # Usage:
 #   bash scripts/convert_model_web.sh
@@ -10,4 +11,4 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-python3 "$SCRIPT_DIR/convert_model_web.py" "$@"
+uv run "$SCRIPT_DIR/convert_model_web.py" "$@"
