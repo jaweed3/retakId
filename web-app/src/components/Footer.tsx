@@ -25,7 +25,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2.5 mb-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light shadow-sm">
-                <MapPin className="h-4.5 w-4.5 text-white" />
+                <MapPin className="h-4 w-4 text-white" />
               </div>
               <div>
                 <span className="text-base font-bold text-text-primary">Retak.id</span>
