@@ -94,6 +94,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.2.0")
 //    TensorFlow Lite (raw Interpreter — no metadata dependency)
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
+//    EXIF
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 //    CameraX
     implementation("androidx.camera:camera-camera2:1.3.3")
     implementation("androidx.camera:camera-lifecycle:1.3.3")
