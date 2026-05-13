@@ -34,7 +34,7 @@ export function LandingPage() {
 
       {/* ═══ Section 5: Download CTA ═══ */}
       <section id="download" className="bg-card border-b border-divider scroll-mt-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-24">
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
             {/* QR placeholder */}
             <div className="flex h-32 w-32 sm:h-40 sm:w-40 shrink-0 items-center justify-center rounded-2xl bg-surface border-2 border-dashed border-divider">

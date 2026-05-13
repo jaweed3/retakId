@@ -115,7 +115,7 @@ export function HeroSection() {
     <section id="beranda" className="relative overflow-hidden scroll-mt-20">
       {/* Dot pattern */}
       <div
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none"
+        className="absolute inset-0 opacity-[0.07] dark:opacity-[0.08] pointer-events-none"
         style={{
           backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
           backgroundSize: '24px 24px',
@@ -124,10 +124,10 @@ export function HeroSection() {
       {/* Top gradient */}
       <div className="absolute top-0 inset-x-0 h-72 bg-gradient-to-b from-primary-surface/60 to-transparent dark:from-primary-surface/20 pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-14 sm:pt-20 lg:pt-24 pb-10 sm:pb-14">
+      <div className="relative max-w-6xl mx-auto px-6 sm:px-8 lg:px-10 pt-20 sm:pt-28 lg:pt-32 pb-16 sm:pb-20">
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary-surface/80 backdrop-blur px-3.5 py-1.5 text-xs font-semibold text-primary mb-5 sm:mb-6">
+        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-14">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary-surface px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm mb-5 sm:mb-6">
             <ShieldCheck className="h-3.5 w-3.5" />
             IYREF 2026 &mdash; Climate Resilience &amp; Local Wisdom
           </div>
@@ -138,13 +138,13 @@ export function HeroSection() {
             Bersama
           </h1>
 
-          <p className="mt-4 sm:mt-5 text-sm sm:text-base text-text-secondary max-w-xl mx-auto leading-relaxed">
+          <p className="mt-5 sm:mt-6 text-sm sm:text-base text-text-secondary max-w-xl mx-auto leading-relaxed">
             Platform crowdsourcing deteksi dini retakan tanah di Jenangan, Ponorogo.
             Warga foto retakan lewat Android, AI deteksi tingkat bahaya, BPBD
             pantau dashboard secara real-time.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3 mt-6 sm:mt-7">
+          <div className="flex flex-wrap justify-center gap-3 mt-7 sm:mt-8">
             <Link
               to="/dashboard"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:bg-primary-light hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
@@ -163,7 +163,7 @@ export function HeroSection() {
         </div>
 
         {/* Stats */}
-        <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 max-w-2xl mx-auto">
+        <div className="grid sm:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 max-w-2xl mx-auto">
           {stats.map((stat) => (
             <StatCard key={stat.label} {...stat} visible={visible && !isLoading} />
           ))}

@@ -1,23 +1,51 @@
-import { MapPin, Github, Mail, ExternalLink } from 'lucide-react';
+import { MapPin, Github, Mail, ExternalLink, Users, Cpu, Globe } from 'lucide-react';
+import { SectionDivider } from '../components/SectionDivider';
 
 const TEAM = [
   {
     name: 'Farrel Ghozy',
     role: 'Data Acquisition & Web Dashboard',
-    desc: 'Mengumpulkan dan menganotasi 3,547 gambar retakan tanah. Membangun dashboard monitoring berbasis React + Supabase.',
+    desc: 'Mengumpulkan dan menganotasi 3.547 gambar retakan tanah dari 70+ keyword. Membangun dashboard monitoring berbasis React, Vite, TypeScript, dan Supabase.',
     color: 'from-primary to-primary-light',
   },
   {
     name: 'Adam Nurwahid',
     role: 'Android Development',
-    desc: 'Membangun aplikasi Android dengan CameraX, TensorFlow Lite, dan integrasi Supabase — deteksi ML offline.',
+    desc: 'Membangun aplikasi Android dengan Kotlin, Jetpack Compose, CameraX, dan TensorFlow Lite INT8. Deteksi ML berjalan offline di HP.',
     color: 'from-amber-500 to-orange-500',
   },
   {
     name: 'Jaweed (Fatih)',
     role: 'ML Pipeline & Infrastructure',
-    desc: 'Melatih model MobileNetV2 dengan INT8 quantization. Membangun pipeline DVC/MLflow untuk reproducible ML.',
+    desc: 'Melatih model MobileNetV2 transfer learning dengan INT8 quantization. Membangun pipeline DVC/MLflow untuk reproducible ML research.',
     color: 'from-blue-500 to-cyan-500',
+  },
+];
+
+const PILLARS = [
+  {
+    icon: Users,
+    title: 'Crowdsourcing',
+    desc: 'Warga adalah ujung tombak pelaporan. Setiap orang bisa memfoto dan melaporkan retakan tanah di sekitarnya melalui aplikasi Android.',
+    accent: 'from-primary to-primary-light',
+    iconBg: 'bg-primary-surface',
+    iconColor: 'text-primary',
+  },
+  {
+    icon: Cpu,
+    title: 'AI Edge Computing',
+    desc: 'Kecerdasan buatan berjalan langsung di HP. Model MobileNetV2 mengklasifikasi retakan dalam <50ms tanpa koneksi internet.',
+    accent: 'from-amber-500 to-orange-500',
+    iconBg: 'bg-waspada-bg',
+    iconColor: 'text-waspada',
+  },
+  {
+    icon: Globe,
+    title: 'Open Data Dashboard',
+    desc: 'Semua data laporan terbuka untuk publik dan BPBD. Pantau sebaran retakan secara real-time untuk respons yang lebih cepat.',
+    accent: 'from-blue-500 to-cyan-500',
+    iconBg: 'bg-blue-50 dark:bg-blue-950/40',
+    iconColor: 'text-blue-600 dark:text-blue-400',
   },
 ];
 
@@ -25,15 +53,15 @@ const TECH = [
   { cat: 'Mobile', items: 'Kotlin, Jetpack Compose, CameraX, TFLite INT8' },
   { cat: 'Web', items: 'React 18, Vite 6, TypeScript, Tailwind CSS, Leaflet' },
   { cat: 'ML', items: 'Python 3.11, TensorFlow 2.15, MobileNetV2, DVC, MLflow' },
-  { cat: 'Backend', items: 'Supabase (PostgreSQL, Auth, Storage, Realtime)' },
+  { cat: 'Backend', items: 'Supabase — PostgreSQL, Auth, Storage, Realtime' },
 ];
 
 export function AboutPage() {
   return (
     <div>
-      {/* Hero */}
+      {/* ═══ Hero ═══ */}
       <section className="bg-card border-b border-divider">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
               Tentang
@@ -43,38 +71,50 @@ export function AboutPage() {
             </h1>
             <p className="text-sm sm:text-base text-text-secondary leading-relaxed">
               Platform crowdsourcing deteksi dini retakan tanah berbasis AI dan
-              partisipasi warga. Dibangun untuk kompetisi IYREF 2026 Semi-Final
+              partisipasi warga. Dibangun untuk kompetisi{' '}
+              <strong className="text-text-primary">IYREF 2026 Semi-Final</strong>{' '}
               kategori Climate Resilience &amp; Local Wisdom.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Visi Misi */}
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Visi & Misi ═══ */}
       <section className="border-b border-divider">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
+          <div className="text-center mb-10 sm:mb-12">
+            <span className="text-xs font-semibold text-primary uppercase tracking-widest">
+              Visi &amp; Misi
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mt-2">
+              Apa yang Kami Perjuangkan
+            </h2>
+          </div>
           <div className="grid sm:grid-cols-2 gap-8 sm:gap-10">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Visi</h2>
+            <div className="rounded-2xl bg-card border border-divider/60 p-6 sm:p-7">
+              <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-3">Visi</h3>
               <p className="text-sm text-text-secondary leading-relaxed">
                 Menjadi platform crowdsourcing deteksi dini longsor terdepan di Indonesia
-                yang memberdayakan warga dan mendukung kesiapsiagaan bencana.
+                yang memberdayakan warga dan mendukung kesiapsiagaan bencana melalui
+                teknologi AI dan data terbuka.
               </p>
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Misi</h2>
-              <ul className="text-sm text-text-secondary space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                  Memberdayakan warga dengan teknologi AI mobile yang bisa diakses siapa saja
+            <div className="rounded-2xl bg-card border border-divider/60 p-6 sm:p-7">
+              <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-3">Misi</h3>
+              <ul className="text-sm text-text-secondary space-y-2.5">
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  Memberdayakan warga dengan teknologi AI mobile yang bisa diakses siapa saja, kapan saja
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                  Menyediakan data real-time untuk BPBD dalam pengambilan keputusan
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  Menyediakan data real-time untuk BPBD dalam pengambilan keputusan dan mitigasi bencana
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                  Menyelamatkan nyawa melalui deteksi dini retakan tanah sebelum longsor
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  Menyelamatkan nyawa melalui deteksi dini retakan tanah sebelum longsor terjadi
                 </li>
               </ul>
             </div>
@@ -82,69 +122,119 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Latar Belakang */}
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Latar Belakang ═══ */}
       <section className="bg-card border-b border-divider">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-4">
-            Latar Belakang Masalah
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-6 sm:gap-8">
-            <div className="space-y-3 text-sm text-text-secondary leading-relaxed">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
+          <div className="text-center mb-10 sm:mb-12">
+            <span className="text-xs font-semibold text-primary uppercase tracking-widest">
+              Latar Belakang
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mt-2">
+              Kenapa Proyek Ini Dibangun
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-8 sm:gap-10">
+            <div className="space-y-4 text-sm text-text-secondary leading-relaxed">
               <p>
-                Jenangan, Ponorogo merupakan daerah rawan longsor. Tanah retak
-                sering menjadi tanda awal — tetapi warga tidak memiliki alat untuk
-                mengidentifikasi tingkat bahaya secara mandiri.
+                <strong className="text-text-primary">Jenangan, Ponorogo</strong> merupakan
+                daerah rawan longsor akibat kondisi geografis perbukitan dan curah hujan
+                tinggi. Tanah retak sering menjadi tanda awal longsor — tetapi warga tidak
+                memiliki alat untuk mengidentifikasi tingkat bahaya secara mandiri.
               </p>
               <p>
-                BPBD juga kesulitan memantau kondisi tanah secara real-time karena
-                tidak ada sistem pelaporan terpusat yang bisa diakses warga,
-                terutama di daerah dengan infrastruktur internet terbatas.
+                BPBD Ponorogo kesulitan memantau kondisi tanah secara real-time karena
+                tidak ada sistem pelaporan terpusat. Infrastruktur internet yang terbatas
+                di daerah pelosok semakin mempersulit koordinasi penanganan bencana.
               </p>
             </div>
-            <div className="space-y-3 text-sm text-text-secondary leading-relaxed">
+            <div className="space-y-4 text-sm text-text-secondary leading-relaxed">
               <p>
                 <strong className="text-text-primary">Retak.id hadir sebagai solusi:</strong>
-                {' '}aplikasi Android yang bisa mendeteksi retakan secara offline
-                menggunakan AI, terhubung ke dashboard web yang bisa dipantau
-                BPBD secara real-time.
+                {' '}aplikasi Android yang bisa mendeteksi retakan secara offline menggunakan
+                AI, terhubung ke dashboard web yang bisa dipantau BPBD secara real-time.
               </p>
               <p>
-                Dengan pendekatan crowdsourcing, setiap warga bisa menjadi
-                ujung tombak deteksi dini — menciptakan jaringan pengawasan
-                yang luas dan merata hingga ke pelosok desa.
+                Dengan pendekatan crowdsourcing, setiap warga bisa menjadi ujung tombak
+                deteksi dini — menciptakan jaringan pengawasan yang luas dan merata hingga
+                ke pelosok desa tanpa bergantung pada infrastruktur internet.
+              </p>
+              <p className="text-xs text-text-secondary/60">
+                Sumber data: BPBD Kabupaten Ponorogo, BMKG, BNPB
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Tim */}
+      <SectionDivider variant="fade" />
+
+      {/* ═══ 3 Pilar Solusi ═══ */}
       <section className="border-b border-divider">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <div className="text-center mb-8 sm:mb-10">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
+          <div className="text-center mb-10 sm:mb-12">
+            <span className="text-xs font-semibold text-primary uppercase tracking-widest">
+              Solusi
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mt-2">
+              Tiga Pilar Retak.id
+            </h2>
+            <p className="text-sm text-text-secondary mt-2 max-w-xl mx-auto">
+              Pendekatan menyeluruh yang menggabungkan partisipasi warga, kecerdasan
+              buatan, dan keterbukaan data.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-5 lg:gap-6">
+            {PILLARS.map((p) => (
+              <div
+                key={p.title}
+                className="group relative flex flex-col rounded-2xl bg-card border border-divider/60 p-6 sm:p-7 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className={`absolute top-0 left-5 right-5 h-1 rounded-b-sm bg-gradient-to-r ${p.accent} opacity-60 group-hover:opacity-100 transition-opacity`} />
+                <div className={`flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl ${p.iconBg} mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                  <p.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${p.iconColor}`} />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-text-primary mb-2">{p.title}</h3>
+                <p className="text-sm text-text-secondary leading-relaxed flex-1">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Tim ═══ */}
+      <section className="bg-card border-b border-divider">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
+          <div className="text-center mb-10 sm:mb-12">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
               Tim
             </span>
             <h2 className="text-xl sm:text-2xl font-bold text-text-primary mt-2">
               Tim Retak.id
             </h2>
+            <p className="text-sm text-text-secondary mt-2 max-w-lg mx-auto">
+              Tiga anggota dengan keahlian berbeda, satu tujuan: menyelamatkan nyawa
+              melalui deteksi dini longsor.
+            </p>
           </div>
           <div className="grid sm:grid-cols-3 gap-5 lg:gap-6">
             {TEAM.map((member) => (
               <div
                 key={member.name}
-                className="rounded-2xl bg-card border border-divider/60 p-5 sm:p-6 text-center hover:shadow-lg transition-all duration-300"
+                className="rounded-2xl bg-surface border border-divider/60 p-6 sm:p-7 text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
-                {/* Avatar placeholder */}
-                <div className={`h-16 w-16 sm:h-20 sm:w-20 mx-auto rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center mb-3 sm:mb-4 shadow-md`}>
-                  <span className="text-xl sm:text-2xl font-bold text-white">
+                <div className={`h-20 w-20 sm:h-24 sm:w-24 mx-auto rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center mb-4 sm:mb-5 shadow-lg`}>
+                  <span className="text-2xl sm:text-3xl font-bold text-white">
                     {member.name.charAt(0)}
                   </span>
                 </div>
                 <h3 className="text-sm sm:text-base font-bold text-text-primary">
                   {member.name}
                 </h3>
-                <p className="text-[10px] sm:text-xs text-primary font-medium mt-0.5 mb-2">
+                <p className="text-[11px] sm:text-xs text-primary font-semibold mt-1 mb-3">
                   {member.role}
                 </p>
                 <p className="text-xs text-text-secondary leading-relaxed">
@@ -156,10 +246,12 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Tech Stack */}
-      <section className="bg-card border-b border-divider">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <div className="text-center mb-8 sm:mb-10">
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Teknologi ═══ */}
+      <section className="border-b border-divider">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
+          <div className="text-center mb-10 sm:mb-12">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
               Teknologi
             </span>
@@ -171,9 +263,9 @@ export function AboutPage() {
             {TECH.map((t) => (
               <div
                 key={t.cat}
-                className="rounded-xl bg-surface border border-divider/50 px-4 py-4 text-center"
+                className="rounded-xl bg-card border border-divider/60 px-5 py-5 text-center hover:border-primary/20 hover:shadow-sm transition-all"
               >
-                <h3 className="text-sm font-bold text-text-primary mb-2">{t.cat}</h3>
+                <h3 className="text-sm font-bold text-text-primary mb-2.5">{t.cat}</h3>
                 <p className="text-xs text-text-secondary leading-relaxed">{t.items}</p>
               </div>
             ))}
@@ -181,19 +273,24 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* Kontak */}
-      <section className="border-b border-divider">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Kontak ═══ */}
+      <section className="bg-card border-b border-divider">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center max-w-lg mx-auto">
-            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-4">
+            <span className="text-xs font-semibold text-primary uppercase tracking-widest">
+              Kontak
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mt-2 mb-6">
               Kontak &amp; Tautan
             </h2>
-            <div className="flex flex-wrap justify-center gap-4 text-sm">
+            <div className="flex flex-wrap justify-center gap-3">
               <a
                 href="https://github.com/jaweed3/retakId"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-divider bg-card px-4 py-2.5 text-text-secondary hover:text-text-primary hover:border-primary/30 transition-all"
+                className="inline-flex items-center gap-2 rounded-xl border border-divider bg-surface px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:border-primary/30 transition-all"
               >
                 <Github className="h-4 w-4" />
                 GitHub Repository
@@ -201,7 +298,7 @@ export function AboutPage() {
               </a>
               <a
                 href="mailto:retak.id@email.com"
-                className="inline-flex items-center gap-2 rounded-xl border border-divider bg-card px-4 py-2.5 text-text-secondary hover:text-text-primary hover:border-primary/30 transition-all"
+                className="inline-flex items-center gap-2 rounded-xl border border-divider bg-surface px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:border-primary/30 transition-all"
               >
                 <Mail className="h-4 w-4" />
                 retak.id@email.com
