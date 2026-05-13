@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, AlertCircle, Cpu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase, requireSupabase } from '../lib/supabase';
 import { ImageUploadPreview } from '../components/ImageUploadPreview';
 import { LocationPicker } from '../components/LocationPicker';
+import { useModelInference } from '../hooks/useModelInference';
 import type { ReportStatus } from '../types/laporan';
 
 interface FormState {
@@ -20,16 +21,23 @@ interface FormState {
   pelapor: string;
 }
 
-const STATUS_OPTIONS: { value: ReportStatus; label: string; desc: string }[] = [
-  { value: 'AMAN', label: 'Aman', desc: 'Retakan minor, penyusutan alami' },
-  { value: 'WASPADA', label: 'Waspada', desc: 'Retakan signifikan, perlu dipantau' },
-  { value: 'BAHAYA', label: 'Bahaya', desc: 'Retakan kritis, segera evakuasi' },
+const STATUS_OPTIONS: { value: ReportStatus; label: string; desc: string; detail: string }[] = [
+  { value: 'AMAN', label: 'Aman', desc: 'Retakan minor, penyusutan alami', detail: 'Tidak perlu tindakan khusus' },
+  { value: 'WASPADA', label: 'Waspada', desc: 'Retakan signifikan, perlu dipantau', detail: 'Laporkan ke ketua RT/RW' },
+  { value: 'BAHAYA', label: 'Bahaya', desc: 'Retakan kritis, segera evakuasi', detail: 'Hubungi BPBD segera' },
 ];
+
+const CONFIDENCE_COLORS: Record<ReportStatus, string> = {
+  AMAN: 'bg-aman-bg text-aman border-aman/30',
+  WASPADA: 'bg-waspada-bg text-waspada border-waspada/30',
+  BAHAYA: 'bg-bahaya-bg text-bahaya border-bahaya/30',
+};
 
 import { SEOMeta } from '../components/SEOMeta';
 
 export function ReportFormPage() {
   const navigate = useNavigate();
+  const { isModelReady, isPredicting, modelError, predict } = useModelInference();
   const [form, setForm] = useState<FormState>({
     file: null, preview: null, gpsLat: null, gpsLng: null,
     manualLat: null, manualLng: null, lokasi: '', status: 'AMAN', catatan: '', pelapor: '',
@@ -37,6 +45,9 @@ export function ReportFormPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [predictionConfidence, setPredictionConfidence] = useState<number | null>(null);
+  const [predictionError, setPredictionError] = useState<string | null>(null);
+  const predictingRef = useRef(false);
 
   const latitude = form.gpsLat ?? form.manualLat;
   const longitude = form.gpsLng ?? form.manualLng;
@@ -52,7 +63,29 @@ export function ReportFormPage() {
       manualLng: null,
     }));
     if (gps) setErrors((prev) => { const { gps, ...r } = prev; return r; });
-  }, []);
+
+    // Auto-detect via model
+    setPredictionConfidence(null);
+    setPredictionError(null);
+    if (!isModelReady) return;
+
+    predictingRef.current = true;
+    predict(file)
+      .then((result) => {
+        if (!predictingRef.current) return;
+        setForm((prev) => ({ ...prev, status: result.status }));
+        setPredictionConfidence(result.confidence);
+        setPredictionError(null);
+      })
+      .catch((err) => {
+        if (!predictingRef.current) return;
+        setPredictionError(err instanceof Error ? err.message : 'Gagal mendeteksi');
+        setPredictionConfidence(null);
+      })
+      .finally(() => {
+        predictingRef.current = false;
+      });
+  }, [isModelReady, predict]);
 
   const handleLocation = useCallback((lat: number, lng: number) => {
     setForm((prev) => ({ ...prev, manualLat: lat, manualLng: lng }));
@@ -171,22 +204,59 @@ export function ReportFormPage() {
           <label className="block text-xs font-medium text-text-secondary mb-2">
             Tingkat Bahaya <span className="text-bahaya">*</span>
           </label>
+
+          {/* Prediction indicator */}
+          {form.preview && (
+            <div className="mb-3">
+              {isPredicting ? (
+                <div className="flex items-center gap-2 rounded-xl bg-primary-surface/60 border border-primary/10 px-3.5 py-2.5 text-xs text-primary">
+                  <Cpu className="h-3.5 w-3.5 animate-pulse" />
+                  Mendeteksi tingkat bahaya dari foto...
+                </div>
+              ) : predictionError ? (
+                <div className="flex items-center gap-2 rounded-xl bg-bahaya-bg border border-bahaya/20 px-3.5 py-2.5 text-xs text-bahaya">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  Deteksi otomatis gagal. Pilih manual di bawah.
+                </div>
+              ) : predictionConfidence != null ? (
+                <div className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs ${CONFIDENCE_COLORS[form.status]}`}>
+                  <Cpu className="h-3.5 w-3.5 shrink-0" />
+                  AI mendeteksi: <strong>{STATUS_OPTIONS.find(s => s.value === form.status)?.label}</strong>
+                  {' '}({(predictionConfidence * 100).toFixed(0)}% yakin)
+                  <span className="ml-auto text-[10px] opacity-60">Override manual di bawah</span>
+                </div>
+              ) : !isModelReady && modelError ? (
+                <div className="flex items-center gap-2 rounded-xl bg-waspada-bg border border-waspada/20 px-3.5 py-2.5 text-xs text-waspada">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  Model AI tidak tersedia. Pilih manual di bawah.
+                </div>
+              ) : null}
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2">
-            {STATUS_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setForm({ ...form, status: opt.value })}
-                className={`rounded-xl border px-3 py-3 text-center transition-colors ${
-                  form.status === opt.value
-                    ? 'border-primary bg-primary-surface text-primary'
-                    : 'border-divider text-text-secondary hover:border-divider/80'
-                }`}
-              >
-                <div className="text-sm font-bold">{opt.label}</div>
-                <div className="text-[10px] mt-0.5 opacity-70">{opt.desc}</div>
-              </button>
-            ))}
+            {STATUS_OPTIONS.map((opt) => {
+              const isSelected = form.status === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={isPredicting}
+                  onClick={() => {
+                    setForm({ ...form, status: opt.value });
+                    setPredictionConfidence(null);
+                  }}
+                  className={`rounded-xl border px-3 py-3 text-center transition-colors ${
+                    isSelected
+                      ? 'border-primary bg-primary-surface text-primary'
+                      : 'border-divider text-text-secondary hover:border-divider/80'
+                  } ${isPredicting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="text-sm font-bold">{opt.label}</div>
+                  <div className="text-[10px] mt-0.5 opacity-70">{opt.desc}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
