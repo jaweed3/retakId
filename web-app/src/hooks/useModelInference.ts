@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as tf from '@tensorflow/tfjs';
+import { loadLiteRt, loadAndCompile, Tensor, CompiledModel } from '@litertjs/core';
 import { imageFileToTensor } from '../utils/preprocess';
 import type { ReportStatus } from '../types/laporan';
 
 const LABELS: ReportStatus[] = ['AMAN', 'WASPADA', 'BAHAYA'];
+const MODEL_URL = '/models/retak/retak_mobilenetv2.tflite';
+const WASM_PATH = '/wasm/';
 
 interface PredictionResult {
   status: ReportStatus;
@@ -18,10 +20,8 @@ interface UseModelInferenceReturn {
   predict: (file: File) => Promise<PredictionResult>;
 }
 
-const MODEL_URL = '/models/retak/model.json';
-
 export function useModelInference(): UseModelInferenceReturn {
-  const modelRef = useRef<tf.GraphModel | null>(null);
+  const modelRef = useRef<CompiledModel | null>(null);
   const [isModelReady, setIsModelReady] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -31,19 +31,17 @@ export function useModelInference(): UseModelInferenceReturn {
 
     async function load() {
       try {
-        await tf.ready();
-        const model = await tf.loadGraphModel(MODEL_URL);
-        if (disposed) {
-          model.dispose();
-          return;
-        }
-        modelRef.current = model;
+        await loadLiteRt(WASM_PATH);
+        if (disposed) return;
 
-        // Warmup — WebGL shader compilation biar prediksi pertama gak lambat
-        const warmupTensor = tf.zeros([1, 224, 224, 3], 'float32');
-        model.predict(warmupTensor);
-        tf.dispose(warmupTensor);
+        const compiled = await loadAndCompile(MODEL_URL);
+        if (disposed) { compiled.delete(); return; }
 
+        const warmup = Tensor.fromTypedArray(new Uint8Array(224 * 224 * 3), [1, 224, 224, 3]);
+        await compiled.run(warmup);
+        warmup.delete();
+
+        modelRef.current = compiled;
         setIsModelReady(true);
         setModelError(null);
       } catch (err) {
@@ -52,10 +50,9 @@ export function useModelInference(): UseModelInferenceReturn {
     }
 
     load();
-
     return () => {
       disposed = true;
-      modelRef.current?.dispose();
+      modelRef.current?.delete();
       modelRef.current = null;
     };
   }, []);
@@ -66,26 +63,29 @@ export function useModelInference(): UseModelInferenceReturn {
 
     setIsPredicting(true);
     try {
-      const tensor3d = await imageFileToTensor(file);
-      const batched = tf.expandDims(tensor3d, 0) as tf.Tensor4D;
+      const { data, shape } = await imageFileToTensor(file);
+      const input = Tensor.fromTypedArray(data, shape);
 
-      const output = model.predict(batched) as tf.Tensor;
+      const outputs = await model.run(input);
+      const output = outputs[0];
       const raw = await output.data();
-      const logits = Array.from(raw instanceof Float32Array ? raw : new Float32Array(raw));
 
-      tf.dispose([tensor3d, batched, output]);
+      input.delete();
+      output.delete();
 
-      // Softmax
+      const logits = Array.from(raw);
+
       const maxLogit = Math.max(...logits);
       const exps = logits.map((v) => Math.exp(v - maxLogit));
       const sumExps = exps.reduce((a, b) => a + b, 0);
       const probs = exps.map((v) => v / sumExps);
-
       const argmax = probs.indexOf(Math.max(...probs));
-      const status = LABELS[argmax];
-      const confidence = probs[argmax];
 
-      return { status, confidence, probabilities: probs };
+      return {
+        status: LABELS[argmax],
+        confidence: probs[argmax],
+        probabilities: probs,
+      };
     } finally {
       setIsPredicting(false);
     }
