@@ -53,7 +53,7 @@ export function EdukasiPage() {
       <SEOMeta title="Edukasi Bencana" description="Kenali retakan tanah: tingkat bahaya AMAN, WASPADA, BAHAYA. Cara melapor, kontak darurat BPBD Ponorogo, dan FAQ." />
       {/* Hero */}
       <section className="bg-card">
-        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-20">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">Edukasi</span>
             <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mt-2 mb-3">
@@ -69,7 +69,7 @@ export function EdukasiPage() {
 
       {/* Tingkat Bahaya */}
       <section className="border-b border-divider">
-        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-20">
           <h2 className="text-xl sm:text-2xl font-bold text-text-primary text-center mb-8 sm:mb-10">
             Tiga Tingkat Bahaya Retakan Tanah
           </h2>
@@ -109,7 +109,7 @@ export function EdukasiPage() {
 
       {/* Cara Melapor */}
       <section className="bg-card">
-        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-20">
           <h2 className="text-xl sm:text-2xl font-bold text-text-primary text-center mb-8">
             Cara Melaporkan Retakan
           </h2>
@@ -153,7 +153,7 @@ export function EdukasiPage() {
 
       {/* Kontak Darurat */}
       <section className="border-b border-divider">
-        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18 text-center">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-20 text-center">
           <div className="max-w-lg mx-auto">
             <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl bg-bahaya-bg mb-4">
               <Phone className="h-7 w-7 text-bahaya" />
@@ -173,7 +173,7 @@ export function EdukasiPage() {
 
       {/* FAQ */}
       <section className="bg-card">
-        <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">
+        <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-20">
           <h2 className="text-xl sm:text-2xl font-bold text-text-primary text-center mb-8">
             Pertanyaan Umum
           </h2>

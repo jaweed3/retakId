@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 STYLES[t.type],
               )}
             >
-              <Icon className={cn('h-4.5 w-4.5 shrink-0', ICON_COLORS[t.type])} />
+              <Icon className={cn('h-4 w-4 shrink-0', ICON_COLORS[t.type])} />
               <p className="text-xs text-text-primary flex-1">{t.message}</p>
               <button onClick={() => removeToast(t.id)} className="text-text-secondary/40 hover:text-text-secondary shrink-0">
                 <X className="h-3.5 w-3.5" />
