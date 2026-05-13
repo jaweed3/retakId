@@ -16,19 +16,32 @@ android {
         applicationId = "com.unidagontor.retakid"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("RELEASE_STORE_FILE") ?: "../debug.keystore")
+            storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "android"
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            isMinifyEnabled = false
         }
     }
     compileOptions {
