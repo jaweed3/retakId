@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, ArrowRight, ShieldCheck, Skull, ChevronDown } from 'lucide-react';
+import { MapPin, ArrowRight, ShieldCheck, Skull } from 'lucide-react';
 import { useLaporan } from '../hooks/useLaporan';
 
 function useCountUp(target: number, duration = 1400, start = false) {
@@ -169,17 +169,6 @@ export function HeroSection() {
           ))}
         </div>
 
-        {/* Scroll indicator */}
-        <div className="text-center mt-8 sm:mt-10">
-          <a
-            href="#cara-kerja"
-            className="inline-flex flex-col items-center gap-1 text-text-secondary/30 hover:text-text-secondary/60 transition-colors"
-            aria-label="Scroll ke bawah"
-          >
-            <span className="text-[9px] uppercase tracking-widest font-medium">Scroll</span>
-            <ChevronDown className="h-4 w-4 animate-bounce" />
-          </a>
-        </div>
       </div>
     </section>
   );

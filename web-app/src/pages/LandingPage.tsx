@@ -3,16 +3,36 @@ import { HeroSection } from '../components/HeroSection';
 import { HowItWorks } from '../components/HowItWorks';
 import { WhySection } from '../components/WhySection';
 import { MiniMapPreview } from '../components/MiniMapPreview';
+import { SectionDivider } from '../components/SectionDivider';
 
 export function LandingPage() {
   return (
     <div>
+      {/* ═══ Section 1: Hero ═══ */}
       <HeroSection />
+
+      {/* Divider: Hero → Cara Kerja */}
+      <SectionDivider variant="wave" />
+
+      {/* ═══ Section 2: Cara Kerja ═══ */}
       <HowItWorks />
+
+      {/* Divider: Cara Kerja → Kenapa */}
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Section 3: Kenapa ═══ */}
       <WhySection />
+
+      {/* Divider: Kenapa → Peta */}
+      <SectionDivider variant="wave" />
+
+      {/* ═══ Section 4: Peta ═══ */}
       <MiniMapPreview />
 
-      {/* CTA Download Android */}
+      {/* Divider: Peta → Download */}
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Section 5: Download CTA ═══ */}
       <section id="download" className="bg-card border-b border-divider scroll-mt-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
