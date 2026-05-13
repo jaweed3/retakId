@@ -58,7 +58,7 @@ function Legend() {
 }
 
 export function MiniMapPreview() {
-  const { data, isLoading } = useLaporan({ limit: 100 });
+  const { data, isLoading } = useLaporan({ limit: 30 });
 
   const displayPoints: { pos: [number, number]; status: string }[] =
     data && data.length > 0

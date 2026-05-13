@@ -145,7 +145,7 @@ function MetricCard({
   return (
     <div className="rounded-xl bg-card border border-divider/60 p-4 sm:p-5">
       <div className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg ${bg} mb-3`}>
-        <Icon className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${color}`} />
+        <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
       </div>
       <p className="text-xl sm:text-2xl font-bold text-text-primary tabular-nums">{value}</p>
       <p className="text-[10px] sm:text-xs text-text-secondary mt-0.5">{label}</p>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { MapPin, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { SEOMeta } from '../components/SEOMeta';
 
 export function AdminLoginPage() {
@@ -14,9 +14,7 @@ export function AdminLoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface" />
-    );
+    return <LoadingSpinner text="Memeriksa sesi..." />;
   }
 
   if (isAdmin) {

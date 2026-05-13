@@ -10,6 +10,7 @@ import { AboutPage } from './pages/AboutPage';
 import { EdukasiPage } from './pages/EdukasiPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { RiwayatPenangananPage } from './pages/RiwayatPenangananPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ScrollToTop } from './components/ScrollToTop';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -40,6 +41,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/riwayat"
+          element={
+            <ProtectedRoute>
+              <RiwayatPenangananPage />
             </ProtectedRoute>
           }
         />

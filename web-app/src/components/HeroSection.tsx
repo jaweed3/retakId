@@ -67,7 +67,7 @@ function StatCard({
 }
 
 export function HeroSection() {
-  const { data, counts, isLoading } = useLaporan({ limit: 500 });
+  const { data, counts, isLoading } = useLaporan({ limit: 100 });
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
