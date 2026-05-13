@@ -90,7 +90,7 @@ export function Layout() {
         </header>
 
         {/* Page content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto scroll-smooth">
           <Outlet />
           <Footer />
         </div>
