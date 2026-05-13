@@ -23,6 +23,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,6 +50,7 @@ import com.unidagontor.retakid.data.photo.ExifReader
 import com.unidagontor.retakid.ui.theme.*
 import com.unidagontor.retakid.ui.viewmodel.DeteksiStage
 import com.unidagontor.retakid.ui.viewmodel.DeteksiViewModel
+import com.unidagontor.retakid.ui.viewmodel.ProfilViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import java.io.File
@@ -789,12 +792,231 @@ private fun buildShareText(
 }
 
 @Composable
-fun ProfilTab() {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Adam Toyib Nur Wahid", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("Poin: 150 | Badge: Relawan")
-        Spacer(modifier = Modifier.height(24.dp))
-        TextButton(onClick = { }, modifier = Modifier.fillMaxWidth()) { Text("Riwayat Laporan") }
-        TextButton(onClick = { }, modifier = Modifier.fillMaxWidth()) { Text("Panduan Kearifan Lokal") }
+fun ProfilTab(
+    onSignOut: () -> Unit = {},
+    onRiwayatClick: (String) -> Unit = {},
+    viewModel: ProfilViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(Surface)
+    ) {
+        // Header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(GreenPrimary)
+                .padding(24.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.Start) {
+                Text("Profil Saya", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Pantau kontribusi dan badge kamu", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
+            }
+        }
+
+        if (state.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = GreenPrimary)
+            }
+        } else if (state.error != null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(state.error!!, color = TextSecondary, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { viewModel.loadProfile() }, colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)) {
+                        Text("Coba Lagi")
+                    }
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Avatar + Nama + Email
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(GreenSurface),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                state.namaLengkap.take(1).uppercase(),
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = GreenPrimary
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(state.namaLengkap, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextPrimary)
+                                    if (state.email.isNotEmpty()) {
+                                        Text(state.email, fontSize = 13.sp, color = TextSecondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Poin + Badge Card
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.White,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                StatItem(value = "${state.poin}", label = "Poin", color = GreenPrimary)
+                                StatItem(value = state.badge, label = "Badge", color = GreenPrimary)
+                                StatItem(value = "${state.totalLaporan}", label = "Laporan", color = GreenPrimary)
+                            }
+                        }
+                    }
+
+                    // Progress badge berikutnya
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.White,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = StatusWaspada, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Badge berikutnya: ${state.nextBadge}", fontSize = 13.sp, color = TextSecondary)
+                            }
+                        }
+                    }
+
+                    // Riwayat Laporan header
+                    item {
+                        Text(
+                            "Riwayat Laporan",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = TextPrimary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    // Riwayat list
+                    if (state.riwayatList.isEmpty()) {
+                        item {
+                            Surface(shape = RoundedCornerShape(12.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    "Belum ada laporan. Mulai deteksi retakan dari tab Deteksi!",
+                                    modifier = Modifier.padding(20.dp),
+                                    fontSize = 14.sp,
+                                    color = TextSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        items(state.riwayatList) { item ->
+                            RiwayatCard(
+                                namaLokasi = item.namaLokasi,
+                                status = item.status,
+                                terverifikasi = item.terverifikasi,
+                                waktu = item.createdAt.take(10),
+                                onClick = { onRiwayatClick(item.id) }
+                            )
+                        }
+                    }
+
+                    // Logout
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.signOut { onSignOut() } },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = StatusBahaya),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Logout, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Keluar")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(value: String, label: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = color)
+        Text(label, fontSize = 12.sp, color = TextSecondary)
+    }
+}
+
+@Composable
+private fun RiwayatCard(
+    namaLokasi: String,
+    status: String,
+    terverifikasi: Int,
+    waktu: String,
+    onClick: () -> Unit
+) {
+    val (statusColor, statusBg) = when (status) {
+        "BAHAYA" -> StatusBahaya to StatusBahayaBg
+        "WASPADA" -> StatusWaspada to StatusWaspadaBg
+        else -> StatusAman to StatusAmanBg
+    }
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(namaLokasi, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = TextPrimary)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(11.dp))
+                    Text(" $terverifikasi", fontSize = 11.sp, color = GreenPrimary)
+                    Text(" · $waktu", fontSize = 11.sp, color = TextSecondary)
+                }
+            }
+            Surface(color = statusBg, shape = RoundedCornerShape(4.dp)) {
+                Text(
+                    status,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = statusColor
+                )
+            }
+        }
     }
 }
