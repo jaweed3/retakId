@@ -28,7 +28,7 @@ export function LandingPage() {
       <SectionDivider variant="wave" />
 
       {/* ═══ Section 4: Edukasi Banner ═══ */}
-      <section className="bg-card border-b border-divider">
+      <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-10 sm:py-14">
           <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
             <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-primary-surface ring-2 ring-primary/20">
@@ -63,7 +63,7 @@ export function LandingPage() {
       <SectionDivider variant="fade" />
 
       {/* ═══ Section 6: Download CTA ═══ */}
-      <section id="download" className="bg-card border-b border-divider scroll-mt-20">
+      <section id="download" className="bg-card scroll-mt-20">
         <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-24">
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
             {/* QR placeholder */}

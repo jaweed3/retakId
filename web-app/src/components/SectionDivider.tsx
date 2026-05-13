@@ -35,7 +35,7 @@ function SlantSvg({ className }: { className?: string }) {
 export function SectionDivider({ variant = 'wave', className = '' }: SectionDividerProps) {
   if (variant === 'slant') {
     return (
-      <div className={`relative h-16 sm:h-24 -mt-px ${className}`}>
+      <div className={`relative h-16 sm:h-24 ${className}`}>
         <SlantSvg className="absolute inset-0 w-full h-full text-primary-surface dark:text-card" />
       </div>
     );
@@ -49,7 +49,7 @@ export function SectionDivider({ variant = 'wave', className = '' }: SectionDivi
 
   // wave — most prominent for major section breaks
   return (
-    <div className={`relative h-16 sm:h-24 -mt-px overflow-hidden ${className}`}>
+    <div className={`relative h-16 sm:h-24 overflow-hidden ${className}`}>
       <WaveSvg className="absolute bottom-0 w-full h-full text-primary-surface dark:text-card" />
     </div>
   );

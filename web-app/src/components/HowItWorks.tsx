@@ -23,7 +23,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="cara-kerja" className="bg-card border-b border-divider scroll-mt-20">
+    <section id="cara-kerja" className="bg-card scroll-mt-20">
       <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-20 sm:py-28">
         {/* Header */}
         <div className="text-center mb-12 sm:mb-14">

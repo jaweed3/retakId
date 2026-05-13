@@ -33,7 +33,7 @@ const PILLARS = [
 export function WhySection() {
   return (
     <section id="kenapa" className="scroll-mt-20">
-      <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-20 sm:py-28">
+      <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 pt-12 sm:pt-16 pb-16 sm:pb-20">
         {/* Header */}
         <div className="text-center mb-12 sm:mb-14">
           <span className="text-xs font-semibold text-primary uppercase tracking-widest">
