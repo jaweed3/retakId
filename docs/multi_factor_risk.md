@@ -290,7 +290,50 @@ Soil: Clay Loam
 
 ---
 
-## 8. File Reference
+## 8. EXIF Metadata — Alternatif Offline untuk Elevasi & GPS
+
+### Masalah
+RF1 (ElevationService) pake API call ke Open-Meteo — butuh internet, latency ~1-2 detik. Padahal HP modern nyimpen altitude + GPS di EXIF foto JPEG.
+
+### Solusi
+Baca `ExifInterface` dari file JPEG sementara SEBELUM dikonversi ke Bitmap:
+
+```kotlin
+val exif = ExifInterface(file.absolutePath)
+
+// GPS koordinat (dari satelit — lebih akurat dari GPS chip)
+val latLng = exif.latLong  // DoubleArray [lat, lon] atau null
+
+// Altitude (dari GPS — lebih akurat dari SRTM)
+val altitude = exif.getAltitude(Double.NaN)  // meter atau NaN
+
+// Arah kamera (opsional)
+val direction = exif.getAttribute(ExifInterface.TAG_GPS_IMG_DIRECTION)
+
+// Waktu pengambilan (buat konteks)
+val datetime = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+```
+
+### Prioritas Data
+```
+Elevasi: EXIF GPSAltitude > Open-Meteo Elevation API > null
+Koordinat: EXIF GPS > FusedLocationProvider > null
+```
+
+### Keuntungan untuk RF1-RF6
+- **EXIF GPS →** ganti LocationService (lebih akurat, sesuai titik foto)
+- **EXIF Altitude →** ganti ElevationService (no API call, works offline)
+- **Lebih cepat →** tidak perlu nunggu API response
+- **Lebih akurat →** altitude GPS satelit ±5m, SRTM ±30m
+
+### Lokasi Implementasi
+- `MainScreens.kt` — `CameraView.onImageSaved` — baca EXIF sebelum bitmap
+- `DeteksiViewModel.kt` — inject EXIF data ke state
+- `RF6 fetch cascade` — prioritas EXIF > API
+
+---
+
+## 9. File Reference
 
 | File | Path | Purpose |
 |------|------|---------|
