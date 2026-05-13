@@ -33,7 +33,7 @@ export function FilterStatusBar({ current, onChange, counts }: FilterStatusBarPr
             key={f.key}
             onClick={() => onChange(f.key)}
             className={cn(
-              'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors',
+              'flex items-center gap-1 sm:gap-1.5 rounded-full border px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors',
               isActive
                 ? f.activeClass
                 : 'border-divider text-text-secondary hover:border-primary/40 hover:text-text-primary',
