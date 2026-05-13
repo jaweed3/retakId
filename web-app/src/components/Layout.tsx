@@ -1,11 +1,14 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, MapPin } from 'lucide-react';
+import { Home, LayoutDashboard, FileText, Info, MapPin, LogIn } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { Footer } from './Footer';
 import { cn } from '../utils/cn';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/', label: 'Beranda', icon: Home },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/reports', label: 'Laporan', icon: FileText },
+  { to: '/about', label: 'Tentang', icon: Info },
 ];
 
 export function Layout() {
@@ -19,8 +22,10 @@ export function Layout() {
         : 'text-text-secondary hover:text-text-primary hover:bg-divider/30',
     );
 
-  const mobileActive = (to: string) =>
-    to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+  const mobileActive = (to: string) => {
+    if (to === '/') return location.pathname === '/';
+    return location.pathname.startsWith(to);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -54,13 +59,22 @@ export function Layout() {
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-divider flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <span className="text-xs text-text-secondary">Live</span>
+        {/* Footer sidebar */}
+        <div className="px-4 py-3 border-t border-divider space-y-3">
+          <NavLink
+            to="/admin/login"
+            className="flex items-center gap-2 text-[11px] text-text-secondary/60 hover:text-text-secondary transition-colors px-1"
+          >
+            <LogIn className="h-3 w-3" />
+            Login Admin
+          </NavLink>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              <span className="text-xs text-text-secondary">Live</span>
+            </div>
+            <ThemeToggle />
           </div>
-          <ThemeToggle />
         </div>
       </aside>
 
@@ -85,6 +99,7 @@ export function Layout() {
         {/* Page content */}
         <div className="flex-1 overflow-auto">
           <Outlet />
+          <Footer />
         </div>
 
         {/* ─── Bottom nav (mobile) ─── */}
@@ -94,7 +109,7 @@ export function Layout() {
               key={item.to}
               to={item.to}
               className={cn(
-                'flex flex-col items-center gap-0.5 py-1 px-4 text-[10px] font-medium min-w-0 transition-colors',
+                'flex flex-col items-center gap-0.5 py-1 px-3 text-[10px] font-medium min-w-0 transition-colors',
                 mobileActive(item.to) ? 'text-primary' : 'text-text-secondary/50',
               )}
               end={item.to === '/'}
