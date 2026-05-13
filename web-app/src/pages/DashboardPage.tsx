@@ -3,7 +3,6 @@ import { useLaporan } from '../hooks/useLaporan';
 import { MapView } from '../components/MapView';
 import { StatsSummaryCards } from '../components/StatsSummaryCards';
 import { FilterStatusBar } from '../components/FilterStatusBar';
-import { MapPin } from 'lucide-react';
 import type { StatusFilter } from '../types/laporan';
 
 export function DashboardPage() {
@@ -19,18 +18,13 @@ export function DashboardPage() {
       <div className="shrink-0 bg-card border-b border-divider px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <MapPin className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-text-primary leading-tight">
-                Dashboard Pemantauan
-              </h2>
-              <p className="text-xs text-text-secondary">
-                Retakan tanah di Jenangan, Ponorogo
-              </p>
-            </div>
+          <div className="mb-4">
+            <h2 className="text-base font-bold text-text-primary">
+              Dashboard Pemantauan
+            </h2>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Retakan tanah di Jenangan, Ponorogo
+            </p>
           </div>
 
           {/* Stats + Filter */}
