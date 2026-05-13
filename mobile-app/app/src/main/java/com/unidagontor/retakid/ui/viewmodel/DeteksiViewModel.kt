@@ -11,6 +11,9 @@ import com.unidagontor.retakid.data.elevation.SlopeCalculator
 import com.unidagontor.retakid.data.location.LocationData
 import com.unidagontor.retakid.data.photo.ExifData
 import com.unidagontor.retakid.data.location.LocationService
+import com.unidagontor.retakid.data.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.from
 import com.unidagontor.retakid.data.ml.DetectionResult
 import com.unidagontor.retakid.data.ml.MLResult
 import com.unidagontor.retakid.data.risk.MultiFactorRiskEngine
@@ -168,6 +171,17 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
                 db.collection("laporan")
                     .add(report)
                     .await()
+
+                try {
+                    val supabase = SupabaseClient.client
+                    val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
+                    val current = supabase.from("profiles")
+                        .select { filter { eq("id", userId) } }
+                        .decodeSingle<com.unidagontor.retakid.ui.viewmodel.ProfileDto>()
+                    supabase.from("profiles").update({
+                        "poin" to (current.poin + 10)
+                    }) { filter { eq("id", userId) } }
+                } catch (_: Exception) { }
 
                 _uiState.update { it.copy(isSubmitting = false, stage = DeteksiStage.SUCCESS) }
             } catch (e: Exception) {
