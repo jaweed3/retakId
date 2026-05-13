@@ -64,8 +64,6 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
   return (
     <div className="rounded-2xl bg-card border border-divider/60 p-5 sm:p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-4">Tren Harian</h3>
-      <ResponsiveContainer width="100%" height={220} className="sm:hidden" />
-      <ResponsiveContainer width="100%" height={280} className="hidden sm:block" />
       <div className="h-[220px] sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: -5, bottom: 5 }}>

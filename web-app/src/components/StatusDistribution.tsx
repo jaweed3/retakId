@@ -11,11 +11,12 @@ const COLORS = { aman: '#388E3C', waspada: '#F57C00', bahaya: '#D32F2F' };
 
 const CustomTooltip = ({ active, payload }: Record<string, unknown>) => {
   if (!active || !payload || !Array.isArray(payload)) return null;
-  const data = (payload as Array<{ name: string; value: number; payload: { percent: number } }>)[0];
+  const data = payload[0] as { name: string; value: number; payload: { percent: number; fill: string } } | undefined;
+  if (!data) return null;
   return (
     <div className="rounded-lg border border-divider bg-card px-3 py-2 shadow-lg text-xs">
       <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: data.payload?.payload?.fill }} />
+        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: data.payload?.fill }} />
         <span className="text-text-secondary capitalize">{data.name}:</span>
         <span className="font-medium text-text-primary tabular-nums">{data.value}</span>
         <span className="text-text-secondary/60">({(data.payload?.percent * 100).toFixed(0)}%)</span>

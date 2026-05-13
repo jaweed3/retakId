@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, LayoutDashboard, FileText, Info, MapPin, LogIn } from 'lucide-react';
+import { Home, LayoutDashboard, FileText, BarChart3, Info, MapPin, LogIn } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Footer } from './Footer';
 import { cn } from '../utils/cn';
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Beranda', icon: Home },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/reports', label: 'Laporan', icon: FileText },
+  { to: '/statistics', label: 'Statistik', icon: BarChart3 },
   { to: '/about', label: 'Tentang', icon: Info },
 ];
 
