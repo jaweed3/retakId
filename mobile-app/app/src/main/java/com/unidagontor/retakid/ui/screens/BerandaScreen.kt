@@ -20,7 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.unidagontor.retakid.ui.viewmodel.BerandaViewModel
 import com.unidagontor.retakid.ui.theme.*
 
-// ─── Data model (nanti dari Firestore) ────────────────
+// ─── Data model (dari Supabase `laporan` table) ───────
 data class LaporanItem(
     val id: String,
     val namaLokasi: String,

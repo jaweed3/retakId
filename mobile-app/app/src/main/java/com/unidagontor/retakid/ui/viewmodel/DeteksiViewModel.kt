@@ -4,7 +4,6 @@ import android.app.Application
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.firestore.FirebaseFirestore
 import com.unidagontor.retakid.data.elevation.ElevationData
 import com.unidagontor.retakid.data.elevation.ElevationService
 import com.unidagontor.retakid.data.elevation.SlopeCalculator
@@ -28,11 +27,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.*
+
+@Serializable
+data class LaporanInsertDto(
+    @SerialName("nama_lokasi") val namaLokasi: String,
+    val status: String,
+    val catatan: String,
+    val latitude: Double,
+    val longitude: Double,
+    val pelapor: String,
+)
 
 enum class DeteksiStage {
     INITIAL,
@@ -61,7 +71,6 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
 
     private val mlAnalyzer = com.unidagontor.retakid.data.ml.TFLiteMLAnalyzer(application)
     private val locationService = LocationService(application)
-    private val db = FirebaseFirestore.getInstance()
 
     fun startDetection() {
         _uiState.update { it.copy(stage = DeteksiStage.CAMERA, error = null) }
@@ -155,29 +164,24 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
 
         viewModelScope.launch {
             try {
+                val supabase = SupabaseClient.client
+                val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
                 val finalLocation = state.location ?: locationService.getCurrentLocation()
 
-                val report = hashMapOf(
-                    "namaLokasi" to namaLokasi,
-                    "status" to finalResult.name,
-                    "catatan" to catatan,
-                    "latitude" to (finalLocation?.latitude ?: 0.0),
-                    "longitude" to (finalLocation?.longitude ?: 0.0),
-                    "timestamp" to System.currentTimeMillis(),
-                    "pelapor" to "User",
-                    "terverifikasi" to 0
+                val dto = LaporanInsertDto(
+                    namaLokasi = namaLokasi,
+                    status = finalResult.name,
+                    catatan = catatan,
+                    latitude = finalLocation?.latitude ?: 0.0,
+                    longitude = finalLocation?.longitude ?: 0.0,
+                    pelapor = userId,
                 )
-
-                db.collection("laporan")
-                    .add(report)
-                    .await()
+                supabase.from("laporan").insert(dto)
 
                 try {
-                    val supabase = SupabaseClient.client
-                    val userId = supabase.auth.currentUserOrNull()?.id ?: return@launch
                     val current = supabase.from("profiles")
                         .select { filter { eq("id", userId) } }
-                        .decodeSingle<com.unidagontor.retakid.ui.viewmodel.ProfileDto>()
+                        .decodeSingle<ProfileDto>()
                     supabase.from("profiles").update({
                         "poin" to (current.poin + 10)
                     }) { filter { eq("id", userId) } }

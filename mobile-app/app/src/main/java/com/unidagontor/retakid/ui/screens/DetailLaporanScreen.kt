@@ -21,10 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
+import com.unidagontor.retakid.data.SupabaseClient
 import com.unidagontor.retakid.ui.theme.*
-import kotlinx.coroutines.tasks.await
+import com.unidagontor.retakid.ui.viewmodel.LaporanDto
+import io.github.jan.supabase.postgrest.from
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
@@ -43,33 +43,22 @@ fun DetailLaporanScreen(
 
     LaunchedEffect(laporanId) {
         try {
-            val doc = FirebaseFirestore.getInstance()
-                .collection("laporan")
-                .document(laporanId)
-                .get()
-                .await()
+            val result = SupabaseClient.client.from("laporan")
+                .select { filter { eq("id", laporanId) } }
+                .decodeSingle<LaporanDto>()
 
-            if (doc.exists()) {
-                val timestampLong = doc.get("timestamp")?.let {
-                    when (it) { is Long -> it; is Double -> it.toLong(); else -> 0L }
-                } ?: 0L
-                val terverifikasi = doc.get("terverifikasi")?.let {
-                    when (it) { is Long -> it.toInt(); is Double -> it.toInt(); else -> 0 }
-                } ?: 0
-
-                laporan = LaporanItem(
-                    id = doc.id,
-                    namaLokasi = doc.getString("namaLokasi") ?: "Tanpa Nama",
-                    status = doc.getString("status") ?: "AMAN",
-                    catatan = doc.getString("catatan") ?: "",
-                    fotoUrl = doc.getString("foto_url"),
-                    latitude = doc.getDouble("latitude") ?: 0.0,
-                    longitude = doc.getDouble("longitude") ?: 0.0,
-                    timestamp = formatDetailTimestamp(timestampLong),
-                    pelapor = doc.getString("pelapor") ?: "User",
-                    terverifikasi = terverifikasi
-                )
-            }
+            laporan = LaporanItem(
+                id = result.id,
+                namaLokasi = result.namaLokasi,
+                status = result.status,
+                catatan = result.catatan,
+                fotoUrl = result.fotoUrl,
+                latitude = result.latitude,
+                longitude = result.longitude,
+                timestamp = formatDetailTimestamp(parseIsoTimestamp(result.createdAt)),
+                pelapor = result.pelapor,
+                terverifikasi = result.terverifikasi
+            )
         } catch (_: Exception) { }
         isLoading = false
     }
@@ -103,11 +92,13 @@ fun DetailLaporanScreen(
                     isConfirming = true
                     scope.launch {
                         try {
-                            FirebaseFirestore.getInstance()
-                                .collection("laporan")
-                                .document(laporanId)
-                                .update("terverifikasi", FieldValue.increment(1))
-                                .await()
+                            val supabase = SupabaseClient.client
+                            val current = supabase.from("laporan")
+                                .select { filter { eq("id", laporanId) } }
+                                .decodeSingle<LaporanDto>()
+                            supabase.from("laporan").update({
+                                "terverifikasi" to (current.terverifikasi + 1)
+                            }) { filter { eq("id", laporanId) } }
                         } catch (_: Exception) { }
                         onConfirm()
                     }
@@ -265,6 +256,13 @@ private fun DetailInfoRow(
             Text(value, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
         }
     }
+}
+
+private fun parseIsoTimestamp(iso: String): Long {
+    return try {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        sdf.parse(iso.take(19))?.time ?: 0L
+    } catch (_: Exception) { 0L }
 }
 
 private fun formatDetailTimestamp(timestamp: Long): String {
