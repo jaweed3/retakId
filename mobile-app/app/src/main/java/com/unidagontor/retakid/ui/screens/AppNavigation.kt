@@ -40,13 +40,25 @@ fun RetakIdApp() {
             LoginScreen(onLoginSuccess = { navController.navigate("main") { popUpTo("login") { inclusive = true } } })
         }
         composable("main") {
-            MainContainerScreen() // Memanggil Scaffold 4 Tab
+            MainContainerScreen(
+                onNavigateToDetail = { laporanId -> navController.navigate("detail/$laporanId") }
+            )
+        }
+        composable("detail/{laporanId}") { backStackEntry ->
+            val laporanId = backStackEntry.arguments?.getString("laporanId") ?: return@composable
+            DetailLaporanScreen(
+                laporanId = laporanId,
+                onBack = { navController.popBackStack() },
+                onConfirm = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
 
 @Composable
-fun MainContainerScreen() {
+fun MainContainerScreen(onNavigateToDetail: (String) -> Unit = {}) {
     val bottomNavController = rememberNavController()
     val items = listOf(BottomNav.Beranda, BottomNav.Deteksi, BottomNav.Peta, BottomNav.Profil)
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -82,7 +94,7 @@ fun MainContainerScreen() {
             startDestination = BottomNav.Beranda.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(BottomNav.Beranda.route) { BerandaTab() }
+            composable(BottomNav.Beranda.route) { BerandaTab(onLaporanClick = onNavigateToDetail) }
             composable(BottomNav.Deteksi.route) { DeteksiTab() }
             composable(BottomNav.Peta.route) { PetaTab() }
             composable(BottomNav.Profil.route) { ProfilTab() }
