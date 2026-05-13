@@ -4,11 +4,13 @@ import { MapPin, Github, Mail, Phone } from 'lucide-react';
 const FOOTER_LINKS = [
   { label: 'Navigasi', items: [
     { to: '/', label: 'Beranda' },
-    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/dashboard', label: 'Pemantauan' },
     { to: '/reports', label: 'Laporan' },
+    { to: '/statistics', label: 'Statistik' },
     { to: '/about', label: 'Tentang' },
   ]},
   { label: 'Sumber Daya', items: [
+    { to: '/reports/new', label: 'Laporkan Retakan' },
     { to: '/edukasi', label: 'Edukasi Bencana' },
     { to: 'https://github.com/jaweed3/retakId', label: 'GitHub Repository', external: true },
   ]},

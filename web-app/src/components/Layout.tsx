@@ -6,7 +6,7 @@ import { cn } from '../utils/cn';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Beranda', icon: Home },
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/dashboard', label: 'Pemantauan', icon: LayoutDashboard },
   { to: '/reports', label: 'Laporan', icon: FileText },
   { to: '/statistics', label: 'Statistik', icon: BarChart3 },
   { to: '/about', label: 'Tentang', icon: Info },
@@ -81,7 +81,7 @@ export function Layout() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-text-primary leading-tight">Retak.id</h1>
-              <p className="text-[10px] text-text-secondary">Dashboard</p>
+              <p className="text-[10px] text-text-secondary">Monitoring</p>
             </div>
           </div>
           <div className="flex items-center gap-1">

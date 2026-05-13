@@ -149,7 +149,7 @@ export function HeroSection() {
               to="/dashboard"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:bg-primary-light hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
             >
-              Lihat Dashboard
+              Lihat Peta Pemantauan
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a

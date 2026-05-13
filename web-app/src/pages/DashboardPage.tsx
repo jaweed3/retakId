@@ -27,7 +27,7 @@ export function DashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
             <div>
               <h2 className="text-sm sm:text-base font-bold text-text-primary">
-                Dashboard Pemantauan
+                Peta Pemantauan
               </h2>
               <p className="text-[11px] sm:text-xs text-text-secondary mt-0.5">
                 Retakan tanah di Jenangan, Ponorogo
