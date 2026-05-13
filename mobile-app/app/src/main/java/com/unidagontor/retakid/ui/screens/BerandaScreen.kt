@@ -24,15 +24,21 @@ import com.unidagontor.retakid.ui.theme.*
 data class LaporanItem(
     val id: String,
     val namaLokasi: String,
-    val status: String,          // "AMAN" | "WASPADA" | "BAHAYA"
+    val status: String,
     val catatan: String,
+    val fotoUrl: String? = null,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
     val timestamp: String,
     val pelapor: String,
-    val terverifikasi: Int       // jumlah konfirmasi warga
+    val terverifikasi: Int
 )
 
 @Composable
-fun BerandaTab(viewModel: BerandaViewModel = viewModel()) {
+fun BerandaTab(
+    onLaporanClick: (String) -> Unit = {},
+    viewModel: BerandaViewModel = viewModel()
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Surface)) {
@@ -63,7 +69,7 @@ fun BerandaTab(viewModel: BerandaViewModel = viewModel()) {
                     )
                 }
                 items(uiState.laporanList) { laporan ->
-                    LaporanCard(laporan = laporan)
+                    LaporanCard(laporan = laporan, onClick = { onLaporanClick(laporan.id) })
                 }
             }
         }
@@ -127,7 +133,7 @@ fun StatChip(count: Int, label: String, color: Color, bg: Color) {
 
 
 @Composable
-fun LaporanCard(laporan: LaporanItem) {
+fun LaporanCard(laporan: LaporanItem, onClick: () -> Unit = {}) {
     val (statusBg, statusColor) = when (laporan.status) {
         "BAHAYA"  -> StatusBahayaBg  to StatusBahaya
         "WASPADA" -> StatusWaspadaBg to StatusWaspada
@@ -138,7 +144,8 @@ fun LaporanCard(laporan: LaporanItem) {
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(14.dp),
         colors    = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        onClick   = onClick
     ) {
         // Garis warna status di sisi kiri
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {

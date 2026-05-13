@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -46,6 +47,9 @@ class BerandaViewModel : ViewModel() {
                                 val namaLokasi = doc.getString("namaLokasi") ?: "Tanpa Nama"
                                 val status = doc.getString("status") ?: "AMAN"
                                 val catatan = doc.getString("catatan") ?: ""
+                                val fotoUrl = doc.getString("foto_url")
+                                val latitude = doc.getDouble("latitude") ?: 0.0
+                                val longitude = doc.getDouble("longitude") ?: 0.0
                                 val timestampLong = doc.get("timestamp")?.let {
                                     when (it) {
                                         is Long -> it
@@ -67,6 +71,9 @@ class BerandaViewModel : ViewModel() {
                                     namaLokasi = namaLokasi,
                                     status = status,
                                     catatan = catatan,
+                                    fotoUrl = fotoUrl,
+                                    latitude = latitude,
+                                    longitude = longitude,
                                     timestamp = formatTimestamp(timestampLong),
                                     pelapor = pelapor,
                                     terverifikasi = terverifikasi
@@ -78,6 +85,16 @@ class BerandaViewModel : ViewModel() {
                         _uiState.value = BerandaState(laporanList = items, isLoading = false)
                     }
                 }
+        }
+    }
+
+    fun confirmLaporan(laporanId: String) {
+        viewModelScope.launch {
+            try {
+                db.collection("laporan").document(laporanId)
+                    .update("terverifikasi", com.google.firebase.firestore.FieldValue.increment(1))
+                    .await()
+            } catch (_: Exception) { }
         }
     }
 
