@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import type { StatusFilter } from '../types/laporan';
 import { useLaporan } from '../hooks/useLaporan';
 import { FilterStatusBar } from '../components/FilterStatusBar';
 import { DateRangeFilter, getDateRange, type DateRange } from '../components/DateRangeFilter';
@@ -10,7 +11,7 @@ import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { ChevronLeft, ChevronRight, Search, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { StatusFilter } from '../types/laporan';
+import { SEOMeta } from '../components/SEOMeta';
 
 const PAGE_SIZE = 12;
 
@@ -21,7 +22,7 @@ export function ReportsPage() {
   const [page, setPage] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('card');
 
-  const range = getDateRange(dateRange);
+  const range = useMemo(() => getDateRange(dateRange), [dateRange]);
 
   const { data, counts, totalCount, isLoading, error, refetch } = useLaporan({
     status: statusFilter,
@@ -47,6 +48,7 @@ export function ReportsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <SEOMeta title="Daftar Laporan" description="Semua laporan retakan tanah dari warga Jenangan, Ponorogo. Filter berdasarkan status AMAN, WASPADA, atau BAHAYA." />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
         <div>

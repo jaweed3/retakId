@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Laporan, StatusFilter } from '../types/laporan';
 import { supabase, requireSupabase } from '../lib/supabase';
 
@@ -117,13 +117,15 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
     fetchData();
   }, [fetchData]);
 
-  // Realtime subscription
+  // Realtime subscription — unique channel per hook instance
+  const channelId = useRef(`laporan-rt-${Math.random().toString(36).slice(2, 8)}`);
+
   useEffect(() => {
     if (!supabase) return;
     const client = requireSupabase();
 
     const channel = client
-      .channel('laporan-realtime')
+      .channel(channelId.current)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'laporan' },

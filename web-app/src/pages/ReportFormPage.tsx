@@ -26,6 +26,8 @@ const STATUS_OPTIONS: { value: ReportStatus; label: string; desc: string }[] = [
   { value: 'BAHAYA', label: 'Bahaya', desc: 'Retakan kritis, segera evakuasi' },
 ];
 
+import { SEOMeta } from '../components/SEOMeta';
+
 export function ReportFormPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>({
@@ -115,6 +117,7 @@ export function ReportFormPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <SEOMeta title="Laporkan Retakan Tanah" description="Laporkan retakan tanah yang Anda temukan. Upload foto, lokasi diambil dari GPS foto (EXIF), dan kirim ke BPBD." />
       <Link to="/reports" className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary mb-4 sm:mb-6 transition-colors">
         <ArrowLeft className="h-4 w-4" /> Kembali
       </Link>

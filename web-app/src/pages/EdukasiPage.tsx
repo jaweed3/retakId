@@ -45,9 +45,12 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
+import { SEOMeta } from '../components/SEOMeta';
+
 export function EdukasiPage() {
   return (
     <div>
+      <SEOMeta title="Edukasi Bencana" description="Kenali retakan tanah: tingkat bahaya AMAN, WASPADA, BAHAYA. Cara melapor, kontak darurat BPBD Ponorogo, dan FAQ." />
       {/* Hero */}
       <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">

@@ -5,10 +5,12 @@ import { HowItWorks } from '../components/HowItWorks';
 import { WhySection } from '../components/WhySection';
 import { MiniMapPreview } from '../components/MiniMapPreview';
 import { SectionDivider } from '../components/SectionDivider';
+import { SEOMeta } from '../components/SEOMeta';
 
 export function LandingPage() {
   return (
     <div>
+      <SEOMeta title="Pantau Retakan Tanah, Cegah Longsor Bersama" />
       {/* ═══ Section 1: Hero ═══ */}
       <HeroSection />
 

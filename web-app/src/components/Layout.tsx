@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Home, LayoutDashboard, FileText, BarChart3, Info, MapPin, LogIn } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Footer } from './Footer';
+import { RealtimeAlert } from './RealtimeAlert';
 import { cn } from '../utils/cn';
 
 const NAV_ITEMS = [
@@ -22,6 +23,7 @@ export function Layout() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-surface">
+      <RealtimeAlert />
       {/* ─── Top Navbar (desktop) ─── */}
       <header className="hidden lg:flex items-center justify-between h-16 shrink-0 border-b border-divider bg-card px-6">
         {/* Left: Logo */}

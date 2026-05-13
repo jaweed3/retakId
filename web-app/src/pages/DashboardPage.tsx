@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLaporan } from '../hooks/useLaporan';
 import { MapView } from '../components/MapView';
 import { StatsSummaryCards } from '../components/StatsSummaryCards';
@@ -7,10 +7,12 @@ import { ChartsSection } from '../components/ChartsSection';
 import { DateRangeFilter, getDateRange, type DateRange } from '../components/DateRangeFilter';
 import type { StatusFilter } from '../types/laporan';
 
+import { SEOMeta } from '../components/SEOMeta';
+
 export function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('SEMUA');
   const [dateRange, setDateRange] = useState<DateRange>('30d');
-  const range = getDateRange(dateRange);
+  const range = useMemo(() => getDateRange(dateRange), [dateRange]);
 
   const { data, counts, isLoading, error, refetch } = useLaporan({
     status: statusFilter,
@@ -21,6 +23,7 @@ export function DashboardPage() {
 
   return (
     <div className="h-full flex flex-col">
+      <SEOMeta title="Peta Pemantauan" description="Peta interaktif sebaran laporan retakan tanah di Jenangan, Ponorogo. Monitoring real-time oleh BPBD." />
       {/* Panel Info */}
       <div className="shrink-0 bg-card border-b border-divider px-4 sm:px-6 py-4 sm:py-5">
         <div className="max-w-6xl mx-auto">

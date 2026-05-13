@@ -3,6 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { MapPin, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+import { SEOMeta } from '../components/SEOMeta';
+
 export function AdminLoginPage() {
   const { isAdmin, isLoading, signIn } = useAuth();
   const [email, setEmail] = useState('');
@@ -32,6 +34,7 @@ export function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
+      <SEOMeta title="Login Admin" noindex />
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">

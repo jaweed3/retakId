@@ -62,9 +62,11 @@ function TopLocationsChart({ data }: { data: Laporan[] }) {
   );
 }
 
+import { SEOMeta } from '../components/SEOMeta';
+
 export function StatisticsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('30d');
-  const range = getDateRange(dateRange);
+  const range = useMemo(() => getDateRange(dateRange), [dateRange]);
 
   const { data, counts, isLoading, error, refetch } = useLaporan({
     limit: 1000,
@@ -90,6 +92,7 @@ export function StatisticsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <SEOMeta title="Statistik & Analitik" description="Analisis data laporan retakan tanah: tren harian, distribusi status, top lokasi, dan statistik real-time." />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>

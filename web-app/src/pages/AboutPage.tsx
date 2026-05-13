@@ -56,9 +56,12 @@ const TECH = [
   { cat: 'Backend', items: 'Supabase — PostgreSQL, Auth, Storage, Realtime' },
 ];
 
+import { SEOMeta } from '../components/SEOMeta';
+
 export function AboutPage() {
   return (
     <div>
+      <SEOMeta title="Tentang" description="Retak.id adalah proyek IYREF 2026 Semi-Final. Tim: Farrel Ghozy, Adam Nurwahid, Jaweed. Teknologi: AI, Android, Supabase." />
       {/* ═══ Hero ═══ */}
       <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
