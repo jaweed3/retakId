@@ -29,44 +29,71 @@ CREATE TABLE IF NOT EXISTS riwayat_penanganan (
   tindakan TEXT NOT NULL CHECK (tindakan IN ('diverifikasi', 'diedit', 'dihapus')),
   alasan TEXT,
   detail JSONB,
+  data_sebelumnya JSONB,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ============================================================
 -- 3. RLS POLICIES
 -- ============================================================
-ALTER TABLE laporan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE riwayat_penanganan ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Laporan dapat dibaca publik" ON laporan;
-DROP POLICY IF EXISTS "Siapa pun bisa insert laporan" ON laporan;
-DROP POLICY IF EXISTS "Admin dapat update laporan" ON laporan;
-DROP POLICY IF EXISTS "Admin dapat hapus laporan" ON laporan;
+DO $$
+BEGIN
+  IF to_regclass('public.laporan') IS NOT NULL THEN
+    ALTER TABLE laporan ENABLE ROW LEVEL SECURITY;
+
+    DROP POLICY IF EXISTS "Laporan dapat dibaca publik" ON laporan;
+    DROP POLICY IF EXISTS "Siapa pun bisa insert laporan" ON laporan;
+    DROP POLICY IF EXISTS "Admin dapat update laporan" ON laporan;
+    DROP POLICY IF EXISTS "Admin dapat hapus laporan" ON laporan;
+
+    CREATE POLICY "Laporan dapat dibaca publik" ON laporan
+      FOR SELECT USING (true);
+
+    CREATE POLICY "Siapa pun bisa insert laporan" ON laporan
+      FOR INSERT WITH CHECK (true);
+
+    CREATE POLICY "Admin dapat update laporan" ON laporan
+      FOR UPDATE USING (auth.role() = 'authenticated');
+
+    CREATE POLICY "Admin dapat hapus laporan" ON laporan
+      FOR DELETE USING (auth.role() = 'authenticated');
+  END IF;
+END $$;
+
 DROP POLICY IF EXISTS "Admin dapat baca admin_users" ON admin_users;
 DROP POLICY IF EXISTS "Admin dapat baca riwayat" ON riwayat_penanganan;
 DROP POLICY IF EXISTS "Admin dapat insert riwayat" ON riwayat_penanganan;
 
-CREATE POLICY "Laporan dapat dibaca publik" ON laporan
-  FOR SELECT USING (true);
-
-CREATE POLICY "Siapa pun bisa insert laporan" ON laporan
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Admin dapat update laporan" ON laporan
-  FOR UPDATE USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Admin dapat hapus laporan" ON laporan
-  FOR DELETE USING (auth.role() = 'authenticated');
-
 CREATE POLICY "Admin dapat baca admin_users" ON admin_users
-  FOR SELECT USING (auth.role() = 'authenticated');
+  FOR SELECT USING (
+    auth.uid() = user_id
+    OR EXISTS (
+      SELECT 1
+      FROM admin_users au
+      WHERE au.user_id = auth.uid()
+    )
+  );
 
 CREATE POLICY "Admin dapat baca riwayat" ON riwayat_penanganan
-  FOR SELECT USING (auth.role() = 'authenticated');
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1
+      FROM admin_users au
+      WHERE au.user_id = auth.uid()
+    )
+  );
 
 CREATE POLICY "Admin dapat insert riwayat" ON riwayat_penanganan
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM admin_users au
+      WHERE au.user_id = auth.uid()
+    )
+  );
 
 -- ============================================================
 -- 4. STORAGE BUCKET FOTO
