@@ -44,6 +44,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.unidagontor.retakid.data.ml.DetectionResult
+import com.unidagontor.retakid.data.photo.ExifReader
 import com.unidagontor.retakid.ui.theme.*
 import com.unidagontor.retakid.ui.viewmodel.DeteksiStage
 import com.unidagontor.retakid.ui.viewmodel.DeteksiViewModel
@@ -82,7 +83,7 @@ fun DeteksiTab(vm: DeteksiViewModel = viewModel()) {
                 })
             }
             DeteksiStage.CAMERA -> {
-                CameraView(onImageCaptured = { vm.onImageCaptured(it) })
+                CameraView(onImageCaptured = { bitmap, exif -> vm.onImageCaptured(bitmap, exif) })
             }
             DeteksiStage.ANALYZING -> {
                 AnalyzingView()
@@ -172,7 +173,7 @@ fun InitialDetectionView(onStart: () -> Unit) {
 }
 
 @Composable
-fun CameraView(onImageCaptured: (Bitmap) -> Unit) {
+fun CameraView(onImageCaptured: (Bitmap, com.unidagontor.retakid.data.photo.ExifData?) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
@@ -222,13 +223,14 @@ fun CameraView(onImageCaptured: (Bitmap) -> Unit) {
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                                 val uri = Uri.fromFile(file)
+                                val exifData = ExifReader.read(file.absolutePath)
                                 val bitmap = if (Build.VERSION.SDK_INT < 28) {
                                     MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                                 } else {
                                     val source = ImageDecoder.createSource(context.contentResolver, uri)
                                     ImageDecoder.decodeBitmap(source)
                                 }
-                                onImageCaptured(bitmap)
+                                onImageCaptured(bitmap, exifData)
                             }
 
                             override fun onError(exc: ImageCaptureException) {
