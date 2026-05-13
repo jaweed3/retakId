@@ -13,70 +13,89 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.unidagontor.retakid.ui.viewmodel.BerandaViewModel
+import coil.compose.AsyncImage              // tambahkan: implementation("io.coil-kt:coil-compose:2.7.0")
 import com.unidagontor.retakid.ui.theme.*
+import com.unidagontor.retakid.ui.viewmodel.BerandaViewModel
 
-// ─── Data model (nanti dari Firestore) ────────────────
 data class LaporanItem(
-    val id: String,
-    val namaLokasi: String,
-    val status: String,
-    val catatan: String,
-    val fotoUrl: String? = null,
-    val latitude: Double = 0.0,
-    val longitude: Double = 0.0,
-    val timestamp: String,
-    val pelapor: String,
-    val terverifikasi: Int
+    val id            : String,
+    val namaLokasi    : String,
+    val status        : String,
+    val catatan       : String,
+    val timestamp     : String,
+    val pelapor       : String,
+    val terverifikasi : Int,
+    val fotoUrl       : String? = null
 )
 
 @Composable
-fun BerandaTab(
-    onLaporanClick: (String) -> Unit = {},
-    viewModel: BerandaViewModel = viewModel()
-) {
+fun BerandaTab(viewModel: BerandaViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Surface)) {
 
-        // Header
         BerandaHeader()
-
-        // Ringkasan statistik
         StatsSummaryRow(laporan = uiState.laporanList)
 
-        // Feed laporan
+        uiState.error?.let {
+            Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(onClick = { viewModel.fetchLaporan() }) { Text("Coba Lagi") }
+                }
+            }
+        }
+
         if (uiState.isLoading && uiState.laporanList.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = GreenPrimary)
             }
         } else {
             LazyColumn(
-                contentPadding       = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement  = Arrangement.spacedBy(10.dp)
+                contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
-                    Text(
-                        "Laporan Terbaru",
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 16.sp,
-                        color      = TextPrimary,
-                        modifier   = Modifier.padding(bottom = 4.dp)
-                    )
+                    Row(
+                        modifier              = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Text("Laporan Terbaru", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = GreenPrimary)
+                        } else {
+                            TextButton(onClick = { viewModel.fetchLaporan() }) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Perbarui", fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
-                items(uiState.laporanList) { laporan ->
-                    LaporanCard(laporan = laporan, onClick = { onLaporanClick(laporan.id) })
+                items(uiState.laporanList, key = { it.id }) { laporan ->
+                    LaporanCard(
+                        laporan       = laporan,
+                        onKonfirmasi  = { viewModel.konfirmasiLaporan(laporan.id) }
+                    )
                 }
             }
         }
     }
 }
 
-
+// ─── Header ───────────────────────────────────────────────────
 @Composable
 fun BerandaHeader() {
     Row(
@@ -97,7 +116,7 @@ fun BerandaHeader() {
     }
 }
 
-
+// ─── Stats ────────────────────────────────────────────────────
 @Composable
 fun StatsSummaryRow(laporan: List<LaporanItem>) {
     val bahaya  = laporan.count { it.status == "BAHAYA" }
@@ -131,9 +150,9 @@ fun StatChip(count: Int, label: String, color: Color, bg: Color) {
     }
 }
 
-
+// ─── Laporan Card ─────────────────────────────────────────────
 @Composable
-fun LaporanCard(laporan: LaporanItem, onClick: () -> Unit = {}) {
+fun LaporanCard(laporan: LaporanItem, onKonfirmasi: () -> Unit) {
     val (statusBg, statusColor) = when (laporan.status) {
         "BAHAYA"  -> StatusBahayaBg  to StatusBahaya
         "WASPADA" -> StatusWaspadaBg to StatusWaspada
@@ -144,11 +163,10 @@ fun LaporanCard(laporan: LaporanItem, onClick: () -> Unit = {}) {
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(14.dp),
         colors    = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(2.dp),
-        onClick   = onClick
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        // Garis warna status di sisi kiri
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            // Garis warna status di sisi kiri
             Box(
                 modifier = Modifier
                     .width(4.dp)
@@ -158,13 +176,27 @@ fun LaporanCard(laporan: LaporanItem, onClick: () -> Unit = {}) {
 
             Column(modifier = Modifier.padding(14.dp)) {
 
-                // Baris: lokasi + badge status
+                // Thumbnail foto (jika ada)
+                laporan.fotoUrl?.let { url ->
+                    AsyncImage(
+                        model             = url,
+                        contentDescription = "Foto laporan",
+                        contentScale      = ContentScale.Crop,
+                        modifier          = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // Lokasi + badge status
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(
                             Icons.Default.LocationOn,
                             contentDescription = null,
@@ -176,20 +208,22 @@ fun LaporanCard(laporan: LaporanItem, onClick: () -> Unit = {}) {
                             laporan.namaLokasi,
                             fontWeight = FontWeight.SemiBold,
                             fontSize   = 14.sp,
-                            color      = TextPrimary
+                            color      = TextPrimary,
+                            maxLines   = 1
                         )
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
                     StatusBadge(status = laporan.status, bg = statusBg, color = statusColor)
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Catatan
-                Text(laporan.catatan, fontSize = 13.sp, color = TextSecondary, maxLines = 2)
+                if (laporan.catatan.isNotEmpty()) {
+                    Text(laporan.catatan, fontSize = 13.sp, color = TextSecondary, maxLines = 2)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Baris: pelapor + waktu + verifikasi
+                // Pelapor + waktu + tombol konfirmasi
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -200,23 +234,26 @@ fun LaporanCard(laporan: LaporanItem, onClick: () -> Unit = {}) {
                         Text(" ${laporan.pelapor}", fontSize = 12.sp, color = TextSecondary)
                         Text("  ·  ${laporan.timestamp}", fontSize = 12.sp, color = TextSecondary)
                     }
-                    // Tombol verifikasi
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(GreenSurface)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+
+                    // Tombol konfirmasi (tappable)
+                    Surface(
+                        onClick = onKonfirmasi,
+                        color   = GreenSurface,
+                        shape   = RoundedCornerShape(50)
                     ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(13.dp))
-                        Text(" ${laporan.terverifikasi} konfirmasi", fontSize = 11.sp, color = GreenPrimary)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(13.dp))
+                            Text(" ${laporan.terverifikasi} konfirmasi", fontSize = 11.sp, color = GreenPrimary)
+                        }
                     }
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun StatusBadge(status: String, bg: Color, color: Color) {

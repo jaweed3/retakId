@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.unidagontor.retakid.data.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+// ─── DTO dari tabel profiles ─────────────────────────────────
 @Serializable
 data class ProfileDto(
     val id             : String,
@@ -24,36 +24,19 @@ data class ProfileDto(
     val badge          : String = "Warga"
 )
 
-@Serializable
-data class LaporanRiwayatDto(
-    val id: String,
-    @SerialName("nama_lokasi") val namaLokasi: String = "",
-    val status: String = "AMAN",
-    val catatan: String = "",
-    @SerialName("created_at") val createdAt: String = "",
-    val terverifikasi: Int = 0
-)
-
+// ─── UI State ─────────────────────────────────────────────────
 data class ProfilState(
-    val namaLengkap : String = "",
-    val email       : String = "",
-    val noTelepon   : String = "",
-    val alamat      : String = "",
-    val badge       : String = "Warga",
-    val poin        : Int = 0,
-    val totalLaporan: Int = 0,
-    val riwayatList : List<LaporanRiwayatDto> = emptyList(),
+    val namaLengkap : String  = "",
+    val email       : String  = "",
+    val noTelepon   : String  = "",
+    val alamat      : String  = "",
+    val badge       : String  = "Warga",
+    val poin        : Int     = 0,
     val isLoading   : Boolean = true,
     val error       : String? = null
-) {
-    val nextBadge: String get() = when {
-        totalLaporan < 5 -> "Relawan (5 laporan)"
-        totalLaporan < 20 -> "Pelindung (20 laporan)"
-        totalLaporan < 50 -> "Pahlawan Desa (50 laporan)"
-        else -> "★ Pahlawan Desa — maksimal"
-    }
-}
+)
 
+// ─── ViewModel ────────────────────────────────────────────────
 class ProfilViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfilState())
@@ -68,50 +51,26 @@ class ProfilViewModel : ViewModel() {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val supabase = SupabaseClient.client
-                val user = supabase.auth.currentUserOrNull()
+                val user     = supabase.auth.currentUserOrNull()
                     ?: run {
                         _uiState.update { it.copy(isLoading = false, error = "Sesi tidak ditemukan.") }
                         return@launch
                     }
 
-                val profileDeferred = async { 
-                    supabase.from("profiles")
-                        .select { filter { eq("id", user.id) } }
-                        .decodeSingle<ProfileDto>()
-                }
-
-                val riwayatDeferred = async {
-                    supabase.from("laporan")
-                        .select {
-                            filter { eq("pelapor", user.id) }
-                            order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
-                            limit(20)
-                        }
-                        .decodeList<LaporanRiwayatDto>()
-                }
-
-                val profile = profileDeferred.await()
-                val riwayat = riwayatDeferred.await()
-                val totalLaporan = riwayat.size
-
-                val badge = when {
-                    totalLaporan >= 50 -> "Pahlawan Desa"
-                    totalLaporan >= 20 -> "Pelindung"
-                    totalLaporan >= 5 -> "Relawan"
-                    else -> "Pemula"
-                }
+                val profile = supabase
+                    .from("profiles")
+                    .select { filter { eq("id", user.id) } }
+                    .decodeSingle<ProfileDto>()
 
                 _uiState.update {
                     it.copy(
                         namaLengkap = profile.namaLengkap.ifEmpty { "Pengguna" },
-                        email = user.email ?: "",
-                        noTelepon = profile.noTelepon ?: "",
-                        alamat = profile.alamat ?: "",
-                        badge = badge,
-                        poin = profile.poin,
-                        totalLaporan = totalLaporan,
-                        riwayatList = riwayat,
-                        isLoading = false
+                        email       = user.email ?: "",
+                        noTelepon   = profile.noTelepon ?: "",
+                        alamat      = profile.alamat    ?: "",
+                        badge       = profile.badge,
+                        poin        = profile.poin,
+                        isLoading   = false
                     )
                 }
             } catch (e: Exception) {
@@ -125,7 +84,8 @@ class ProfilViewModel : ViewModel() {
             try {
                 SupabaseClient.client.auth.signOut()
                 onSuccess()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                // Tetap logout dari sisi client meski network error
                 onSuccess()
             }
         }
