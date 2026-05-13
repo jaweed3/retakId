@@ -2,9 +2,10 @@
   <img src="https://img.shields.io/badge/Accuracy-84.9%25-success?style=for-the-badge" alt="Accuracy">
   <img src="https://img.shields.io/badge/Model_Size-2.6MB-blue?style=for-the-badge" alt="Model Size">
   <img src="https://img.shields.io/badge/Inference-<50ms-orange?style=for-the-badge" alt="Inference">
-  <img src="https://img.shields.io/badge/Platform-Android-green?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-Android%20%26%20Web-green?style=for-the-badge" alt="Platform">
   <img src="https://img.shields.io/badge/Web-Dashboard-teal?style=for-the-badge" alt="Web">
   <img src="https://img.shields.io/badge/Offline-First-black?style=for-the-badge" alt="Offline">
+  <img src="https://img.shields.io/badge/Client_ML-TensorFlow.js-FF6F00?style=for-the-badge" alt="TFJS">
 </p>
 
 <h1 align="center">Retak.id</h1>
@@ -48,14 +49,16 @@ Existing solutions — IoT sensors, satellite imagery — are **too expensive** 
 ## System Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   ANDROID APP   │────▶│    SUPABASE      │◀────│   WEB DASHBOARD  │
-│  (Kotlin/TFLite)│     │  (PostgreSQL)    │     │  (React/Vite)    │
-│                 │     │  + Auth          │     │                  │
-│  CameraX        │     │  + Storage       │     │  Peta interaktif │
-│  TFLite INT8    │     │  + Realtime      │     │  List laporan    │
-│  Offline-first  │     │                  │     │  Filter + Search │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌───────────────────┐
+│   ANDROID APP   │────▶│    SUPABASE      │◀────│   WEB DASHBOARD   │
+│  (Kotlin/TFLite)│     │  (PostgreSQL)    │     │  (React/Vite)     │
+│                 │     │  + Auth          │     │                   │
+│  CameraX        │     │  + Storage       │     │  Peta interaktif  │
+│  TFLite INT8    │     │  + Realtime      │     │  List laporan     │
+│  Offline-first  │     │                  │     │  Filter + Search  │
+└─────────────────┘     └──────────────────┘     │  ML Auto-Detect   │
+                                                  │  (TFJS + WebGL)   │
+                                                  └───────────────────┘
 ```
 
 ### Android App (on-device inference)
@@ -70,6 +73,18 @@ CameraX → Bitmap → Resize 224×224 → uint8 RGB
     Kirim laporan ke Supabase (foto + GPS + status)
 ```
 
+### Web Dashboard (client-side inference)
+
+```
+Upload foto → Canvas resize 224×224 → float32 RGB [0, 255]
+               ↓
+  TFJS GraphModel (8.5MB, WebGL GPU via browser)
+               ↓
+  AMAN / WASPADA / BAHAYA + Confidence
+               ↓
+  Auto-fill status di form → User override? → Kirim laporan
+```
+
 ### ML Pipeline (offline training)
 
 ```
@@ -79,7 +94,7 @@ MobileNetV2 + Fine-Tuning + Augmentation
     ↓
 INT8 PTQ → TFLite Export → Model Registry
     ↓
-Deploy → Android assets/ + Web dashboard
+Deploy → Android assets/ + Web (TFLite → TFJS converted)
 ```
 
 ---
@@ -121,7 +136,7 @@ Baseline (frozen)   ████████░░░░░░░░░░  73.0
 | Layer | Teknologi |
 |-------|-----------|
 | **Mobile** | Kotlin, Jetpack Compose, CameraX, TensorFlow Lite (INT8) |
-| **Web** | React 18, Vite 6, TypeScript, Tailwind CSS 3, Leaflet, React Router 6 |
+| **Web** | React 18, Vite 6, TypeScript, Tailwind CSS 3, Leaflet, React Router 6, TensorFlow.js (WebGL) |
 | **ML** | Python 3.11, TensorFlow 2.15+, MobileNetV2 (transfer learning), INT8 PTQ |
 | **Backend (BaaS)** | Supabase — PostgreSQL, Auth, Storage, Realtime |
 | **Data Pipeline** | DuckDuckGo Image Scraping, perceptual hashing, OpenCV |
@@ -140,11 +155,13 @@ retakId/
 ├── web-app/                      # Web Dashboard (React + Vite + TypeScript)
 │   ├── src/
 │   │   ├── components/           # MapView, LaporanCard, FilterStatusBar, dll
-│   │   ├── pages/                # DashboardPage, ReportsPage, ReportDetailPage
-│   │   ├── hooks/                # useLaporan (Supabase + Realtime)
+│   │   ├── pages/                # DashboardPage, ReportsPage, ReportFormPage
+│   │   ├── hooks/                # useLaporan, useModelInference (TFJS)
 │   │   ├── context/              # ThemeContext (dark/light mode)
+│   │   ├── utils/                # preprocess (image → tensor), cn, statusColors
 │   │   └── lib/                  # Supabase client
 │   └── public/
+│       └── models/retak/         # TFJS GraphModel (converted from TFLite)
 │
 ├── mobile-app/                   # Android App (Kotlin + Jetpack Compose)
 │   └── app/src/main/
@@ -183,6 +200,11 @@ npm install
 npm run dev                     # http://localhost:5173
 ```
 
+> **Client-side ML**: Untuk mengaktifkan deteksi otomatis di form laporan,
+> jalankan `bash scripts/convert_model_web.sh` di device yang memiliki
+> `tensorflowjs` Python package. Hasil konversi ditaruh di
+> `web-app/public/models/retak/` dan di-cache PWA selama 30 hari.
+
 ### ML Pipeline
 
 ```bash
@@ -218,6 +240,7 @@ git checkout mobile-app
 | **Model Registry** | Automated promotion: benchmark thresholds + cross-validation + champion comparison |
 | **Data Quality** | Perceptual hash dedup, blur detection, size filtering, cross-class leak prevention |
 | **Validation Gate** | Pre-deployment TFLite test mirrors Android inference exactly — broken models blocked |
+| **Client-Side ML** | TensorFlow.js with WebGL backend runs the same model in-browser — photo upload auto-detects crack severity without any server round-trip |
 | **Grid Search** | Auto-generated config combinations with resume support for disconnected SSH |
 | **Minimal Footprint** | 2.6MB INT8 model. No server. No API. No cloud dependency. |
 
