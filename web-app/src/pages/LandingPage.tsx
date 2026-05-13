@@ -1,4 +1,5 @@
-import { Smartphone, QrCode } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Smartphone, QrCode, BookOpen, ArrowRight } from 'lucide-react';
 import { HeroSection } from '../components/HeroSection';
 import { HowItWorks } from '../components/HowItWorks';
 import { WhySection } from '../components/WhySection';
@@ -23,16 +24,45 @@ export function LandingPage() {
       {/* ═══ Section 3: Kenapa ═══ */}
       <WhySection />
 
-      {/* Divider: Kenapa → Peta */}
+      {/* Divider: Kenapa → Edukasi */}
       <SectionDivider variant="wave" />
 
-      {/* ═══ Section 4: Peta ═══ */}
+      {/* ═══ Section 4: Edukasi Banner ═══ */}
+      <section className="bg-card border-b border-divider">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-10 sm:py-14">
+          <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-primary-surface ring-2 ring-primary/20">
+              <BookOpen className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <h3 className="text-base sm:text-lg font-bold text-text-primary">
+                Kenali Retakan Tanah
+              </h3>
+              <p className="text-sm text-text-secondary mt-1">
+                Pahami tingkat bahaya, cara melapor, dan kontak darurat BPBD.
+              </p>
+            </div>
+            <Link
+              to="/edukasi"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:bg-primary-light hover:shadow-lg transition-all shrink-0"
+            >
+              Buka Edukasi
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Divider: Edukasi → Peta */}
+      <SectionDivider variant="fade" />
+
+      {/* ═══ Section 5: Peta ═══ */}
       <MiniMapPreview />
 
       {/* Divider: Peta → Download */}
       <SectionDivider variant="fade" />
 
-      {/* ═══ Section 5: Download CTA ═══ */}
+      {/* ═══ Section 6: Download CTA ═══ */}
       <section id="download" className="bg-card border-b border-divider scroll-mt-20">
         <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-24">
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">

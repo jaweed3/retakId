@@ -6,6 +6,8 @@ import { ReportsPage } from './pages/ReportsPage';
 import { ReportDetailPage } from './pages/ReportDetailPage';
 import { StatisticsPage } from './pages/StatisticsPage';
 import { AboutPage } from './pages/AboutPage';
+import { ReportFormPage } from './pages/ReportFormPage';
+import { EdukasiPage } from './pages/EdukasiPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -18,8 +20,10 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports/new" element={<ReportFormPage />} />
         <Route path="/reports/:id" element={<ReportDetailPage />} />
         <Route path="/statistics" element={<StatisticsPage />} />
+        <Route path="/edukasi" element={<EdukasiPage />} />
         <Route path="/about" element={<AboutPage />} />
       </Route>
 

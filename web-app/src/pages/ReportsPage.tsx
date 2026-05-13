@@ -8,7 +8,8 @@ import { ViewToggle, type ViewMode } from '../components/ViewToggle';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { StatusFilter } from '../types/laporan';
 
 const PAGE_SIZE = 12;
@@ -55,6 +56,13 @@ export function ReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            to="/reports/new"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-primary/20 hover:bg-primary-light transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Laporkan
+          </Link>
           <DateRangeFilter current={dateRange} onChange={setDateRange} />
           <ViewToggle mode={viewMode} onChange={setViewMode} />
         </div>
