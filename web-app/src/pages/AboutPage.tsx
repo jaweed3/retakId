@@ -60,7 +60,7 @@ export function AboutPage() {
   return (
     <div>
       {/* ═══ Hero ═══ */}
-      <section className="bg-card border-b border-divider">
+      <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
@@ -82,7 +82,7 @@ export function AboutPage() {
       <SectionDivider variant="fade" />
 
       {/* ═══ Visi & Misi ═══ */}
-      <section className="border-b border-divider">
+      <section>
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center mb-10 sm:mb-12">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
@@ -122,10 +122,9 @@ export function AboutPage() {
         </div>
       </section>
 
-      <SectionDivider variant="fade" />
-
-      {/* ═══ Latar Belakang ═══ */}
-      <section className="bg-card border-b border-divider">
+      {/* ═══ Latar Belakang (surface→card) ═══ */}
+      <SectionDivider variant="fade" className="from-surface to-card" />
+      <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center mb-10 sm:mb-12">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
@@ -171,7 +170,7 @@ export function AboutPage() {
       <SectionDivider variant="fade" />
 
       {/* ═══ 3 Pilar Solusi ═══ */}
-      <section className="border-b border-divider">
+      <section>
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center mb-10 sm:mb-12">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
@@ -203,10 +202,10 @@ export function AboutPage() {
         </div>
       </section>
 
-      <SectionDivider variant="fade" />
+      <SectionDivider variant="fade" className="from-surface to-card" />
 
       {/* ═══ Tim ═══ */}
-      <section className="bg-card border-b border-divider">
+      <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center mb-10 sm:mb-12">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
@@ -249,7 +248,7 @@ export function AboutPage() {
       <SectionDivider variant="fade" />
 
       {/* ═══ Teknologi ═══ */}
-      <section className="border-b border-divider">
+      <section>
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center mb-10 sm:mb-12">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">
@@ -273,10 +272,10 @@ export function AboutPage() {
         </div>
       </section>
 
-      <SectionDivider variant="fade" />
+      <SectionDivider variant="fade" className="from-surface to-card" />
 
       {/* ═══ Kontak ═══ */}
-      <section className="bg-card border-b border-divider">
+      <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-20">
           <div className="text-center max-w-lg mx-auto">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">

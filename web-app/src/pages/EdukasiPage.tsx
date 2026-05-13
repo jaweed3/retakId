@@ -49,7 +49,7 @@ export function EdukasiPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-card border-b border-divider">
+      <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">Edukasi</span>
@@ -105,7 +105,7 @@ export function EdukasiPage() {
       </section>
 
       {/* Cara Melapor */}
-      <section className="bg-card border-b border-divider">
+      <section className="bg-card">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">
           <h2 className="text-xl sm:text-2xl font-bold text-text-primary text-center mb-8">
             Cara Melaporkan Retakan
@@ -169,7 +169,7 @@ export function EdukasiPage() {
       </section>
 
       {/* FAQ */}
-      <section className="bg-card border-b border-divider">
+      <section className="bg-card">
         <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-14 sm:py-18">
           <h2 className="text-xl sm:text-2xl font-bold text-text-primary text-center mb-8">
             Pertanyaan Umum
