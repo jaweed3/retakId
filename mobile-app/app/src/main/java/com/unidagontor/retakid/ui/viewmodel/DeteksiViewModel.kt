@@ -5,9 +5,11 @@ import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
+import com.unidagontor.retakid.data.elevation.ElevationData
 import com.unidagontor.retakid.data.elevation.ElevationService
 import com.unidagontor.retakid.data.elevation.SlopeCalculator
 import com.unidagontor.retakid.data.location.LocationData
+import com.unidagontor.retakid.data.photo.ExifData
 import com.unidagontor.retakid.data.location.LocationService
 import com.unidagontor.retakid.data.ml.DetectionResult
 import com.unidagontor.retakid.data.ml.MLResult
@@ -45,6 +47,7 @@ data class DeteksiState(
     val mlResult: MLResult? = null,
     val riskFactorReport: RiskFactorReport? = null,
     val location: LocationData? = null,
+    val exifData: ExifData? = null,
     val isSubmitting: Boolean = false,
     val error: String? = null
 )
@@ -61,25 +64,33 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(stage = DeteksiStage.CAMERA, error = null) }
     }
 
-    fun onImageCaptured(bitmap: Bitmap) {
+    fun onImageCaptured(bitmap: Bitmap, exifData: ExifData? = null) {
         _uiState.update { it.copy(capturedImage = bitmap, stage = DeteksiStage.ANALYZING) }
-        analyzeImage(bitmap)
+        analyzeImage(bitmap, exifData)
     }
 
-    private fun analyzeImage(bitmap: Bitmap) {
+    private fun analyzeImage(bitmap: Bitmap, exifData: ExifData?) {
         viewModelScope.launch {
             try {
                 val mlResult = mlAnalyzer.analyzeImage(bitmap)
                 _uiState.update { it.copy(mlResult = mlResult, stage = DeteksiStage.ANALYZING_ENV) }
-                fetchEnvironmentalFactors(mlResult)
+                fetchEnvironmentalFactors(mlResult, exifData)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Gagal menganalisis gambar: ${e.message}", stage = DeteksiStage.INITIAL) }
             }
         }
     }
 
-    private suspend fun fetchEnvironmentalFactors(mlResult: MLResult) {
-        val location = locationService.getCurrentLocation()
+    private suspend fun fetchEnvironmentalFactors(mlResult: MLResult, exifData: ExifData?) {
+        _uiState.update { it.copy(exifData = exifData) }
+
+        val exifLocation = exifData?.let {
+            if (it.latitude != null && it.longitude != null)
+                LocationData(it.latitude, it.longitude)
+            else null
+        }
+
+        val location = exifLocation ?: locationService.getCurrentLocation()
         _uiState.update { it.copy(location = location) }
 
         val report = withContext(Dispatchers.IO) {
@@ -95,15 +106,19 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
 
             withTimeoutOrNull(5000L) {
                 coroutineScope {
-                    val elevationDeferred = async { ElevationService.getElevation(lat, lon) }
+                    val exifElevation = exifData?.altitudeMeters?.let { ElevationData(it) }
+
+                    val apiElevationDeferred = async { ElevationService.getElevation(lat, lon) }
                     val weatherDeferred = async { WeatherApiService.getCurrentWeather().getOrNull() }
                     val soilDeferred = async { SoilTypeService.getSoilType(lat, lon) }
 
-                    val elevation = elevationDeferred.await()
+                    val apiElevation = apiElevationDeferred.await()
                     val weather = weatherDeferred.await()
                     val soil = soilDeferred.await()
 
-                    val slope = if (elevation != null) {
+                    val elevation = exifElevation ?: apiElevation
+
+                    val slope = if (apiElevation != null) {
                         SlopeCalculator.calculateSlope(lat, lon)
                     } else null
 
