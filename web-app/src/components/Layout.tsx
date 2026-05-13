@@ -67,7 +67,7 @@ export function Layout() {
       {/* ─── Main content ─── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-divider bg-card/80 backdrop-blur shrink-0">
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-divider bg-card shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light shadow-sm">
               <MapPin className="h-4 w-4 text-white" />
@@ -88,7 +88,7 @@ export function Layout() {
         </div>
 
         {/* ─── Bottom nav (mobile) ─── */}
-        <nav className="lg:hidden flex items-center justify-around border-t border-divider bg-card/80 backdrop-blur py-1.5 shrink-0 safe-bottom">
+        <nav className="lg:hidden flex items-center justify-around border-t border-divider bg-card py-1.5 shrink-0 safe-bottom">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}

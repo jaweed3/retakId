@@ -15,7 +15,7 @@ interface MapViewProps {
   className?: string;
 }
 
-const DEFAULT_CENTER: [number, number] = [-7.876, 111.470]; // Jenangan, Ponorogo
+const DEFAULT_CENTER: [number, number] = [-7.876, 111.470];
 
 function createIcon(status: string): L.DivIcon {
   const colors: Record<string, string> = {
@@ -49,8 +49,7 @@ export function MapView({
   className = 'h-[60vh] lg:h-full',
 }: MapViewProps) {
   return (
-    <div className={`relative rounded-xl overflow-hidden ${className}`}>
-      {/* Map selalu render — biar peta Ponorogo selalu kelihatan */}
+    <div className={`relative ${className}`}>
       <MapContainer
         center={center}
         zoom={zoom}
@@ -75,30 +74,25 @@ export function MapView({
         ))}
       </MapContainer>
 
-      {/* Overlay: loading / error / empty */}
+      {/* Overlay states — hanya saat loading/error */}
       {isLoading && (
-        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/70 backdrop-blur-sm">
+        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/80">
           <LoadingSpinner text="Memuat peta..." />
         </div>
       )}
 
       {!isLoading && error && (
-        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/80 backdrop-blur-sm">
+        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/90">
           <ErrorState message={error} onRetry={onRetry ?? undefined} />
         </div>
       )}
 
       {!isLoading && !error && reports.length === 0 && (
-        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-surface/40 backdrop-blur-[2px] pointer-events-none">
-          <div className="bg-card/90 backdrop-blur rounded-2xl shadow-lg px-6 py-5 text-center max-w-xs border border-divider/50">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-surface mx-auto mb-3">
-              <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
-                <div className="h-2.5 w-2.5 rounded-full bg-primary" />
-              </div>
-            </div>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[999] pointer-events-none">
+          <div className="bg-card shadow-lg rounded-xl px-5 py-4 text-center border border-divider max-w-xs">
             <p className="text-sm font-semibold text-text-primary mb-1">Belum ada titik laporan</p>
             <p className="text-xs text-text-secondary">
-              Laporan retakan tanah dari aplikasi mobile akan muncul di peta ini secara real-time.
+              Laporan dari aplikasi mobile akan muncul di peta ini.
             </p>
           </div>
         </div>
