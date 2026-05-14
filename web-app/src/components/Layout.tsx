@@ -26,11 +26,9 @@ export function Layout() {
       <RealtimeAlert />
       {/* ─── Top Navbar (desktop) ─── */}
       <header className="hidden lg:flex items-center justify-between h-16 shrink-0 border-b border-divider bg-card px-6">
-        {/* Left: Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-light shadow-md shadow-primary/25">
-            <MapPin className="h-4 w-4 text-white" />
-          </div>
+        {/* Left: Logo — clickable to home */}
+        <Link to="/" className="flex items-center gap-3">
+          <img src="/retak-favicon.svg" alt="Retak.id" className="h-9 w-9 rounded-xl shadow-md shadow-primary/25" />
           <div>
             <span className="text-lg font-bold text-text-primary">Retak.id</span>
             <span className="text-xs text-text-secondary ml-2">Crowdsourcing Dashboard</span>
