@@ -1,23 +1,31 @@
 import { MapPin, Github, Mail, ExternalLink, Users, Cpu, Globe } from 'lucide-react';
 import { SectionDivider } from '../components/SectionDivider';
+import {
+  SiKotlin, SiAndroid, SiTensorflow,
+  SiReact, SiVite, SiTypescript, SiTailwindcss,
+  SiPython, SiSupabase, SiPostgresql,
+} from 'react-icons/si';
 
 const TEAM = [
   {
     name: 'Farrel Ghozy',
     role: 'Data Acquisition & Web Dashboard',
     desc: 'Mengumpulkan dan menganotasi 3.547 gambar retakan tanah dari 70+ keyword. Membangun dashboard monitoring berbasis React, Vite, TypeScript, dan Supabase.',
+    photo: '/team/farrel.png',
     color: 'from-primary to-primary-light',
   },
   {
     name: 'Adam Nurwahid',
     role: 'Android Development',
     desc: 'Membangun aplikasi Android dengan Kotlin, Jetpack Compose, CameraX, dan TensorFlow Lite INT8. Deteksi ML berjalan offline di HP.',
+    photo: '/team/adam.png',
     color: 'from-amber-500 to-orange-500',
   },
   {
     name: 'Jaweed (Fatih)',
     role: 'ML Pipeline & Infrastructure',
     desc: 'Melatih model MobileNetV2 transfer learning dengan INT8 quantization. Membangun pipeline DVC/MLflow untuk reproducible ML research.',
+    photo: '/team/jaweed.png',
     color: 'from-blue-500 to-cyan-500',
   },
 ];
@@ -49,11 +57,46 @@ const PILLARS = [
   },
 ];
 
-const TECH = [
-  { cat: 'Mobile', items: 'Kotlin, Jetpack Compose, CameraX, TFLite INT8' },
-  { cat: 'Web', items: 'React 18, Vite 6, TypeScript, Tailwind CSS, Leaflet' },
-  { cat: 'ML', items: 'Python 3.11, TensorFlow 2.15, MobileNetV2, DVC, MLflow' },
-  { cat: 'Backend', items: 'Supabase — PostgreSQL, Auth, Storage, Realtime' },
+const TECH_CATEGORIES = [
+  {
+    cat: 'Mobile',
+    icon: SiAndroid,
+    iconColor: '#34A853',
+    items: [
+      { icon: SiKotlin, name: 'Kotlin', color: '#7F52FF' },
+      { icon: SiAndroid, name: 'Jetpack Compose', color: '#34A853' },
+      { icon: SiTensorflow, name: 'TFLite INT8', color: '#FF6F00' },
+    ],
+  },
+  {
+    cat: 'Web',
+    icon: SiReact,
+    iconColor: '#61DAFB',
+    items: [
+      { icon: SiReact, name: 'React 18', color: '#61DAFB' },
+      { icon: SiVite, name: 'Vite 6', color: '#646CFF' },
+      { icon: SiTypescript, name: 'TypeScript', color: '#3178C6' },
+      { icon: SiTailwindcss, name: 'Tailwind CSS', color: '#06B6D4' },
+    ],
+  },
+  {
+    cat: 'ML',
+    icon: SiPython,
+    iconColor: '#3776AB',
+    items: [
+      { icon: SiPython, name: 'Python 3.11', color: '#3776AB' },
+      { icon: SiTensorflow, name: 'TensorFlow 2.15', color: '#FF6F00' },
+    ],
+  },
+  {
+    cat: 'Backend',
+    icon: SiSupabase,
+    iconColor: '#3ECF8E',
+    items: [
+      { icon: SiSupabase, name: 'Supabase', color: '#3ECF8E' },
+      { icon: SiPostgresql, name: 'PostgreSQL', color: '#4169E1' },
+    ],
+  },
 ];
 
 import { SEOMeta } from '../components/SEOMeta';
@@ -231,14 +274,13 @@ export function AboutPage() {
                 {/* Top accent bar */}
                 <div className={`absolute top-0 left-8 right-8 h-1 rounded-b-sm bg-gradient-to-r ${member.color} opacity-70 group-hover:opacity-100 transition-opacity`} />
 
-                {/* Avatar */}
+                {/* Photo */}
                 <div className="relative mx-auto mb-5 sm:mb-6 w-fit">
-                  <div className={`h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center shadow-lg ring-4 ring-card dark:ring-card`}>
-                    <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                      {member.name.charAt(0)}
-                    </span>
-                  </div>
-                  {/* Decorative dot */}
+                  <img
+                    src={member.photo}
+                    alt={member.name}
+                    className={`h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover bg-gradient-to-br ${member.color} shadow-lg ring-4 ring-card dark:ring-card`}
+                  />
                   <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card border-2 border-divider">
                     <div className={`h-2.5 w-2.5 rounded-full bg-gradient-to-br ${member.color}`} />
                   </div>
@@ -278,13 +320,25 @@ export function AboutPage() {
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {TECH.map((t) => (
+            {TECH_CATEGORIES.map((cat) => (
               <div
-                key={t.cat}
-                className="rounded-xl bg-card border border-divider/60 px-5 py-5 text-center hover:border-primary/20 hover:shadow-sm transition-all"
+                key={cat.cat}
+                className="rounded-xl bg-card border border-divider/60 px-5 py-5 hover:border-primary/20 hover:shadow-sm transition-all"
               >
-                <h3 className="text-sm font-bold text-text-primary mb-2.5">{t.cat}</h3>
-                <p className="text-xs text-text-secondary leading-relaxed">{t.items}</p>
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-divider/40">
+                    <cat.icon className="h-4 w-4" style={{ color: cat.iconColor }} />
+                  </div>
+                  <h3 className="text-sm font-bold text-text-primary">{cat.cat}</h3>
+                </div>
+                <div className="space-y-1.5">
+                  {cat.items.map((item) => (
+                    <div key={item.name} className="flex items-center gap-2 text-xs text-text-secondary">
+                      <item.icon className="h-3.5 w-3.5 shrink-0" style={{ color: item.color }} />
+                      <span>{item.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
