@@ -20,6 +20,24 @@ interface UseModelInferenceReturn {
   predict: (file: File) => Promise<PredictionResult>;
 }
 
+// Module-level singleton: loadLiteRt only once across all hook instances
+let liteRtPromise: Promise<unknown> | null = null;
+let liteRtLoaded = false;
+
+function getLiteRt(): Promise<unknown> {
+  if (liteRtLoaded) return Promise.resolve();
+  if (liteRtPromise) return liteRtPromise;
+
+  liteRtPromise = loadLiteRt(WASM_PATH)
+    .then(() => { liteRtLoaded = true; })
+    .catch((err) => {
+      liteRtPromise = null;
+      throw err;
+    });
+
+  return liteRtPromise;
+}
+
 export function useModelInference(): UseModelInferenceReturn {
   const modelRef = useRef<CompiledModel | null>(null);
   const [isModelReady, setIsModelReady] = useState(false);
@@ -29,14 +47,17 @@ export function useModelInference(): UseModelInferenceReturn {
   useEffect(() => {
     let disposed = false;
 
-    async function load() {
+    async function init() {
       try {
-        await loadLiteRt(WASM_PATH);
+        await getLiteRt();
         if (disposed) return;
 
-        const compiled = await loadAndCompile(MODEL_URL);
+        const compiled = await loadAndCompile(MODEL_URL, {
+          accelerator: 'wasm',
+        });
         if (disposed) { compiled.delete(); return; }
 
+        // Warmup — INT8 model expects UInt8 [0-255]
         const warmup = Tensor.fromTypedArray(new Uint8Array(224 * 224 * 3), [1, 224, 224, 3]);
         await compiled.run(warmup);
         warmup.delete();
@@ -45,11 +66,15 @@ export function useModelInference(): UseModelInferenceReturn {
         setIsModelReady(true);
         setModelError(null);
       } catch (err) {
-        setModelError(err instanceof Error ? err.message : 'Gagal memuat model');
+        if (disposed) return;
+        const msg = err instanceof Error ? err.message : 'Gagal memuat model';
+        console.error('Model init error:', msg, err);
+        setModelError(msg);
       }
     }
 
-    load();
+    init();
+
     return () => {
       disposed = true;
       modelRef.current?.delete();
@@ -63,8 +88,9 @@ export function useModelInference(): UseModelInferenceReturn {
 
     setIsPredicting(true);
     try {
-      const { data, shape } = await imageFileToTensor(file);
-      const input = Tensor.fromTypedArray(data, shape);
+      const { data } = await imageFileToTensor(file);
+      // INT8 model expects UInt8 directly [0-255]
+      const input = Tensor.fromTypedArray(data, [1, 224, 224, 3]);
 
       const outputs = await model.run(input);
       const output = outputs[0];
@@ -74,7 +100,6 @@ export function useModelInference(): UseModelInferenceReturn {
       output.delete();
 
       const logits = Array.from(raw);
-
       const maxLogit = Math.max(...logits);
       const exps = logits.map((v) => Math.exp(v - maxLogit));
       const sumExps = exps.reduce((a, b) => a + b, 0);

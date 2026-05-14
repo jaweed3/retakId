@@ -23,7 +23,7 @@ export function DashboardPage() {
   });
 
   return (
-    <div className="lg:h-full lg:flex lg:flex-col">
+    <div className="sm:flex sm:flex-col">
       <SEOMeta title="Peta Pemantauan" description="Peta interaktif sebaran laporan retakan tanah di Jenangan, Ponorogo. Monitoring real-time oleh BPBD." />
 
       {/* Top panel */}
@@ -60,13 +60,15 @@ export function DashboardPage() {
       </div>
 
       {/* Map */}
-      <MapView
-        reports={data}
-        isLoading={isLoading}
-        error={error}
-        onRetry={refetch}
-        className="h-[50vh] sm:h-[60vh] lg:h-[600px] w-full"
-      />
+      <div className="w-full px-0 lg:px-[100px]">
+        <MapView
+          reports={data}
+          isLoading={isLoading}
+          error={error}
+          onRetry={refetch}
+          className="h-[50vh] sm:h-[60vh] lg:h-[1000px] w-full"
+        />
+      </div>
     </div>
   );
 }

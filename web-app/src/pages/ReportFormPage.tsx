@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, AlertCircle, Cpu } from 'lucide-react';
+import { ArrowLeft, Send, AlertCircle, Cpu, Crosshair, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { supabase, requireSupabase } from '../lib/supabase';
 import { ImageUploadPreview } from '../components/ImageUploadPreview';
 import { LocationPicker } from '../components/LocationPicker';
@@ -90,9 +91,33 @@ export function ReportFormPage() {
       });
   }, [isModelReady, predict]);
 
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
   const handleLocation = useCallback((lat: number, lng: number) => {
     setForm((prev) => ({ ...prev, manualLat: lat, manualLng: lng }));
     setErrors((prev) => { const { gps, ...r } = prev; return r; });
+  }, []);
+
+  const handleGPSClick = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGpsError('Browser Anda tidak mendukung GPS.');
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm((prev) => ({ ...prev, manualLat: pos.coords.latitude, manualLng: pos.coords.longitude }));
+        setErrors((prev) => { const { gps, ...r } = prev; return r; });
+        setGpsLoading(false);
+      },
+      (err) => {
+        setGpsError(err.code === 1 ? 'Izin akses lokasi ditolak.' : 'Gagal mendapatkan lokasi.');
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
   }, []);
 
   const validate = (): boolean => {
@@ -168,6 +193,54 @@ export function ReportFormPage() {
         <ImageUploadPreview onImageSelect={handleImage} />
         {errors.foto && <FieldError msg={errors.foto} />}
 
+        {/* GPS Device Button */}
+        {latitude == null && (
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-2">
+              Lokasi <span className="text-bahaya">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleGPSClick}
+              disabled={gpsLoading}
+              className="flex items-center gap-2 rounded-xl border border-divider bg-card px-4 py-3 text-sm font-medium text-text-secondary hover:text-primary hover:border-primary/30 transition-colors disabled:opacity-50"
+            >
+              {gpsLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Crosshair className="h-4 w-4" />
+              )}
+              {gpsLoading ? 'Mendeteksi lokasi...' : 'Gunakan GPS Perangkat'}
+            </button>
+            {gpsError && <FieldError msg={gpsError} />}
+
+            {/* Manual coordinate input */}
+            <p className="text-[11px] text-text-secondary/60 mt-2">Atau masukkan koordinat manual:</p>
+            <div className="grid grid-cols-2 gap-2 mt-1.5">
+              <input
+                type="number"
+                step="any"
+                placeholder="Latitude (contoh: -7.876)"
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (!isNaN(v)) setForm((prev) => ({ ...prev, manualLat: v }));
+                }}
+                className="rounded-xl border border-divider bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <input
+                type="number"
+                step="any"
+                placeholder="Longitude (contoh: 111.470)"
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (!isNaN(v)) setForm((prev) => ({ ...prev, manualLng: v }));
+                }}
+                className="rounded-xl border border-divider bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Lokasi (GPS warning or manual picker) */}
         {form.preview && latitude == null && (
           <div className="rounded-xl bg-waspada-bg/60 border border-waspada/20 px-4 py-3">
@@ -178,11 +251,29 @@ export function ReportFormPage() {
           </div>
         )}
         {latitude != null && longitude != null && (
-          <div className="flex items-center gap-2 rounded-xl bg-primary-surface/60 border border-primary/10 px-4 py-3">
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              Lokasi Terpilih <span className="text-bahaya">*</span>
+            </label>
             <span className="text-[11px] text-primary font-medium">
               Koordinat: {latitude.toFixed(5)}, {longitude.toFixed(5)}
-              {form.gpsLat ? ' (dari foto)' : ' (manual)'}
+              {form.gpsLat ? ' (dari foto)' : ' (GPS/map)'}
             </span>
+            <div className="rounded-xl overflow-hidden border border-divider h-[180px] mt-2">
+              <MapContainer
+                center={[latitude, longitude]}
+                zoom={15}
+                className="h-full w-full z-0"
+                scrollWheelZoom={false}
+                dragging={false}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={[latitude, longitude]} />
+              </MapContainer>
+            </div>
           </div>
         )}
         {errors.gps && <FieldError msg={errors.gps} />}
