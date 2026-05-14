@@ -319,23 +319,31 @@ export function AboutPage() {
               Teknologi yang Digunakan
             </h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
             {TECH_CATEGORIES.map((cat) => (
               <div
                 key={cat.cat}
-                className="rounded-xl bg-card border border-divider/60 px-5 py-5 hover:border-primary/20 hover:shadow-sm transition-all"
+                className="rounded-2xl bg-card border border-divider/60 px-5 pt-6 pb-8 text-center hover:border-primary/20 hover:shadow-md transition-all"
               >
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-divider/40">
-                    <cat.icon className="h-4 w-4" style={{ color: cat.iconColor }} />
-                  </div>
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <cat.icon className="h-5 w-5" style={{ color: cat.iconColor }} />
                   <h3 className="text-sm font-bold text-text-primary">{cat.cat}</h3>
                 </div>
-                <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
                   {cat.items.map((item) => (
-                    <div key={item.name} className="flex items-center gap-2 text-xs text-text-secondary">
-                      <item.icon className="h-3.5 w-3.5 shrink-0" style={{ color: item.color }} />
-                      <span>{item.name}</span>
+                    <div
+                      key={item.name}
+                      title={item.name}
+                      className="group relative flex items-center justify-center cursor-default"
+                    >
+                      <item.icon
+                        className="h-8 w-8 sm:h-10 sm:w-10 transition-transform group-hover:scale-110"
+                        style={{ color: item.color }}
+                      />
+                      {/* Tooltip on hover */}
+                      <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-text-secondary whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        {item.name}
+                      </span>
                     </div>
                   ))}
                 </div>
