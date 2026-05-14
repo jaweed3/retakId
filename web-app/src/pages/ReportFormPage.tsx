@@ -7,7 +7,8 @@ import { supabase, requireSupabase } from '../lib/supabase';
 import { ImageUploadPreview } from '../components/ImageUploadPreview';
 import { LocationPicker } from '../components/LocationPicker';
 import { useModelInference } from '../hooks/useModelInference';
-import type { ReportStatus } from '../types/laporan';
+import { calculateRisk } from '../lib/risk';
+import type { ReportStatus, RiskFactorReport, FactorContribution } from '../types/laporan';
 
 interface FormState {
   file: File | null;
@@ -51,6 +52,9 @@ export function ReportFormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [predictionConfidence, setPredictionConfidence] = useState<number | null>(null);
   const [predictionError, setPredictionError] = useState<string | null>(null);
+  const [riskReport, setRiskReport] = useState<RiskFactorReport | null>(null);
+  const [riskLoading, setRiskLoading] = useState(false);
+  const [riskError, setRiskError] = useState<string | null>(null);
   const predictingRef = useRef(false);
 
   const latitude = form.gpsLat ?? form.manualLat;
@@ -71,15 +75,41 @@ export function ReportFormPage() {
     // Auto-detect via model
     setPredictionConfidence(null);
     setPredictionError(null);
+    setRiskReport(null);
+    setRiskLoading(false);
+    setRiskError(null);
     if (!isModelReady) return;
 
     predictingRef.current = true;
     predict(file)
-      .then((result) => {
+      .then(async (result) => {
         if (!predictingRef.current) return;
         setForm((prev) => ({ ...prev, status: result.status }));
         setPredictionConfidence(result.confidence);
         setPredictionError(null);
+
+        const lat = gps?.latitude ?? null;
+        const lng = gps?.longitude ?? null;
+        if (lat != null && lng != null) {
+          setRiskLoading(true);
+          setRiskError(null);
+          try {
+            const report = await calculateRisk({
+              mlResult: result.status,
+              mlConfidence: result.confidence,
+              latitude: lat,
+              longitude: lng,
+            });
+            if (!predictingRef.current) return;
+            setRiskReport(report);
+            if (report) setForm((prev) => ({ ...prev, status: report.finalResult }));
+          } catch {
+            if (!predictingRef.current) return;
+            setRiskError('Gagal menganalisis faktor lingkungan');
+          } finally {
+            if (predictingRef.current) setRiskLoading(false);
+          }
+        }
       })
       .catch((err) => {
         if (!predictingRef.current) return;
@@ -342,7 +372,68 @@ export function ReportFormPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-2">
+          {riskLoading && (
+            <div className="flex items-center gap-2 rounded-xl bg-primary-surface/60 border border-primary/10 px-3.5 py-2.5 text-xs text-primary mb-3">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Menganalisis faktor lingkungan (kemiringan, curah hujan, elevasi, jenis tanah)...
+            </div>
+          )}
+          {riskError && (
+            <div className="flex items-center gap-2 rounded-xl bg-waspada-bg border border-waspada/20 px-3.5 py-2.5 text-xs text-waspada mb-3">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              {riskError} — menggunakan hasil AI saja
+            </div>
+          )}
+          {riskReport && !riskLoading && (
+            <div className="rounded-xl border border-divider bg-card overflow-hidden mb-3">
+              <div className="px-3.5 py-2.5 border-b border-divider">
+                <span className="text-xs font-semibold text-text-primary">Analisis Multi-Faktor</span>
+                <span className="text-[10px] text-text-secondary ml-2">
+                  Skor akhir: {(riskReport.finalScore * 100).toFixed(0)}% — {riskReport.finalResult}
+                  {riskReport.isUpgraded && ' ⬆️'}
+                  {riskReport.isDowngraded && ' ⬇️'}
+                </span>
+              </div>
+              <div className="divide-y divide-divider">
+                {riskReport.factors.map((f: FactorContribution) => (
+                  <div key={f.factor} className="flex items-center justify-between px-3.5 py-2">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-1.5 rounded-full bg-primary/20"
+                        style={{ width: `${f.weight * 100}px` }}
+                      />
+                      <span className="text-[11px] text-text-secondary capitalize">
+                        {f.factor === 'ML' ? 'Analisis Visual' :
+                         f.factor === 'SLOPE' ? 'Kemiringan' :
+                         f.factor === 'RAIN' ? 'Curah Hujan' :
+                         f.factor === 'ELEVATION' ? 'Elevasi' : 'Tanah'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <span className="text-text-secondary">{f.rawValue}</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-1.5 w-12 rounded-full bg-divider overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${f.score * 100}%`,
+                              backgroundColor:
+                                f.score <= 0.2 ? '#22c55e' :
+                                f.score <= 0.5 ? '#eab308' :
+                                f.score <= 0.8 ? '#f97316' : '#ef4444',
+                            }}
+                          />
+                        </div>
+                        <span className="text-text-secondary w-6 text-right">
+                          {(f.weightedScore * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
             {STATUS_OPTIONS.map((opt) => {
               const isSelected = form.status === opt.value;
               return (

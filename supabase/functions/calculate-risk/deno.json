@@ -1,0 +1,11 @@
+{
+  "name": "retakid-calculate-risk",
+  "version": "1.0.0",
+  "tasks": {
+    "serve": "deno serve --allow-net --allow-env index.ts",
+    "test": "deno test --allow-net"
+  },
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.49.1"
+  }
+}
