@@ -1,7 +1,33 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, ArrowRight, ShieldCheck, Skull } from 'lucide-react';
+import { FileText, Search, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useLaporan } from '../hooks/useLaporan';
+
+function useTypewriter(fullText: string, typeSpeed = 80, deleteSpeed = 35, pauseMs = 5000) {
+  const [text, setText] = useState('');
+  const [phase, setPhase] = useState<'typing' | 'pausing' | 'deleting'>('typing');
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (phase === 'typing') {
+      if (text.length < fullText.length) {
+        timer.current = setTimeout(() => setText(fullText.slice(0, text.length + 1)), typeSpeed);
+      } else {
+        setPhase('pausing');
+        timer.current = setTimeout(() => setPhase('deleting'), pauseMs);
+      }
+    } else if (phase === 'deleting') {
+      if (text.length > 0) {
+        timer.current = setTimeout(() => setText(fullText.slice(0, text.length - 1)), deleteSpeed);
+      } else {
+        setPhase('typing');
+      }
+    }
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [text, phase, fullText, typeSpeed, deleteSpeed, pauseMs]);
+
+  return text;
+}
 
 function useCountUp(target: number, duration = 1400, start = false) {
   const [value, setValue] = useState(0);
@@ -66,6 +92,29 @@ function StatCard({
   );
 }
 
+const FULL_TITLE = 'Pantau Retakan Tanah, Cegah Longsor Bersama';
+const GREEN_START = 'Pantau Retakan Tanah, '.length; // 25
+const GREEN_END = GREEN_START + 'Cegah Longsor'.length; // 37
+
+function TypewriterTitle() {
+  const typed = useTypewriter(FULL_TITLE);
+  const before = typed.slice(0, GREEN_START);
+  const green = typed.slice(GREEN_START, GREEN_END);
+  const after = typed.slice(GREEN_END);
+  const cursor = typed.length < FULL_TITLE.length;
+
+  return (
+    <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-text-primary leading-tight tracking-tight">
+      {before}
+      {green && <span className="text-primary">{green}</span>}
+      {after}
+      {cursor && (
+        <span className="text-primary animate-pulse">|</span>
+      )}
+    </h1>
+  );
+}
+
 export function HeroSection() {
   const { data, counts, isLoading } = useLaporan({ limit: 100 });
   const [visible, setVisible] = useState(false);
@@ -83,7 +132,7 @@ export function HeroSection() {
 
   const stats = [
     {
-      icon: MapPin,
+      icon: FileText,
       label: 'Total Laporan',
       value: isLoading ? 0 : counts.total,
       color: 'text-primary',
@@ -92,7 +141,7 @@ export function HeroSection() {
       ringColor: 'ring-primary/20',
     },
     {
-      icon: MapPin,
+      icon: Search,
       label: 'Daerah Terpantau',
       value: daerahTerpantau,
       color: 'text-waspada',
@@ -101,7 +150,7 @@ export function HeroSection() {
       ringColor: 'ring-waspada/20',
     },
     {
-      icon: Skull,
+      icon: AlertTriangle,
       label: 'Laporan Bahaya',
       value: isLoading ? 0 : counts.bahaya,
       color: 'text-bahaya',
@@ -132,11 +181,7 @@ export function HeroSection() {
             IYREF 2026 &mdash; Climate Resilience &amp; Local Wisdom
           </div>
 
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-text-primary leading-tight tracking-tight">
-            Pantau Retakan Tanah,{' '}
-            <span className="text-primary">Cegah Longsor</span>{' '}
-            Bersama
-          </h1>
+          <TypewriterTitle />
 
           <p className="mt-5 sm:mt-6 text-sm sm:text-base text-text-secondary max-w-xl mx-auto leading-relaxed">
             Platform crowdsourcing deteksi dini retakan tanah di Jenangan, Ponorogo.
