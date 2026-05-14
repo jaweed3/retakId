@@ -52,7 +52,9 @@ export function useModelInference(): UseModelInferenceReturn {
         await getLiteRt();
         if (disposed) return;
 
-        const compiled = await loadAndCompile(MODEL_URL);
+        const compiled = await loadAndCompile(MODEL_URL, {
+          accelerator: 'wasm',
+        });
         if (disposed) { compiled.delete(); return; }
 
         // Warmup — INT8 model expects UInt8 [0-255]
