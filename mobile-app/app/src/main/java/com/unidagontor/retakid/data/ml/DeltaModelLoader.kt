@@ -84,12 +84,8 @@ object DeltaModelLoader {
             val numRegions = littleEndianInt(decompressed, offset)
             offset += 4
 
-            // 5. Read the bundled model (or cached model if exists)
-            val oldModelBytes = if (hasCachedModel(context)) {
-                getCachedModelPath(context).readBytes()
-            } else {
-                context.assets.open(MODEL_FILE).use { it.readBytes() }
-            }
+            // 5. Always use bundled model as base (delta is relative to bundled version)
+            val oldModelBytes = context.assets.open(MODEL_FILE).use { it.readBytes() }
 
             // 6. Apply patches
             val newModelBytes = oldModelBytes.copyOf()
