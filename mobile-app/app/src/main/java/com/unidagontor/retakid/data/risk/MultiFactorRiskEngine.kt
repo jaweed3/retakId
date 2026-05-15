@@ -159,6 +159,7 @@ object MultiFactorRiskEngine {
                 c >= 0.50 -> 0.9
                 else -> 1.0
             }
+            DetectionResult.TIDAK_PASTI -> 0.5
         }
     }
 
