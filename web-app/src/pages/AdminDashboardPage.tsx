@@ -7,6 +7,7 @@ import { useLaporan } from '../hooks/useLaporan';
 import { useToast } from '../context/ToastContext';
 import { supabase, requireSupabase } from '../lib/supabase';
 import { StatusBadge } from '../components/StatusBadge';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditReportDialog } from '../components/EditReportDialog';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -152,6 +153,7 @@ export function AdminDashboardPage() {
             <Link to="/admin/riwayat" className="flex items-center gap-1.5 rounded-lg border border-divider px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-text-secondary hover:text-primary hover:border-primary/30 transition-colors">
               <History className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span className="hidden sm:inline">Riwayat</span>
             </Link>
+            <ThemeToggle />
             <button onClick={handleSignOut} className="flex items-center gap-1.5 rounded-lg border border-divider px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-text-secondary hover:text-bahaya hover:border-bahaya/30 transition-colors">
               <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span className="hidden sm:inline">Keluar</span>
             </button>
