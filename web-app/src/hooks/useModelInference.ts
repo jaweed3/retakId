@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadLiteRt, loadAndCompile, Tensor, CompiledModel } from '@litertjs/core';
 import { imageFileToTensor } from '../utils/preprocess';
-import type { ReportStatus } from '../types/laporan';
+import type { PredictionLabel } from '../types/laporan';
 
-const LABELS: ReportStatus[] = ['AMAN', 'WASPADA', 'BAHAYA'];
+const LABELS: PredictionLabel[] = ['AMAN', 'WASPADA', 'BAHAYA'];
+const CONFIDENCE_THRESHOLD = 0.50;
 const MODEL_URL = '/models/retak/retak_mobilenetv2.tflite';
 const WASM_PATH = '/wasm/';
 
 interface PredictionResult {
-  status: ReportStatus;
+  status: PredictionLabel;
   confidence: number;
   probabilities: number[];
 }
@@ -105,10 +106,19 @@ export function useModelInference(): UseModelInferenceReturn {
       const sumExps = exps.reduce((a, b) => a + b, 0);
       const probs = exps.map((v) => v / sumExps);
       const argmax = probs.indexOf(Math.max(...probs));
+      const confidence = probs[argmax];
+
+      if (confidence < CONFIDENCE_THRESHOLD) {
+        return {
+          status: 'TIDAK_PASTI' as PredictionLabel,
+          confidence,
+          probabilities: probs,
+        };
+      }
 
       return {
         status: LABELS[argmax],
-        confidence: probs[argmax],
+        confidence,
         probabilities: probs,
       };
     } finally {

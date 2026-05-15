@@ -8,7 +8,7 @@ import { ImageUploadPreview } from '../components/ImageUploadPreview';
 import { LocationPicker } from '../components/LocationPicker';
 import { useModelInference } from '../hooks/useModelInference';
 import { calculateRisk } from '../lib/risk';
-import type { ReportStatus, RiskFactorReport, FactorContribution } from '../types/laporan';
+import type { ReportStatus, PredictionLabel, RiskFactorReport, FactorContribution } from '../types/laporan';
 
 interface FormState {
   file: File | null;
@@ -52,15 +52,17 @@ export function ReportFormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [predictionConfidence, setPredictionConfidence] = useState<number | null>(null);
   const [predictionError, setPredictionError] = useState<string | null>(null);
+  const [predictionLabel, setPredictionLabel] = useState<PredictionLabel | null>(null);
   const [riskReport, setRiskReport] = useState<RiskFactorReport | null>(null);
   const [riskLoading, setRiskLoading] = useState(false);
   const [riskError, setRiskError] = useState<string | null>(null);
   const predictingRef = useRef(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const latitude = form.gpsLat ?? form.manualLat;
   const longitude = form.gpsLng ?? form.manualLng;
 
-  const handleImage = useCallback((file: File, preview: string, gps: { latitude: number; longitude: number } | null) => {
+  const handleImage = useCallback(async (file: File, preview: string, gps: { latitude: number; longitude: number } | null) => {
     setForm((prev) => ({
       ...prev,
       file,
@@ -72,21 +74,42 @@ export function ReportFormPage() {
     }));
     if (gps) setErrors((prev) => { const { gps, ...r } = prev; return r; });
 
-    // Auto-detect via model
     setPredictionConfidence(null);
     setPredictionError(null);
+    setPredictionLabel(null);
+    setValidationError(null);
     setRiskReport(null);
     setRiskLoading(false);
     setRiskError(null);
+
+    // Validate image quality
+    try {
+      const valid = await validateImageQuality(file);
+      if (!valid.valid) {
+        setValidationError(valid.message);
+        setPredictionLabel('TIDAK_PASTI');
+        return;
+      }
+    } catch {
+      // skip validation errors
+    }
+
     if (!isModelReady) return;
 
     predictingRef.current = true;
     predict(file)
       .then(async (result) => {
         if (!predictingRef.current) return;
-        setForm((prev) => ({ ...prev, status: result.status }));
+        setPredictionLabel(result.status);
         setPredictionConfidence(result.confidence);
         setPredictionError(null);
+
+        if (result.status === 'TIDAK_PASTI') {
+          setValidationError(`Hasil tidak pasti (${(result.confidence * 100).toFixed(0)}% yakin) — ambil foto ulang lebih dekat`);
+          return;
+        }
+
+        setForm((prev) => ({ ...prev, status: result.status as ReportStatus }));
 
         const lat = gps?.latitude ?? null;
         const lng = gps?.longitude ?? null;
@@ -120,6 +143,57 @@ export function ReportFormPage() {
         predictingRef.current = false;
       });
   }, [isModelReady, predict]);
+
+  async function validateImageQuality(file: File): Promise<{ valid: boolean; message: string }> {
+    const img = new Image();
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = 224;
+    canvas.height = 224;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(bitmap, 0, 0, 224, 224);
+    const imageData = ctx.getImageData(0, 0, 224, 224);
+    const pixels = imageData.data;
+    bitmap.close();
+
+    // Brightness check
+    let sumBrightness = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const gray = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
+      sumBrightness += gray;
+    }
+    const meanBrightness = sumBrightness / (pixels.length / 4);
+    if (meanBrightness < 30) return { valid: false, message: 'Foto gelap — aktifkan flash' };
+    if (meanBrightness > 220) return { valid: false, message: 'Foto terlalu terang — hindari cahaya langsung' };
+
+    // Blur detection via Laplacian variance
+    const gray = new Float32Array(224 * 224);
+    for (let y = 0; y < 224; y++) {
+      for (let x = 0; x < 224; x++) {
+        const i = (y * 224 + x) * 4;
+        gray[y * 224 + x] = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
+      }
+    }
+
+    let lapSum = 0;
+    let count = 0;
+    for (let y = 1; y < 223; y++) {
+      for (let x = 1; x < 223; x++) {
+        const c = gray[y * 224 + x];
+        const l = gray[y * 224 + (x - 1)];
+        const r = gray[y * 224 + (x + 1)];
+        const t = gray[(y - 1) * 224 + x];
+        const b = gray[(y + 1) * 224 + x];
+        const laplacian = 4 * c - l - r - t - b;
+        lapSum += laplacian * laplacian;
+        count++;
+      }
+    }
+    const variance = lapSum / count;
+    if (variance < 100) return { valid: false, message: 'Foto buram — dekatkan kamera ke retakan tanah' };
+
+    return { valid: true, message: '' };
+  }
 
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
@@ -332,6 +406,12 @@ export function ReportFormPage() {
           {/* Prediction indicator */}
           {form.preview && (
             <div className="mb-3">
+              {validationError && (
+                <div className="flex items-start gap-2 rounded-xl bg-waspada-bg border border-waspada/20 px-3.5 py-2.5 text-xs text-waspada mb-2">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>{validationError}</span>
+                </div>
+              )}
               {isPredicting ? (
                 <div className="flex items-center gap-2 rounded-xl bg-primary-surface/60 border border-primary/10 px-3.5 py-2.5 text-xs text-primary">
                   <Cpu className="h-3.5 w-3.5 animate-pulse" />
@@ -342,7 +422,7 @@ export function ReportFormPage() {
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   Deteksi otomatis gagal. Pilih manual di bawah.
                 </div>
-              ) : predictionConfidence != null ? (
+              ) : predictionConfidence != null && predictionLabel !== 'TIDAK_PASTI' ? (
                 <div className="space-y-2">
                   <div className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs ${CONFIDENCE_COLORS[form.status]}`}>
                     <Cpu className="h-3.5 w-3.5 shrink-0" />
@@ -350,18 +430,26 @@ export function ReportFormPage() {
                     {' '}({(predictionConfidence * 100).toFixed(0)}% yakin)
                     <span className="ml-auto text-[10px] opacity-60">Override manual di bawah</span>
                   </div>
-                  {predictionConfidence < CONFIDENCE_THRESHOLD_LOW && (
+                  {predictionConfidence < 0.5 && (
                     <div className="flex items-start gap-2 rounded-xl bg-bahaya-bg/70 border border-bahaya/20 px-3.5 py-2.5 text-xs text-bahaya">
                       <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                       <span>Gambar bukan retakan tanah? Pastikan memotret permukaan tanah</span>
                     </div>
                   )}
-                  {predictionConfidence >= CONFIDENCE_THRESHOLD_LOW && predictionConfidence < CONFIDENCE_THRESHOLD_MEDIUM && (
+                  {predictionConfidence >= 0.5 && predictionConfidence < 0.7 && (
                     <div className="flex items-start gap-2 rounded-xl bg-waspada-bg/70 border border-waspada/20 px-3.5 py-2.5 text-xs text-waspada">
                       <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                       <span>Hasil tidak pasti — ambil foto ulang dengan pencahayaan lebih baik</span>
                     </div>
                   )}
+                </div>
+              ) : predictionConfidence != null && predictionLabel === 'TIDAK_PASTI' ? (
+                <div className="rounded-xl border border-divider bg-card p-3.5">
+                  <div className="flex items-center gap-2 text-xs text-waspada font-medium mb-3">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    AI tidak yakin ({Math.round(predictionConfidence * 100)}%) — pilih manual atau foto ulang
+                  </div>
+                  <ConfidenceBar confidence={predictionConfidence} />
                 </div>
               ) : !isModelReady && modelError ? (
                 <div className="flex items-center gap-2 rounded-xl bg-waspada-bg border border-waspada/20 px-3.5 py-2.5 text-xs text-waspada">
@@ -457,7 +545,6 @@ export function ReportFormPage() {
                 </button>
               );
             })}
-          </div>
         </div>
 
         {/* Catatan */}
@@ -514,5 +601,38 @@ function FieldError({ msg }: { msg: string }) {
     <p className="text-xs text-bahaya mt-1.5 flex items-center gap-1">
       <AlertCircle className="h-3 w-3" /> {msg}
     </p>
+  );
+}
+
+function ConfidenceBar({ confidence }: { confidence: number }) {
+  const barColor =
+    confidence < 0.5
+      ? 'bg-bahaya'
+      : confidence < 0.7
+        ? 'bg-waspada'
+        : 'bg-aman';
+  const textColor =
+    confidence < 0.5
+      ? 'text-bahaya'
+      : confidence < 0.7
+        ? 'text-waspada'
+        : 'text-aman';
+
+  return (
+    <div>
+      <div className="h-3 rounded-full bg-divider overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${barColor}`}
+          style={{ width: `${Math.round(confidence * 100)}%` }}
+        />
+      </div>
+      <div className="flex justify-between mt-1">
+        <span className="text-[10px] text-text-secondary">0%</span>
+        <span className={`text-[10px] font-bold ${textColor}`}>
+          {Math.round(confidence * 100)}%
+        </span>
+        <span className="text-[10px] text-text-secondary">100%</span>
+      </div>
+    </div>
   );
 }
