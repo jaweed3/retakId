@@ -11,7 +11,7 @@ interface SEOMetaProps {
 const SITE_NAME = 'Retak.id';
 const BASE_URL = 'https://retak.utc.web.id';
 const DEFAULT_DESC = 'Platform crowdsourcing deteksi dini retakan tanah di Jenangan, Ponorogo. Warga foto retakan lewat Android, AI deteksi tingkat bahaya.';
-const DEFAULT_IMAGE = '/og-image.png';
+const DEFAULT_IMAGE = '/og-image.jpg';
 
 export function SEOMeta({
   title,
@@ -33,8 +33,11 @@ export function SEOMeta({
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={imageUrl} />
+      <meta property="og:image:secure_url" content={imageUrl} />
+      <meta property="og:image:type" content="image/jpeg" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={description} />
       <meta property="og:url" content={url || BASE_URL} />
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content={SITE_NAME} />
