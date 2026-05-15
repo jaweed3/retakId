@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, X, MapPin, User, Calendar } from 'lucide-react';
+import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLaporan } from '../hooks/useLaporan';
@@ -10,12 +10,14 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditReportDialog } from '../components/EditReportDialog';
+import { VerificationDialog } from '../components/VerificationDialog';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { formatRelativeTime } from '../utils/formatDate';
 import { cn } from '../utils/cn';
-import type { Laporan, ReportStatus } from '../types/laporan';
+import { fetchTrainingData, downloadTrainingCSV, getVerificationStats } from '../utils/exportTrainingData';
+import type { Laporan, ReportStatus, VerificationData } from '../types/laporan';
 
 function isAuthError(err: { message?: string; code?: string }): boolean {
   if (!err) return false;
@@ -43,7 +45,7 @@ function ActionsMenu({ report, onVerify, onEdit, onDelete, disabled, verified }:
         <div className="absolute right-0 top-8 z-50 w-40 rounded-xl bg-card border border-divider shadow-xl py-1 animate-scale-in">
           {!verified && (
             <button onClick={() => { onVerify(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-primary hover:bg-primary-surface transition-colors">
-              <ShieldCheck className="h-3.5 w-3.5" /> Verifikasi
+              <ShieldCheck className="h-3.5 w-3.5" /> Verif. ML
             </button>
           )}
           <button onClick={() => { onEdit(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-waspada hover:bg-waspada-bg transition-colors">
@@ -73,8 +75,9 @@ export function AdminDashboardPage() {
   const [deleteTarget, setDeleteTarget] = useState<Laporan | null>(null);
   const [editTarget, setEditTarget] = useState<Laporan | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  // Track which reports THIS admin already verified
   const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
+  const [verificationTarget, setVerificationTarget] = useState<Laporan | null>(null);
+  const [verifStats, setVerifStats] = useState<{ total: number; benar: number; salah: number; akurasi: number } | null>(null);
 
   // Load existing verifications by this admin
   useEffect(() => {
@@ -90,19 +93,58 @@ export function AdminDashboardPage() {
       .catch(() => { /* tabel mungkin belum ada */ });
   }, [user?.email, data]);
 
+  useEffect(() => {
+    if (!supabase) return;
+    const client = requireSupabase();
+    getVerificationStats(client).then(setVerifStats).catch(() => {});
+  }, [data]);
+
   const handleSignOut = async () => { await signOut(); navigate('/admin/login'); };
 
-  const handleVerify = useCallback(async (report: Laporan) => {
-    if (!supabase || verifiedIds.has(report.id)) return;
+  const handleVerifyOpen = useCallback((report: Laporan) => {
+    if (verifiedIds.has(report.id)) { toast('info', 'Laporan ini sudah diverifikasi.'); return; }
+    setVerificationTarget(report);
+  }, [verifiedIds, toast]);
+
+  const handleVerificationSave = useCallback(async (verif: VerificationData) => {
+    const report = verificationTarget;
+    if (!supabase || !report || !user?.email) return;
     const client = requireSupabase();
     setActionLoading(true);
+    const detail = {
+      ml_status: report.status,
+      label_verifikasi: verif.label_verifikasi,
+      label_benar: verif.label_benar || null,
+      catatan: verif.catatan,
+    };
     const { error } = await (client as any).from('laporan').update({ terverifikasi: report.terverifikasi + 1 }).eq('id', report.id);
     if (error) { if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; } toast('error', `Gagal: ${error.message}`); setActionLoading(false); return; }
-    try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: report.id, nama_lokasi: report.nama_lokasi, status: report.status, ditangani_oleh: user?.email || 'admin', tindakan: 'diverifikasi' }); } catch { /* */ }
+    try {
+      await (client as any).from('riwayat_penanganan').insert({
+        laporan_id: report.id,
+        nama_lokasi: report.nama_lokasi,
+        status: report.status,
+        ditangani_oleh: user.email,
+        tindakan: 'diverifikasi',
+        alasan: verif.label_verifikasi,
+        detail,
+      });
+    } catch { /* best effort */ }
     setVerifiedIds((prev) => new Set(prev).add(report.id));
-    toast('success', `"${report.nama_lokasi}" diverifikasi.`);
+    setVerificationTarget(null);
+    const statMsg = verif.label_verifikasi === 'BENAR' ? '✅ Hasil ML sesuai' : '✘ Koreksi disimpan untuk training data';
+    toast('success', `"${report.nama_lokasi}" diverifikasi. ${statMsg}`);
     refetch(); setActionLoading(false);
-  }, [refetch, toast, user, signOut, navigate, verifiedIds]);
+  }, [verificationTarget, refetch, toast, user, signOut, navigate]);
+
+  const handleExportTraining = useCallback(async () => {
+    if (!supabase) { toast('error', 'Supabase tidak terhubung'); return; }
+    toast('info', 'Menyiapkan data training...');
+    const data = await fetchTrainingData();
+    if (data.length === 0) { toast('error', 'Belum ada data verifikasi untuk diexport'); return; }
+    downloadTrainingCSV(data);
+    toast('success', `${data.length} record training di-download.`);
+  }, [toast]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget || !supabase) return;
@@ -150,6 +192,9 @@ export function AdminDashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <button onClick={handleExportTraining} className="flex items-center gap-1.5 rounded-lg border border-divider px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-text-secondary hover:text-primary hover:border-primary/30 transition-colors" title="Export data training">
+              <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span className="hidden sm:inline">Export</span>
+            </button>
             <Link to="/admin/riwayat" className="flex items-center gap-1.5 rounded-lg border border-divider px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-text-secondary hover:text-primary hover:border-primary/30 transition-colors">
               <History className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span className="hidden sm:inline">Riwayat</span>
             </Link>
@@ -162,10 +207,16 @@ export function AdminDashboardPage() {
       </header>
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mb-3 sm:mb-4">
           <StatBadge label="Belum Verif" value={counts.total - data.filter((r) => r.terverifikasi > 0).length} color="text-waspada" />
           <StatBadge label="Terverifikasi" value={data.filter((r) => r.terverifikasi > 0).length} color="text-primary" />
           <StatBadge label="Total" value={counts.total} color="text-text-primary" />
+          <StatBadge
+            label="Akurasi ML"
+            value={verifStats ? `${verifStats.akurasi}%` : '-'}
+            color={verifStats ? (verifStats.akurasi >= 80 ? 'text-primary' : verifStats.akurasi >= 50 ? 'text-waspada' : 'text-bahaya') : 'text-text-secondary'}
+            subtitle={verifStats ? `${verifStats.benar}/${verifStats.total} sesuai` : undefined}
+          />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 sm:mb-5">
@@ -214,12 +265,12 @@ export function AdminDashboardPage() {
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="hidden sm:flex items-center justify-end gap-1">
-                            {!isVerified(r.id) && <button onClick={() => handleVerify(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi"><ShieldCheck className="h-4 w-4" /></button>}
+                            {!isVerified(r.id) && <button onClick={() => handleVerifyOpen(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi ML"><ShieldCheck className="h-4 w-4" /></button>}
                             <button onClick={() => setEditTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-waspada hover:bg-waspada-bg transition-colors" title="Edit"><Pencil className="h-4 w-4" /></button>
                             <Link to={`/reports/${r.id}`} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-text-primary hover:bg-divider/30 transition-colors" title="Detail" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></Link>
                             <button onClick={() => setDeleteTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-bahaya hover:bg-bahaya-bg transition-colors" title="Hapus"><Trash2 className="h-4 w-4" /></button>
                           </div>
-                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerify} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
+                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
                         </td>
                       </tr>
                     ))}
@@ -234,7 +285,7 @@ export function AdminDashboardPage() {
                 <div key={r.id} className="rounded-xl bg-card border border-divider p-3.5 sm:p-4 hover:shadow-sm transition-all cursor-pointer" onClick={() => navigate(`/reports/${r.id}`)}>
                   <div className="flex items-start justify-between mb-2">
                     <StatusBadge status={r.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5" />
-                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerify} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
+                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
                   </div>
                   <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-1.5 truncate">{r.nama_lokasi}</h3>
                   <div className="space-y-1 text-[10px] sm:text-[11px] text-text-secondary">
@@ -250,17 +301,19 @@ export function AdminDashboardPage() {
         )}
       </div>
 
+      <VerificationDialog open={!!verificationTarget} report={verificationTarget} onSave={handleVerificationSave} onCancel={() => setVerificationTarget(null)} loading={actionLoading} />
       <ConfirmDialog open={!!deleteTarget} title="Hapus Laporan?" message={`Laporan dari "${deleteTarget?.nama_lokasi}" akan dihapus permanen.`} confirmLabel="Hapus" variant="danger" onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} loading={actionLoading} />
       {editTarget && <EditReportDialog open={!!editTarget} report={editTarget} onSave={handleEditSave} onCancel={() => setEditTarget(null)} loading={actionLoading} />}
     </div>
   );
 }
 
-function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
+function StatBadge({ label, value, color, subtitle }: { label: string; value: number | string; color: string; subtitle?: string }) {
   return (
     <div className="rounded-xl bg-card border border-divider p-2.5 sm:p-4 text-center">
       <p className={cn('text-lg sm:text-2xl font-bold tabular-nums', color)}>{value}</p>
       <p className="text-[9px] sm:text-xs text-text-secondary mt-0.5">{label}</p>
+      {subtitle && <p className="text-[8px] sm:text-[10px] text-text-secondary/50 mt-0.5">{subtitle}</p>}
     </div>
   );
 }

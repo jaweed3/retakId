@@ -41,6 +41,36 @@ export interface RiskFactorReport {
   isDowngraded: boolean;
 }
 
+export type VerifLabel = 'BENAR' | 'SALAH';
+
+export interface VerificationData {
+  label_verifikasi: VerifLabel;
+  label_benar?: ReportStatus;
+  catatan: string;
+}
+
+export interface TrainingRecord {
+  laporan_id: string;
+  ml_status: ReportStatus;
+  label_verifikasi: VerifLabel;
+  label_akhir: ReportStatus;
+  foto_url: string | null;
+  diverifikasi_oleh: string;
+  created_at: string;
+}
+
+export interface RiwayatPenanganan {
+  id: string;
+  laporan_id: string;
+  nama_lokasi: string;
+  status: string;
+  ditangani_oleh: string;
+  tindakan: string;
+  alasan: string | null;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
