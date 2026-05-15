@@ -1,0 +1,41 @@
+services:
+  web:
+    build:
+      context: web-app
+      dockerfile: Dockerfile
+    container_name: retakid-web
+    restart: unless-stopped
+    ports:
+      - "3400:80"
+    environment:
+      - TZ=Asia/Jakarta
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: retakid-backend
+    profiles:
+      - train
+    volumes:
+      - backend-data:/app/backend/data
+      - backend-models:/app/backend/models
+      - backend-logs:/app/backend/logs
+    environment:
+      - TZ=Asia/Jakarta
+
+  bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    container_name: retakid-bot
+    restart: unless-stopped
+    env_file:
+      - bot/.env
+    environment:
+      - TZ=Asia/Jakarta
+
+volumes:
+  backend-data:
+  backend-models:
+  backend-logs:

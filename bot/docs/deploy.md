@@ -17,11 +17,11 @@ cd retakid
 cp bot/.env.example bot/.env
 nano bot/.env   # isi TELEGRAM_BOT_TOKEN
 
-# 3. Build & run
-docker compose -f bot/docker-compose.yml up -d
+# 3. Build & run semua service
+docker compose up -d
 
-# 4. Cek log
-docker compose -f bot/docker-compose.yml logs -f
+# 4. Cek log bot
+docker compose logs -f bot
 ```
 
 ## Environment Variables
@@ -74,9 +74,26 @@ bot/
 │   └── templates/             # Message templates
 │       └── messages.py
 ├── Dockerfile
-├── docker-compose.yml
+├── README.md
+├── docs/
+│   └── deploy.md
 ├── pyproject.toml
 └── .env.example
+```
+
+## Root Compose
+
+Service bot udah terintegrasi di `docker-compose.yml` root, bareng `web` (frontend) dan `backend` (training):
+
+```bash
+# Start semua service
+docker compose up -d
+
+# Start cuma bot doang
+docker compose up -d bot
+
+# Training backend (profile)
+docker compose --profile train up backend
 ```
 
 ## Model
