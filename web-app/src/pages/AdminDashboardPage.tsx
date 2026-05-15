@@ -212,10 +212,10 @@ export function AdminDashboardPage() {
           <StatBadge label="Terverifikasi" value={data.filter((r) => r.terverifikasi > 0).length} color="text-primary" />
           <StatBadge label="Total" value={counts.total} color="text-text-primary" />
           <StatBadge
-            label="Akurasi ML"
-            value={verifStats ? `${verifStats.akurasi}%` : '-'}
-            color={verifStats ? (verifStats.akurasi >= 80 ? 'text-primary' : verifStats.akurasi >= 50 ? 'text-waspada' : 'text-bahaya') : 'text-text-secondary'}
-            subtitle={verifStats ? `${verifStats.benar}/${verifStats.total} sesuai` : undefined}
+            label="Sesuai Verifikasi"
+            value={verifStats && verifStats.total > 0 ? `${verifStats.akurasi}%` : '—'}
+            color={verifStats && verifStats.total > 0 ? (verifStats.akurasi >= 80 ? 'text-primary' : verifStats.akurasi >= 50 ? 'text-waspada' : 'text-bahaya') : 'text-text-secondary'}
+            subtitle={verifStats && verifStats.total > 0 ? `${verifStats.benar}/${verifStats.total} sesuai` + (verifStats.total < 10 ? ' (sample kecil)' : '') : 'Belum ada verifikasi'}
           />
         </div>
 
