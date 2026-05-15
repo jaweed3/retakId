@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, AlertTriangle, Skull, Phone, ChevronDown, Smartphone, Camera, MapPin, ExternalLink, ImageIcon, CheckCircle, PhoneCall, ArrowRight } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Skull, Phone, ChevronDown, Smartphone, Camera, MapPin, ExternalLink, CheckCircle, PhoneCall, ArrowRight } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { SEOMeta } from '../components/SEOMeta';
 import { ScrollReveal } from '../components/ScrollReveal';
@@ -40,7 +40,7 @@ const RISK_LEVELS = [
     shadowColor: 'shadow-aman/10',
     desc: 'Retakan minor akibat penyusutan alami tanah. Lebar retakan < 1 cm, tidak bertambah lebar, tidak ada rembesan air.',
     action: 'Tidak perlu tindakan khusus. Amati secara berkala setiap minggu.',
-    image: '/edukasi/aman-placeholder.svg',
+    image: '/edukasi/gambar-aman.jpg',
     imageAlt: 'Contoh retakan tanah tingkat AMAN',
   },
   {
@@ -53,7 +53,7 @@ const RISK_LEVELS = [
     shadowColor: 'shadow-waspada/10',
     desc: 'Retakan signifikan, lebar 1-5 cm. Bertambah lebar dalam beberapa hari. Mungkin ada rembesan air kecil.',
     action: 'Laporkan ke ketua RT/RW. Pantau setiap hari. Siapkan rencana evakuasi keluarga.',
-    image: '/edukasi/waspada-placeholder.svg',
+    image: '/edukasi/gambar-waspada.jpg',
     imageAlt: 'Contoh retakan tanah tingkat WASPADA',
   },
   {
@@ -66,7 +66,7 @@ const RISK_LEVELS = [
     shadowColor: 'shadow-bahaya/10',
     desc: 'Retakan kritis, lebar > 5 cm. Bertambah lebar dengan cepat. Ada suara gemuruh atau rembesan air deras.',
     action: 'SEGERA EVAKUASI! Hubungi BPBD Ponorogo. Jauhi area retakan minimal 100 meter.',
-    image: '/edukasi/bahaya-placeholder.svg',
+    image: '/edukasi/gambar-bahaya.jpg',
     imageAlt: 'Contoh retakan tanah tingkat BAHAYA',
   },
 ];
@@ -141,7 +141,7 @@ function ImageFrame({ src, alt, className }: { src: string; alt: string; classNa
       <img
         src={src}
         alt={alt}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        className="h-full w-full object-scale-down transition-transform duration-500 group-hover:scale-105"
         loading="lazy"
       />
       <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-xl pointer-events-none" />
@@ -276,17 +276,14 @@ export function EdukasiPage() {
                   <div className="relative shrink-0 mx-auto sm:mx-0">
                     <div className="w-40 h-80 rounded-[2rem] border-4 border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 relative shadow-lg">
                       <img
-                        src="/edukasi/app-mockup-placeholder.svg"
+                        src="/edukasi/laporan-hp.png"
                         alt="Mockup Aplikasi Android"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-scale-down"
                         loading="lazy"
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/40 to-transparent h-16 pointer-events-none" />
                     </div>
-                    <div className="flex items-center justify-center gap-1 mt-2 text-[10px] text-text-secondary/60">
-                      <ImageIcon className="h-3 w-3" />
-                      <span>Ganti dengan screenshot APK</span>
-                    </div>
+
                   </div>
 
                   {/* Steps */}
@@ -332,17 +329,14 @@ export function EdukasiPage() {
                 <div className="mb-6">
                   <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-divider">
                     <img
-                      src="/edukasi/report-example-placeholder.svg"
+                      src="/edukasi/laporan-web.png"
                       alt="Contoh form laporan website"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-scale-down"
                       loading="lazy"
                     />
                     <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-xl pointer-events-none" />
                   </div>
-                  <div className="flex items-center justify-center gap-1 mt-2 text-[10px] text-text-secondary/60">
-                    <ImageIcon className="h-3 w-3" />
-                    <span>Ganti dengan screenshot form laporan</span>
-                  </div>
+
                 </div>
 
                 <ol className="space-y-3">
@@ -402,7 +396,7 @@ export function EdukasiPage() {
                     <img
                       src={item.image}
                       alt={item.imageAlt}
-                      className="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
+                      className="h-full w-full object-scale-down transition-all duration-500 group-hover:scale-110"
                       loading="lazy"
                     />
                   </div>
@@ -417,11 +411,7 @@ export function EdukasiPage() {
             ))}
           </div>
 
-          <ScrollReveal delay={300}>
-            <p className="text-center text-xs text-text-secondary/50 mt-6">
-              Foto di atas adalah placeholder. Ganti dengan foto retakan yang sesuai.
-            </p>
-          </ScrollReveal>
+
         </div>
       </section>
 
