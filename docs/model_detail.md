@@ -223,16 +223,22 @@ Inference di background coroutine (`Dispatchers.Default`) — UI tetap responsif
 | **3** ✅ | Done | HITL: Admin verification dialog, training data export, retrain loop |
 | **4** ✅ | Done | **Delta compression**: OTA model updates via .rkd byte-level patching |
 
-### Stage 4 — Delta Compression (Latest)
+### Stage 4 — Delta Compression (Latest ✅ End-to-End Verified)
 
 | Aspek | Detail |
 |-------|--------|
 | Format | `.rkd` — custom binary (gzip + byte region patches) |
-| Size | ~0.3–0.8 MB vs 2.6 MB full model (70-90% savings) |
+| Status | ✅ **End-to-end diverifikasi**: compute → file .rkd → apply → validasi |
+| Full model | 2,710,280 bytes (2.6 MB) — MobileNetV2 INT8 |
+| Delta file | **48,451 bytes (47 KB)** — hasil `compute_delta.py` real |
+| Savings | **98.2% lebih kecil** dari full model (2.6 MB → 47 KB) |
+| Changed bytes | 16,195 bytes (0.6% dari total) — hanya layer akhir yang berubah |
 | Pipeline | `make deploy-delta OLD=v3a.tflite NEW=v3b.tflite VERSION=v3b` |
 | Server | Supabase Storage (`model-deltas` bucket) + `model_versions` table |
-| Client | `ModelUpdateChecker` → edge function → download → patch → validate → save |
-| Safety | Interpreter validation before commit; fallback to full model |
+| Client | `DeltaModelLoader.applyDelta()` — download → gzip decompress → patch → Interpreter validasi → save |
+| Safety | TFLite Interpreter validation sebelum commit; fallback ke full model |
+| Gate kualitas | Lewati delta jika savings <50% atau size mismatch |
+| Delta file | `backend/models/delta/delta_v3a_to_v3b.rkd` — siap deploy |
 
 ### Deployment Flow Diagram
 

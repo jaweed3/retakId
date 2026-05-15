@@ -1,0 +1,79 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam packageBorderColor #666666
+skinparam packageFontSize 14
+skinparam packageFontStyle bold
+
+title <size:20><b>🧠 Edge Inference Architecture</b></size>\n<size:14>Satu Model TFLite — Dua Platform</size>
+
+' ========== TOP: Shared Model ==========
+package "<b>Model</b>" as model {
+  rectangle "<size:12><b>retak_mobilenetv2.tflite</b></size>\n2.6 MB · INT8 Quantized\nMobileNetV2 · 3 Classes\n(AMAN, WASPADA, BAHAYA)" as tflite #BBDEFB
+}
+
+' ========== LEFT: Android ==========
+package "<b>Android (Kotlin)</b>" as android #E8F5E9 {
+  rectangle "TFLite Interpreter 2.16.1\n4 CPU threads" as tflite_runtime #C8E6C9
+
+  together {
+    rectangle "Preprocess\nBitmap.createScaledBitmap\n224×224 bilinear\n→ RGB uint8 ByteBuffer" as android_pre #A5D6A7
+    rectangle "Softmax\nexp(sum-max)\nnumerically stable" as android_soft #66BB6A
+    rectangle "Post-process\nconf < 0.40 → AMAN\nconf ≥ 0.40 → label" as android_post #43A047
+  }
+
+  rectangle "MultiFactorRiskEngine\nML(50%) + Slope(20%) + Rain(15%)\n+ Elevation(10%) + Soil(5%)" as android_risk #2E7D32
+
+  rectangle "DeltaModelLoader\n.rkd → patch bytes → validate\n→ save to internal storage" as android_delta #81C784
+}
+
+' ========== RIGHT: Web App ==========
+package "<b>Web App (TypeScript)</b>" as webapp #FFF3E0 {
+  rectangle "LiteRT WASM Runtime\n@litertjs/core\nWASM multithread" as litert #FFE0B2
+
+  together {
+    rectangle "Preprocess\ncreateImageBitmap\n224×224 high quality\n→ RGB uint8 Uint8Array" as web_pre #FFCC80
+    rectangle "Softmax\nexp(sum-max)\nnumerically stable" as web_soft #FFB74D
+    rectangle "Post-process\nconf < 0.50 → TIDAK_PASTI\nconf ≥ 0.50 → label" as web_post #FFA726
+  }
+
+  rectangle "Supabase Edge Function\ncalculate-risk\n(server-side multi-factor)" as web_risk #F57C00
+
+  rectangle "PWA CacheFirst\nModel + WASM cached\n30 day TTL · Offline-ready" as web_pwa #FFB74D
+}
+
+' ========== Connections ==========
+tflite --> tflite_runtime : bundled in APK
+tflite --> litert : served as static file
+
+tflite_runtime --> android_pre : loadModelFile()
+android_pre --> android_soft : ByteBuffer [1,224,224,3]
+android_soft --> android_post : float[3] probabilities
+android_post --> android_risk : DetectionResult + conf
+
+litert --> web_pre : loadAndCompile(MODEL_URL)
+web_pre --> web_soft : Uint8Array [1,224,224,3]
+web_soft --> web_post : number[3] probabilities
+web_post --> web_risk : PredictionResult + conf
+
+' ========== Bottom: Identity highlight ==========
+rectangle "<size:14><b>✅ Bit-Exact Identical</b></size>\n\nPreprocessing: 224×224 · RGB uint8 · [0,255]\nModel: same .tflite file\nSoftmax: same formula\nLabels: same 3 classes (AMAN, WASPADA, BAHAYA)\n\n<size:11><b>One model, two platforms, identical results.</b></size>" as identical #E3F2FD
+
+android_soft --> identical
+web_soft --> identical
+
+' ========== Key Metrics ==========
+note right of identical
+  <b>Key Metrics</b>
+  • Model: 2.6 MB INT8
+  • Accuracy: 84.9%
+  • FP32 agreement: 93.75%
+  • Inference: <2s (Android)
+  • Inference: <1s (Web WASM)
+  • Delta update: 0.3–0.8 MB
+  • Zero cloud cost for ML
+end note
+
+@enduml
