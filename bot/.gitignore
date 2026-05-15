@@ -1,0 +1,15 @@
+# Local model file (tracked in backend/models/)
+models/*.tflite
+
+# Runtime data
+data/
+logs/
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
