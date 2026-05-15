@@ -168,7 +168,7 @@ fun RegisterScreen(
                             }
                         }
 
-
+                        // Update no_telepon & alamat ke tabel profiles (jika diisi)
                         if (noTelepon.isNotEmpty() || alamat.isNotEmpty()) {
                             val uid = SupabaseClient.client.auth.currentUserOrNull()?.id
                             if (uid != null) {

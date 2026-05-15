@@ -168,6 +168,7 @@ fun ProfilScreen(
     }
 }
 
+// ── Composable helpers (tidak berubah) ────────────────────────
 
 @Composable
 fun BadgeInfoCard(icon: ImageVector, title: String, value: String) {
