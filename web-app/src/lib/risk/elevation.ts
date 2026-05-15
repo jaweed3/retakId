@@ -1,11 +1,5 @@
 const ELEVATION_API = 'https://api.open-meteo.com/v1/elevation';
-const TIMEOUT_MS = 3000;
-
-interface OpenMeteoElevationResponse {
-  elevation: {
-    elevation: number[];
-  };
-}
+const TIMEOUT_MS = 5000;
 
 const cache = new Map<string, number>();
 
@@ -32,19 +26,16 @@ export async function getElevation(
 
     if (!res.ok) return null;
 
-    const json: OpenMeteoElevationResponse = await res.json();
+    const json = await res.json() as { elevation: { elevation: number[] } };
     const elevation = json.elevation.elevation[0];
 
-    if (elevation != null) {
-      cache.set(key, elevation);
-    }
-
+    if (elevation != null) cache.set(key, elevation);
     return elevation ?? null;
   } catch {
     return null;
   }
 }
 
-export function clearCache(): void {
+export function clearElevationCache(): void {
   cache.clear();
 }

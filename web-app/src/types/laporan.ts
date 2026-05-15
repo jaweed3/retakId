@@ -21,28 +21,6 @@ export interface Laporan {
   is_resolved?: boolean;
 }
 
-export type RiskFactor = 'ML' | 'SLOPE' | 'RAIN' | 'ELEVATION' | 'SOIL';
-export type RiskLabel = 'RENDAH' | 'SEDANG' | 'TINGGI' | 'SANGAT_TINGGI';
-
-export interface FactorContribution {
-  factor: RiskFactor;
-  rawValue: string;
-  score: number;
-  weight: number;
-  weightedScore: number;
-  riskLabel: RiskLabel;
-}
-
-export interface RiskFactorReport {
-  mlResult: DetectionResult;
-  mlConfidence: number;
-  finalScore: number;
-  finalResult: DetectionResult;
-  factors: FactorContribution[];
-  isUpgraded: boolean;
-  isDowngraded: boolean;
-}
-
 export type VerifLabel = 'BENAR' | 'SALAH';
 
 export interface VerificationData {

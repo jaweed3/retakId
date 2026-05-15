@@ -8,7 +8,8 @@ import { ImageUploadPreview } from '../components/ImageUploadPreview';
 import { LocationPicker } from '../components/LocationPicker';
 import { useModelInference } from '../hooks/useModelInference';
 import { calculateRisk } from '../lib/risk';
-import type { ReportStatus, PredictionLabel, RiskFactorReport, FactorContribution, DetectionResult } from '../types/laporan';
+import type { RiskFactorReport, FactorContribution } from '../lib/risk';
+import type { ReportStatus, PredictionLabel } from '../types/laporan';
 
 interface FormState {
   file: File | null;
@@ -545,8 +546,8 @@ export function ReportFormPage() {
                 </button>
               );
             })}
-        </div>
-        </div>
+            </div>
+          </div>
 
         {/* Catatan */}
         <div>
