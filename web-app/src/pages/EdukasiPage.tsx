@@ -28,7 +28,7 @@ const FAQS = [
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl bg-card border border-divider overflow-hidden">
+    <div className="rounded-xl bg-card border border-gray-300 dark:border-gray-600 overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-medium text-text-primary hover:bg-divider/10 transition-colors"
@@ -37,7 +37,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         {open ? <ChevronUp className="h-4 w-4 text-text-secondary shrink-0" /> : <ChevronDown className="h-4 w-4 text-text-secondary shrink-0" />}
       </button>
       {open && (
-        <div className="px-5 pb-4 text-sm text-text-secondary leading-relaxed border-t border-divider pt-3">
+        <div className="px-5 pb-4 text-sm text-text-secondary leading-relaxed border-t border-gray-300 dark:border-gray-600 pt-3">
           {a}
         </div>
       )}

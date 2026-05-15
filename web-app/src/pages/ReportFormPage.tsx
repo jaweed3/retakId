@@ -119,7 +119,7 @@ export function ReportFormPage() {
           setRiskError(null);
           try {
             const report = await calculateRisk({
-              mlResult: result,
+              mlResult: result as DetectionResult,
               mlConfidence: result.confidence,
               latitude: lat,
               longitude: lng,

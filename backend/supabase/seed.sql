@@ -87,13 +87,18 @@ DROP POLICY IF EXISTS "Admin dapat baca riwayat" ON riwayat_penanganan;
 DROP POLICY IF EXISTS "Admin dapat insert riwayat" ON riwayat_penanganan;
 
 CREATE POLICY "Admin dapat baca admin_users" ON admin_users
-  FOR SELECT USING (
-    auth.uid() = user_id
-    OR EXISTS (
-      SELECT 1
-      FROM admin_users au
-      WHERE au.user_id = auth.uid()
-    )
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Admin pertama bisa daftar" ON admin_users
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated' AND
+    (SELECT count(*) FROM admin_users) = 0
+  );
+
+CREATE POLICY "Admin dapat insert admin baru" ON admin_users
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated' AND
+    (SELECT count(*) FROM admin_users) > 0
   );
 
 CREATE POLICY "Admin dapat baca riwayat" ON riwayat_penanganan
@@ -176,20 +181,38 @@ END $$;
 -- ============================================================
 -- 8. SEED DATA: LAPORAN (12 data contoh area Jenangan)
 -- ============================================================
-INSERT INTO laporan (nama_lokasi, status, catatan, latitude, longitude, pelapor, terverifikasi, created_at)
+-- 6. TAMBAH KOLOM is_resolved (jika belum ada)
+-- ============================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'laporan' AND column_name = 'is_resolved'
+  ) THEN
+    ALTER TABLE laporan ADD COLUMN is_resolved BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+
+-- ============================================================
+-- 7. SEED DATA: LAPORAN (12 data contoh seluruh Indonesia)
+-- ============================================================
+-- Hapus data seeding lama dulu (biar bisa dijalankan ulang)
+DELETE FROM laporan WHERE pelapor IN ('Budi Santoso', 'Siti Rahayu', 'Agus Widodo', 'Rudi Hartono', 'Sumarni', 'Joko Prasetyo', 'Rina Marlina', 'Supardi', 'Kepala Desa Padalarang', 'Tukiman', 'Takmir Masjid', 'Tim BPBD');
+
+INSERT INTO laporan (nama_lokasi, status, catatan, latitude, longitude, pelapor, terverifikasi, is_resolved, created_at)
 VALUES
-  ('Desa Jenangan, dekat balai desa', 'AMAN', 'Retakan kecil di tanah kering, lebar sekitar 0.5cm', -7.872, 111.467, 'Budi Santoso', 2, now() - interval '5 days'),
-  ('Dusun Krajan, RT 03', 'WASPADA', 'Retakan mulai melebar setelah hujan kemarin, lebar sekitar 2cm', -7.880, 111.474, 'Siti Rahayu', 1, now() - interval '3 days'),
-  ('Perbukitan Ngebel', 'BAHAYA', 'Retakan besar > 5cm, ada rembesan air, tanah terlihat bergerak', -7.875, 111.465, 'Agus Widodo', 3, now() - interval '1 day'),
-  ('Desa Setono, dekat sungai', 'AMAN', 'Retakan permukaan saja, tidak ada tanda bahaya', -7.869, 111.472, 'Rudi Hartono', 1, now() - interval '7 days'),
-  ('Desa Pintu, lereng bukit', 'WASPADA', 'Retakan bertambah panjang dari 1m jadi 3m dalam seminggu', -7.878, 111.478, 'Sumarni', 0, now() - interval '2 days'),
-  ('Dusun Paringan, area persawahan', 'BAHAYA', 'Tanah ambles 10cm, retakan melebar cepat, pohon mulai miring', -7.882, 111.469, 'Joko Prasetyo', 2, now() - interval '12 hours'),
-  ('Desa Jenangan, perbatasan desa', 'AMAN', 'Retakan kecil tidak berbahaya, sudah dicek mandiri', -7.871, 111.470, 'Rina Marlina', 0, now() - interval '10 days'),
-  ('Bukit Gamping, area tambang', 'WASPADA', 'Ada retakan baru setelah ledakan tambang, perlu dipantau', -7.876, 111.480, 'Supardi', 1, now() - interval '4 days'),
-  ('Desa Ngebel, dekat pemukiman', 'BAHAYA', 'Retakan mendekati rumah warga, 3 rumah sudah dievakuasi', -7.883, 111.473, 'Kepala Desa Ngebel', 5, now() - interval '6 hours'),
-  ('Desa Setono, jalan desa', 'AMAN', 'Retakan kecil di aspal jalan, tidak membahayakan', -7.868, 111.475, 'Tukiman', 0, now() - interval '14 days'),
-  ('Dusun Krajan, belakang masjid', 'WASPADA', 'Retakan muncul setelah gempa kecil kemarin, warga diminta waspada', -7.879, 111.471, 'Takmir Masjid', 2, now() - interval '1 day'),
-  ('Perbukitan Jenangan, lereng atas', 'BAHAYA', 'Longsor kecil sudah terjadi, retakan besar masih aktif bergerak', -7.874, 111.462, 'Tim BPBD', 4, now() - interval '2 hours')
+  ('Desa Cipanas, Puncak', 'AMAN', 'Retakan kecil di tanah kering, lebar sekitar 0.5cm', -6.720, 107.010, 'Budi Santoso', 2, false, now() - interval '5 days'),
+  ('Desa Sembalun, Lombok', 'WASPADA', 'Retakan mulai melebar setelah hujan deras, lebar sekitar 2cm', -8.350, 116.530, 'Siti Rahayu', 1, true, now() - interval '3 days'),
+  ('Kecamatan Cisolok, Sukabumi', 'BAHAYA', 'Retakan besar > 5cm, ada rembesan air, tanah terlihat bergerak', -6.950, 106.450, 'Agus Widodo', 3, false, now() - interval '1 day'),
+  ('Desa Kemuning, Karanganyar', 'AMAN', 'Retakan permukaan saja, tidak ada tanda bahaya', -7.650, 111.080, 'Rudi Hartono', 1, true, now() - interval '7 days'),
+  ('Lereng Gunung Merapi, Sleman', 'WASPADA', 'Retakan bertambah panjang dari 1m jadi 3m dalam seminggu', -7.550, 110.430, 'Sumarni', 0, false, now() - interval '2 days'),
+  ('Desa Sumberejo, Batu', 'BAHAYA', 'Tanah ambles 10cm, retakan melebar cepat, pohon mulai miring', -7.870, 112.530, 'Joko Prasetyo', 2, false, now() - interval '12 hours'),
+  ('Kampung Naga, Tasikmalaya', 'AMAN', 'Retakan kecil tidak berbahaya, sudah dicek mandiri', -7.350, 108.100, 'Rina Marlina', 0, true, now() - interval '10 days'),
+  ('Desa Tomohon, Sulawesi Utara', 'WASPADA', 'Retakan muncul setelah gempa kecil, perlu dipantau', 1.320, 124.840, 'Supardi', 1, false, now() - interval '4 days'),
+  ('Desa Padalarang, Bandung Barat', 'BAHAYA', 'Retakan mendekati rumah warga, 3 rumah sudah dievakuasi', -6.840, 107.480, 'Kepala Desa Padalarang', 5, false, now() - interval '6 hours'),
+  ('Desa Ubud, Gianyar', 'AMAN', 'Retakan kecil di aspal jalan, tidak membahayakan', -8.510, 115.260, 'Tukiman', 0, true, now() - interval '14 days'),
+  ('Kecamatan Meureudu, Pidie Jaya', 'WASPADA', 'Retakan muncul setelah gempa kecil kemarin, warga diminta waspada', 5.250, 96.250, 'Takmir Masjid', 2, false, now() - interval '1 day'),
+  ('Desa Pacet, Mojokerto', 'BAHAYA', 'Longsor kecil sudah terjadi, retakan besar masih aktif bergerak', -7.670, 112.540, 'Tim BPBD', 4, false, now() - interval '2 hours')
 ON CONFLICT DO NOTHING;
 
 -- ============================================================

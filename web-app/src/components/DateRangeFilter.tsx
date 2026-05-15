@@ -34,7 +34,7 @@ export function DateRangeFilter({ current, onChange }: DateRangeFilterProps) {
             'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
             current === opt.key
               ? 'bg-primary text-white shadow-sm'
-              : 'text-text-secondary hover:text-text-primary hover:bg-divider/30',
+              : 'bg-black/5 dark:bg-white/10 text-text-secondary/60 hover:text-text-primary hover:bg-black/10 dark:hover:bg-white/15',
           )}
         >
           {opt.label}

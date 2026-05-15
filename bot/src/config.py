@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -13,9 +13,9 @@ class Config:
     supabase_service_key: str = os.getenv("SUPABASE_SERVICE_KEY", "")
 
     admin_chat_id: str = os.getenv("ADMIN_CHAT_ID", "")
-    admin_ids: list[int] = [
+    admin_ids: list[int] = field(default_factory=lambda: [
         int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()
-    ]
+    ])
 
     rate_limit_max: int = int(os.getenv("RATE_LIMIT_MAX", "10"))
     rate_limit_window: int = int(os.getenv("RATE_LIMIT_WINDOW", "60"))

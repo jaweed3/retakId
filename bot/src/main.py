@@ -12,6 +12,7 @@ from telegram.ext import (
 from config import Config
 from handlers.admin import health_handler, stats_handler
 from handlers.error_handler import error_handler
+from handlers.lapor import build_conversation_handler
 from handlers.location import location_handler
 from handlers.photo import init_predictor, photo_handler
 from handlers.start import start_handler
@@ -57,6 +58,7 @@ def main() -> None:
 
     app.add_error_handler(error_handler)
 
+    app.add_handler(build_conversation_handler(), group=0)
     app.add_handler(CommandHandler("start", start_handler), group=0)
     app.add_handler(CommandHandler("stats", stats_handler), group=1)
     app.add_handler(CommandHandler("health", health_handler), group=1)

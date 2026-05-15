@@ -7,15 +7,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-ENV UV_SYSTEM_PYTHON=1
-
 WORKDIR /app
 
 COPY bot/pyproject.toml .
-RUN uv sync --system --no-dev
+RUN uv sync --no-dev
+ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY bot/src/ src/
-COPY backend/models/retak_mobilenetv2.tflite models/retak_mobilenetv2.tflite
+COPY web-app/public/models/retak/retak_mobilenetv2.tflite models/retak_mobilenetv2.tflite
 
 ENV PYTHONPATH=/app/src
 ENV MODEL_PATH=/app/models/retak_mobilenetv2.tflite

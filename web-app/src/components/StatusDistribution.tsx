@@ -7,7 +7,7 @@ interface StatusDistributionProps {
   isLoading?: boolean;
 }
 
-const COLORS = { aman: '#388E3C', waspada: '#F57C00', bahaya: '#D32F2F' };
+const COLOR_VARS = { aman: 'var(--color-aman)', waspada: 'var(--color-waspada)', bahaya: 'var(--color-bahaya)' };
 
 const CustomTooltip = ({ active, payload }: Record<string, unknown>) => {
   if (!active || !payload || !Array.isArray(payload)) return null;
@@ -28,7 +28,7 @@ const CustomTooltip = ({ active, payload }: Record<string, unknown>) => {
 export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusDistributionProps) {
   if (isLoading) {
     return (
-      <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6 animate-pulse">
+      <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6 animate-pulse">
         <div className="h-4 w-36 bg-divider/50 rounded mb-4" />
         <div className="h-44 bg-divider/20 rounded-full w-44 mx-auto" />
       </div>
@@ -38,7 +38,7 @@ export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusD
   const total = aman + waspada + bahaya;
   if (total === 0) {
     return (
-      <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
+      <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6">
         <h3 className="text-sm font-semibold text-text-primary mb-1">Distribusi Status</h3>
         <p className="text-xs text-text-secondary">Belum ada data laporan.</p>
       </div>
@@ -46,25 +46,25 @@ export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusD
   }
 
   const chartData = [
-    { name: 'aman', value: aman, fill: COLORS.aman },
-    { name: 'waspada', value: waspada, fill: COLORS.waspada },
-    { name: 'bahaya', value: bahaya, fill: COLORS.bahaya },
+    { name: 'aman', value: aman, fill: COLOR_VARS.aman },
+    { name: 'waspada', value: waspada, fill: COLOR_VARS.waspada },
+    { name: 'bahaya', value: bahaya, fill: COLOR_VARS.bahaya },
   ];
 
   return (
-    <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
+    <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-2">Distribusi Status</h3>
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={240}>
         <PieChart>
-          <Pie data={chartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+          <Pie data={chartData} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
             {chartData.map((entry) => (
               <Cell key={entry.name} fill={entry.fill} stroke="var(--color-card)" strokeWidth={2} />
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            wrapperStyle={{ fontSize: 12 }}
-            formatter={(v: string) => <span className="text-text-secondary capitalize">{v}</span>}
+            wrapperStyle={{ fontSize: 12, color: 'var(--color-text-secondary)', paddingTop: 4 }}
+            formatter={(v: string) => <span style={{ color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>{v}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

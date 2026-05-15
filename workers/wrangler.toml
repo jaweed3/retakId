@@ -1,0 +1,6 @@
+name = "retakid-crawler-bypass"
+main = "crawler-bypass.js"
+compatibility_date = "2025-01-01"
+
+[env.production]
+route = { pattern = "retak.utc.web.id/*", zone_id = "YOUR_ZONE_ID" }

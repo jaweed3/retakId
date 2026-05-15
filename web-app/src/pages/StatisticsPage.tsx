@@ -29,29 +29,30 @@ function TopLocationsChart({ data }: { data: Laporan[] }) {
       .slice(0, 10);
   }, [data]);
 
-  if (locations.length < 2) return null;
+  if (locations.length === 0) return null;
 
   return (
-    <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
+    <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-4">Top 10 Lokasi Terbanyak Laporan</h3>
       <ResponsiveContainer width="100%" height={Math.max(200, locations.length * 32)}>
         <BarChart data={locations} layout="vertical" margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider)" strokeOpacity={0.4} horizontal={false} />
-          <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} allowDecimals={false} />
-          <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} width={120} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-text-secondary)" strokeOpacity={0.15} horizontal={false} />
+          <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} axisLine={{ stroke: 'var(--color-divider)' }} allowDecimals={false} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} axisLine={{ stroke: 'var(--color-divider)' }} width={120} />
           <Tooltip
             contentStyle={{
               background: 'var(--color-card)',
               border: '1px solid var(--color-divider)',
               borderRadius: 8,
               fontSize: 12,
+              color: 'var(--color-text-primary)',
             }}
           />
           <Bar dataKey="total" radius={[0, 4, 4, 0]}>
             {locations.map((loc) => (
               <Cell
                 key={loc.name}
-                fill={loc.bahaya > 0 ? '#D32F2F' : loc.waspada > 0 ? '#F57C00' : '#388E3C'}
+                fill={loc.bahaya > 0 ? 'var(--color-bahaya)' : loc.waspada > 0 ? 'var(--color-waspada)' : 'var(--color-aman)'}
                 fillOpacity={0.8}
               />
             ))}
@@ -143,7 +144,7 @@ function MetricCard({
   bg: string;
 }) {
   return (
-    <div className="rounded-xl bg-card border border-divider p-4 sm:p-5">
+    <div className="rounded-xl bg-card dark:bg-black border border-divider dark:border-white/10 p-4 sm:p-5">
       <div className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg ${bg} mb-3`}>
         <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
       </div>

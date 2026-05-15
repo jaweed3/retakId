@@ -16,10 +16,9 @@ backend/data/raw/
 backend/data/processed/
 backend/data/splits/
 
-# Models & Weights
+# Models & Weights (checkpoints & large formats, .tflite tracked for docker)
 backend/models/checkpoints/
 backend/models/*.h5
-backend/models/*.tflite
 backend/models/*.keras
 backend/models/*.pb
 

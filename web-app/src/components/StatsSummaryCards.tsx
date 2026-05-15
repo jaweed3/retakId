@@ -1,4 +1,4 @@
-import { ShieldCheck, AlertTriangle, Skull } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Skull, BarChart3 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 interface Stats {
@@ -27,7 +27,8 @@ function SkeletonCard() {
 export function StatsSummaryCards({ counts, isLoading }: StatsSummaryCardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
@@ -38,6 +39,7 @@ export function StatsSummaryCards({ counts, isLoading }: StatsSummaryCardsProps)
   const total = counts.aman + counts.waspada + counts.bahaya;
 
   const items = [
+    { label: 'Total Kejadian', count: total, icon: BarChart3, color: 'text-primary', bg: 'bg-primary-surface', ring: 'ring-primary/20' },
     { label: 'Aman', count: counts.aman, icon: ShieldCheck, color: 'text-aman', bg: 'bg-aman-bg', ring: 'ring-aman/20' },
     { label: 'Waspada', count: counts.waspada, icon: AlertTriangle, color: 'text-waspada', bg: 'bg-waspada-bg', ring: 'ring-waspada/20' },
     { label: 'Bahaya', count: counts.bahaya, icon: Skull, color: 'text-bahaya', bg: 'bg-bahaya-bg', ring: 'ring-bahaya/20' },
@@ -45,12 +47,12 @@ export function StatsSummaryCards({ counts, isLoading }: StatsSummaryCardsProps)
 
   return (
     <div className="space-y-0">
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3">
         {items.map((item) => (
           <div
             key={item.label}
             className={cn(
-              'flex items-center gap-1.5 sm:gap-3 rounded-xl bg-card px-2.5 py-2.5 sm:px-4 sm:py-3.5 shadow-sm border border-divider',
+              'flex items-center gap-1.5 sm:gap-3 rounded-xl bg-card dark:bg-black px-2.5 py-2.5 sm:px-4 sm:py-3.5 shadow-sm border border-divider dark:border-white/10',
               'hover:shadow-md transition-shadow',
             )}
           >
@@ -64,9 +66,6 @@ export function StatsSummaryCards({ counts, isLoading }: StatsSummaryCardsProps)
           </div>
         ))}
       </div>
-      {total > 0 && (
-        <p className="text-[9px] sm:text-[10px] text-text-secondary/60 text-right mt-1 mr-1">{total} total laporan</p>
-      )}
     </div>
   );
 }

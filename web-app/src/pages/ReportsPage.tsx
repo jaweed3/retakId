@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { StatusFilter } from '../types/laporan';
 import { useLaporan } from '../hooks/useLaporan';
 import { FilterStatusBar } from '../components/FilterStatusBar';
@@ -16,7 +17,19 @@ import { SEOMeta } from '../components/SEOMeta';
 const PAGE_SIZE = 12;
 
 export function ReportsPage() {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('SEMUA');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialStatus = (searchParams.get('status') as StatusFilter) || 'SEMUA';
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
+
+  // Sync status filter to URL
+  useEffect(() => {
+    if (statusFilter === 'SEMUA') {
+      searchParams.delete('status');
+    } else {
+      searchParams.set('status', statusFilter);
+    }
+    setSearchParams(searchParams, { replace: true });
+  }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
