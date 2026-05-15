@@ -47,7 +47,7 @@ export function ReportTable({ data }: ReportTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-divider/20">
+            <tr className="bg-black/10 dark:bg-white/10">
               <th className={thClass('status')} onClick={() => handleSort('status')}>
                 <div className="flex items-center gap-1">Status <SortIcon field="status" /></div>
               </th>
