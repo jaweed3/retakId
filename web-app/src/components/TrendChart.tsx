@@ -45,7 +45,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6 animate-pulse">
+      <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6 animate-pulse">
         <div className="h-4 w-32 bg-divider/50 rounded mb-4" />
         <div className="h-48 sm:h-64 bg-divider/20 rounded" />
       </div>
@@ -54,7 +54,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
 
   if (chartData.length < 2) {
     return (
-      <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
+      <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6">
         <h3 className="text-sm font-semibold text-text-primary mb-1">Tren Harian</h3>
         <p className="text-xs text-text-secondary">Data belum cukup untuk grafik tren.</p>
       </div>
@@ -62,7 +62,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
   }
 
   return (
-    <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
+    <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-4">Tren Harian</h3>
       <div className="h-[220px] sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
