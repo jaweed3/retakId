@@ -18,7 +18,25 @@ CREATE TABLE IF NOT EXISTS admin_users (
 );
 
 -- ============================================================
--- 2. TABEL RIWAYAT PENANGANAN (Audit Trail)
+-- 2. TABEL MODEL VERSIONS (Delta OTA)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS model_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  version TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  model_size_bytes BIGINT NOT NULL,
+  delta_size_bytes BIGINT DEFAULT NULL,
+  delta_path TEXT DEFAULT NULL,
+  benchmark_accuracy REAL DEFAULT NULL,
+  benchmark_f1 REAL DEFAULT NULL,
+  changelog TEXT DEFAULT '',
+  is_active BOOLEAN DEFAULT false
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_versions_active ON model_versions(is_active) WHERE is_active = true;
+
+-- ============================================================
+-- 3. TABEL RIWAYAT PENANGANAN (Audit Trail)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS riwayat_penanganan (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -34,7 +52,7 @@ CREATE TABLE IF NOT EXISTS riwayat_penanganan (
 );
 
 -- ============================================================
--- 3. RLS POLICIES
+-- 4. RLS POLICIES
 -- ============================================================
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE riwayat_penanganan ENABLE ROW LEVEL SECURITY;
@@ -96,7 +114,31 @@ CREATE POLICY "Admin dapat insert riwayat" ON riwayat_penanganan
   );
 
 -- ============================================================
--- 4. STORAGE BUCKET FOTO
+-- 5. STORAGE BUCKETS: FOTO + MODEL DELTAS
+-- ============================================================
+
+-- Bucket for ML model delta files (public — app downloads delta directly)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'model-deltas',
+  'model-deltas',
+  true,
+  5242880,
+  ARRAY['application/octet-stream']
+)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Model deltas dapat dibaca publik" ON storage.objects;
+DROP POLICY IF EXISTS "Admin dapat upload model delta" ON storage.objects;
+
+CREATE POLICY "Model deltas dapat dibaca publik" ON storage.objects
+  FOR SELECT USING (bucket_id = 'model-deltas');
+
+CREATE POLICY "Admin dapat upload model delta" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'model-deltas');
+
+-- ============================================================
+-- 6. STORAGE BUCKET FOTO
 -- ============================================================
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
@@ -118,7 +160,7 @@ CREATE POLICY "User dapat upload foto" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'laporan-foto');
 
 -- ============================================================
--- 5. REALTIME
+-- 7. REALTIME
 -- ============================================================
 DO $$
 BEGIN
@@ -131,7 +173,7 @@ BEGIN
 END $$;
 
 -- ============================================================
--- 6. SEED DATA: LAPORAN (12 data contoh area Jenangan)
+-- 8. SEED DATA: LAPORAN (12 data contoh area Jenangan)
 -- ============================================================
 INSERT INTO laporan (nama_lokasi, status, catatan, latitude, longitude, pelapor, terverifikasi, created_at)
 VALUES
@@ -150,7 +192,7 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- 7. SEED DATA: RIWAYAT PENANGANAN (contoh audit trail)
+-- 9. SEED DATA: RIWAYAT PENANGANAN (contoh audit trail)
 -- ============================================================
 INSERT INTO riwayat_penanganan (laporan_id, nama_lokasi, status, ditangani_oleh, tindakan, alasan, created_at)
 SELECT
@@ -162,7 +204,7 @@ WHERE terverifikasi > 0
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- STEP 2: BUAT AKUN ADMIN (via Supabase Dashboard)
+-- STEP 3: BUAT AKUN ADMIN (via Supabase Dashboard)
 -- ============================================================
 -- Buka: Authentication > Users > Add User
 -- Isi:

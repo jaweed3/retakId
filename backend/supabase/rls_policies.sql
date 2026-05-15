@@ -9,6 +9,7 @@
 ALTER TABLE laporan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE riwayat_penanganan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE model_versions ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- 2. HAPUS POLICY LAMA (supaya script bisa dijalankan ulang)
@@ -20,6 +21,9 @@ DROP POLICY IF EXISTS "Admin dapat hapus laporan" ON laporan;
 DROP POLICY IF EXISTS "Admin dapat baca admin_users" ON admin_users;
 DROP POLICY IF EXISTS "Admin dapat baca riwayat" ON riwayat_penanganan;
 DROP POLICY IF EXISTS "Admin dapat insert riwayat" ON riwayat_penanganan;
+DROP POLICY IF EXISTS "Anyone can read model_versions" ON model_versions;
+DROP POLICY IF EXISTS "Admin dapat insert model_versions" ON model_versions;
+DROP POLICY IF EXISTS "Admin dapat update model_versions" ON model_versions;
 
 -- ============================================================
 -- 3. POLICIES: TABEL LAPORAN
@@ -79,3 +83,28 @@ CREATE POLICY "Foto dapat dibaca publik" ON storage.objects
 CREATE POLICY "User dapat upload foto" ON storage.objects
   FOR INSERT
   WITH CHECK (bucket_id = 'laporan-foto');
+
+-- ============================================================
+-- 7. POLICIES: TABEL MODEL VERSIONS
+-- ============================================================
+
+CREATE POLICY "Anyone can read model_versions" ON model_versions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Admin dapat insert model_versions" ON model_versions
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM admin_users au
+      WHERE au.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Admin dapat update model_versions" ON model_versions
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1
+      FROM admin_users au
+      WHERE au.user_id = auth.uid()
+    )
+  );
