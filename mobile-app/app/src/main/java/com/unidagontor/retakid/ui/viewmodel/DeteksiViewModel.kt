@@ -77,7 +77,7 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun onImageCaptured(bitmap: Bitmap) {
-        _uiState.update { it.copy(capturedImage = bitmap, stage = DeteksiStage.ANALYZING) }
+        _uiState.update { it.copy(capturedImage = bitmap, stage = DeteksiStage.VALIDATING, validationError = null) }
         analyzeImage(bitmap)
     }
 

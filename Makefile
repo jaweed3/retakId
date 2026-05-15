@@ -88,6 +88,23 @@ train-exp:
 export:
 	$(PYTHON) backend/src/training/export.py --model-path $(MODEL) --config $(CONFIG)
 
+# --- Delta Compression (OTA Model Updates) ---
+
+# Compute delta between old and new TFLite model
+# Usage: make delta OLD=v3a.tflite NEW=v3b.tflite
+delta:
+	$(PYTHON) backend/scripts/training/compute_delta.py --old $(OLD) --new $(NEW)
+
+# Full deploy: compute delta → upload to Supabase → register version
+# Usage: make deploy-delta OLD=v3a.tflite NEW=v3b.tflite VERSION=v3b MSG="Improved accuracy"
+deploy-delta:
+	$(PYTHON) backend/scripts/deploy_delta.py --old $(OLD) --new $(NEW) --version $(VERSION) --changelog "$(MSG)"
+
+# Dry-run deploy (stats only, no upload)
+# Usage: make deploy-delta-dry OLD=v3a.tflite NEW=v3b.tflite VERSION=v3b
+deploy-delta-dry:
+	$(PYTHON) backend/scripts/deploy_delta.py --old $(OLD) --new $(NEW) --version $(VERSION) --dry-run
+
 # --- Deploy Model to mobile-app branch (Adam) ---
 
 # Push only the TFLite model to mobile-app branch

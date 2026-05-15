@@ -83,8 +83,19 @@ fun DeteksiTab(vm: DeteksiViewModel = viewModel()) {
             DeteksiStage.CAMERA -> {
                 CameraView(onImageCaptured = { vm.onImageCaptured(it) })
             }
+            DeteksiStage.VALIDATING -> {
+                ValidatingView()
+            }
             DeteksiStage.ANALYZING -> {
                 AnalyzingView(isAnalyzingContext = state.isAnalyzingContext)
+            }
+            DeteksiStage.UNCERTAIN -> {
+                UncertainView(
+                    validationError = state.validationError
+                        ?: "Hasil tidak pasti — ambil foto ulang lebih dekat",
+                    confidence = state.mlResult?.confidence ?: 0f,
+                    onRetake = { vm.reset() }
+                )
             }
             DeteksiStage.RESULT -> {
                 ResultView(

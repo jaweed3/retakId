@@ -19,4 +19,4 @@ class RetakIdApplication : Application() {
         // Jadwalkan worker pengecekan proximity BAHAYA (berjalan tiap ~15 menit)
         ProximityNotifWorker.schedule(this)
     }
-}
+}
