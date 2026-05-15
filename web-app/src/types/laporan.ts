@@ -1,6 +1,11 @@
 export type ReportStatus = 'AMAN' | 'WASPADA' | 'BAHAYA';
 export type StatusFilter = 'SEMUA' | ReportStatus;
 
+export interface DetectionResult {
+  status: ReportStatus;
+  confidence: number;
+}
+
 export interface Laporan {
   id: string;
   nama_lokasi: string;
@@ -27,10 +32,10 @@ export interface FactorContribution {
 }
 
 export interface RiskFactorReport {
-  mlResult: ReportStatus;
+  mlResult: DetectionResult;
   mlConfidence: number;
   finalScore: number;
-  finalResult: ReportStatus;
+  finalResult: DetectionResult;
   factors: FactorContribution[];
   isUpgraded: boolean;
   isDowngraded: boolean;

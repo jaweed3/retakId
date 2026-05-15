@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History } from 'lucide-react';
+import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, CheckCircle, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLaporan } from '../hooks/useLaporan';
@@ -13,18 +13,75 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { formatRelativeTime } from '../utils/formatDate';
+import { cn } from '../utils/cn';
 import type { Laporan, ReportStatus } from '../types/laporan';
 
 function isAuthError(err: { message?: string; code?: string }): boolean {
   if (!err) return false;
   const msg = (err.message || '').toLowerCase();
   return (
-    msg.includes('jwt') ||
-    msg.includes('auth') ||
-    msg.includes('unauthorized') ||
-    msg.includes('session') ||
-    err.code === 'PGRST301' ||
-    err.code === '401'
+    msg.includes('jwt') || msg.includes('auth') || msg.includes('unauthorized') ||
+    msg.includes('session') || err.code === 'PGRST301' || err.code === '401'
+  );
+}
+
+function ActionsMenu({
+  report, onVerify, onEdit, onDelete, disabled,
+}: {
+  report: Laporan; onVerify: (r: Laporan) => void; onEdit: (r: Laporan) => void;
+  onDelete: (r: Laporan) => void; disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function close(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setOpen(!open)}
+        disabled={disabled}
+        className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-divider/30 transition-colors"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-8 z-50 w-40 rounded-xl bg-card border border-divider shadow-xl py-1 animate-scale-in">
+          <button
+            onClick={() => { onVerify(report); setOpen(false); }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-primary hover:bg-primary-surface transition-colors"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" /> Verifikasi
+          </button>
+          <button
+            onClick={() => { onEdit(report); setOpen(false); }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-waspada hover:bg-waspada-bg transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+          <Link
+            to={`/reports/${report.id}`}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-divider/30 transition-colors"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Detail
+          </Link>
+          <div className="border-t border-divider/40 my-1" />
+          <button
+            onClick={() => { onDelete(report); setOpen(false); }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-bahaya hover:bg-bahaya-bg transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Hapus
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -35,8 +92,8 @@ export function AdminDashboardPage() {
   const { data, counts, isLoading, error, refetch } = useLaporan({ limit: 500 });
   const [search, setSearch] = useState('');
   const [filterVerif, setFilterVerif] = useState<'all' | 'verified' | 'unverified'>('all');
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
-  // Dialog states
   const [deleteTarget, setDeleteTarget] = useState<Laporan | null>(null);
   const [editTarget, setEditTarget] = useState<Laporan | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -50,93 +107,40 @@ export function AdminDashboardPage() {
     if (!supabase) return;
     const client = requireSupabase();
     setActionLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (client as any)
-      .from('laporan')
-      .update({ terverifikasi: report.terverifikasi + 1 })
-      .eq('id', report.id);
+    const { error } = await (client as any).from('laporan').update({ terverifikasi: report.terverifikasi + 1 }).eq('id', report.id);
     setActionLoading(false);
-
-    if (error) {
-      if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; }
-      toast('error', `Gagal verifikasi: ${error.message}`);
-    } else {
-      toast('success', `Laporan "${report.nama_lokasi}" berhasil diverifikasi.`);
-      // Audit trail
-      try {
-        await (client as any).from('riwayat_penanganan').insert({
-          laporan_id: report.id,
-          nama_lokasi: report.nama_lokasi,
-          status: report.status,
-          ditangani_oleh: user?.email || 'admin',
-          tindakan: 'diverifikasi',
-        });
-      } catch { /* best effort */ }
+    if (error) { if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; } toast('error', `Gagal verifikasi: ${error.message}`); }
+    else {
+      toast('success', `Laporan "${report.nama_lokasi}" diverifikasi.`);
+      try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: report.id, nama_lokasi: report.nama_lokasi, status: report.status, ditangani_oleh: user?.email || 'admin', tindakan: 'diverifikasi' }); } catch { /* */ }
       refetch();
     }
-  }, [refetch, toast]);
+  }, [refetch, toast, user, signOut, navigate]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget || !supabase) return;
     const client = requireSupabase();
     setActionLoading(true);
-
-    // Insert ke riwayat_penanganan (best effort)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (client as any).from('riwayat_penanganan').insert({
-        laporan_id: deleteTarget.id,
-        nama_lokasi: deleteTarget.nama_lokasi,
-        status: deleteTarget.status,
-        ditangani_oleh: user?.email || 'admin',
-        tindakan: 'dihapus',
-        alasan: 'Laporan sudah ditanggulangi',
-        data_sebelumnya: deleteTarget,
-      });
-    } catch { /* tabel mungkin belum ada */ }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: deleteTarget.id, nama_lokasi: deleteTarget.nama_lokasi, status: deleteTarget.status, ditangani_oleh: user?.email || 'admin', tindakan: 'dihapus', alasan: 'Laporan sudah ditanggulangi', data_sebelumnya: deleteTarget }); } catch { /* */ }
     const { error } = await (client as any).from('laporan').delete().eq('id', deleteTarget.id);
-    setActionLoading(false);
-    setDeleteTarget(null);
-
-    if (error) {
-      if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; }
-      toast('error', `Gagal menghapus: ${error.message}`);
-    } else {
-      toast('success', `Laporan "${deleteTarget.nama_lokasi}" berhasil dihapus.`);
-      refetch();
-    }
-  }, [deleteTarget, user, refetch, toast]);
+    setActionLoading(false); setDeleteTarget(null);
+    if (error) { if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; } toast('error', `Gagal menghapus: ${error.message}`); }
+    else { toast('success', `Laporan "${deleteTarget.nama_lokasi}" dihapus.`); refetch(); }
+  }, [deleteTarget, user, refetch, toast, signOut, navigate]);
 
   const handleEditSave = useCallback(async (id: string, updates: { nama_lokasi: string; status: ReportStatus; catatan: string }) => {
     if (!supabase) return;
     const client = requireSupabase();
     setActionLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (client as any).from('laporan').update(updates).eq('id', id);
-    setActionLoading(false);
-    setEditTarget(null);
-
-    if (error) {
-      if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; }
-      toast('error', `Gagal menyimpan: ${error.message}`);
-    } else {
-      toast('success', 'Laporan berhasil diperbarui.');
-      // Audit trail
-      try {
-        await (client as any).from('riwayat_penanganan').insert({
-          laporan_id: id,
-          nama_lokasi: updates.nama_lokasi,
-          status: updates.status,
-          ditangani_oleh: user?.email || 'admin',
-          tindakan: 'diedit',
-          detail: updates,
-        });
-      } catch { /* best effort */ }
+    setActionLoading(false); setEditTarget(null);
+    if (error) { if (isAuthError(error)) { signOut(); navigate('/admin/login'); return; } toast('error', `Gagal menyimpan: ${error.message}`); }
+    else {
+      toast('success', 'Laporan diperbarui.');
+      try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: id, nama_lokasi: updates.nama_lokasi, status: updates.status, ditangani_oleh: user?.email || 'admin', tindakan: 'diedit', detail: updates }); } catch { /* */ }
       refetch();
     }
-  }, [refetch, toast]);
+  }, [refetch, toast, user, signOut, navigate]);
 
   const filtered = data.filter((r) => {
     if (filterVerif === 'verified' && r.terverifikasi === 0) return false;
@@ -145,12 +149,8 @@ export function AdminDashboardPage() {
     return true;
   });
 
-  // Auto-redirect if data fetch fails with auth error
   useEffect(() => {
-    if (error && isAuthError({ message: error })) {
-      signOut();
-      navigate('/admin/login');
-    }
+    if (error && isAuthError({ message: error })) { signOut(); navigate('/admin/login'); }
   }, [error, signOut, navigate]);
 
   if (isLoading) return <LoadingSpinner text="Memuat data..." />;
@@ -158,197 +158,181 @@ export function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-surface">
       {/* Header */}
-      <header className="bg-card border-b border-divider px-4 sm:px-6 py-3">
+      <header className="bg-card border-b border-divider px-3 sm:px-6 py-2.5 sm:py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link to="/" className="text-text-secondary hover:text-text-primary transition-colors">
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4.5 sm:h-5 w-4.5 sm:w-5" />
             </Link>
             <div>
               <h1 className="text-sm sm:text-base font-bold text-text-primary">Panel Admin</h1>
-              <p className="text-[10px] sm:text-xs text-text-secondary">{user?.email}</p>
+              <p className="text-[10px] text-text-secondary truncate max-w-[140px] sm:max-w-none">{user?.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/admin/riwayat"
-              className="flex items-center gap-2 rounded-lg border border-divider px-3 py-1.5 text-xs text-text-secondary hover:text-primary hover:border-primary/30 transition-colors"
-            >
-              <History className="h-3.5 w-3.5" />
-              Riwayat
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link to="/admin/riwayat" className="flex items-center gap-1.5 rounded-lg border border-divider px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-text-secondary hover:text-primary hover:border-primary/30 transition-colors">
+              <History className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">Riwayat</span>
             </Link>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 rounded-lg border border-divider px-3 py-1.5 text-xs text-text-secondary hover:text-bahaya hover:border-bahaya/30 transition-colors"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Keluar
+            <button onClick={handleSignOut} className="flex items-center gap-1.5 rounded-lg border border-divider px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs text-text-secondary hover:text-bahaya hover:border-bahaya/30 transition-colors">
+              <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">Keluar</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <StatBadge label="Belum Diverifikasi" value={counts.total - data.filter((r) => r.terverifikasi > 0).length} color="text-waspada" />
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        {/* Stats — compact on mobile */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+          <StatBadge label="Belum Verif" value={counts.total - data.filter((r) => r.terverifikasi > 0).length} color="text-waspada" />
           <StatBadge label="Terverifikasi" value={data.filter((r) => r.terverifikasi > 0).length} color="text-primary" />
           <StatBadge label="Total" value={counts.total} color="text-text-primary" />
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 sm:mb-5">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary/50" />
+            <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 text-text-secondary/50" />
             <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Cari lokasi atau pelapor..."
-              className="w-full rounded-xl border border-divider bg-card py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full rounded-xl border border-divider bg-card py-2 sm:py-2.5 pl-8 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
-          <div className="flex gap-1.5">
-            {([
-              { key: 'all', label: 'Semua' },
-              { key: 'unverified', label: 'Belum Verif' },
-              { key: 'verified', label: 'Terverifikasi' },
-            ] as const).map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setFilterVerif(opt.key)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  filterVerif === opt.key
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-divider/30'
-                }`}
-              >
-                {opt.label}
+          <div className="flex items-center gap-1.5 justify-between">
+            <div className="flex gap-1.5">
+              {([
+                { key: 'all', label: 'Semua' },
+                { key: 'unverified', label: <span className="hidden sm:inline">Belum Verif</span> },
+                { key: 'unverified', label: <span className="sm:hidden">B.V</span> },
+              ] as const).map((opt) => (
+                <button key={opt.key} onClick={() => setFilterVerif(opt.key)}
+                  className={cn('rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-colors',
+                    filterVerif === opt.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30')}>
+                  {opt.label}
+                </button>
+              ))}
+              <button onClick={() => setFilterVerif('verified')}
+                className={cn('rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-colors',
+                  filterVerif === 'verified' ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30')}>
+                <span className="hidden sm:inline">Terverifikasi</span>
+                <span className="sm:hidden">T.V</span>
               </button>
-            ))}
+            </div>
+            {/* View toggle */}
+            <div className="flex rounded-lg border border-divider bg-surface p-0.5">
+              <button onClick={() => setViewMode('table')}
+                className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors',
+                  viewMode === 'table' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary')}>
+                Tabel
+              </button>
+              <button onClick={() => setViewMode('card')}
+                className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors',
+                  viewMode === 'card' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary')}>
+                Card
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Error */}
         {error && <ErrorState message={error} onRetry={refetch} />}
-
-        {/* Empty */}
         {!error && data.length === 0 && <EmptyState title="Belum ada laporan" description="Laporan dari aplikasi mobile akan muncul di sini." />}
 
-        {/* Table */}
         {!error && data.length > 0 && (
-          <div className="rounded-xl border border-divider/60 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-divider/20">
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Status</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Lokasi</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-wider hidden sm:table-cell">Pelapor</th>
-                    <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-wider hidden sm:table-cell">Tanggal</th>
-                    <th className="px-3 py-2.5 text-center text-[11px] font-semibold text-text-secondary uppercase tracking-wider w-16">Verif</th>
-                    <th className="px-3 py-2.5 text-right text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-divider/30">
-                  {filtered.map((r) => (
-                    <tr key={r.id} className="hover:bg-primary-surface/20 transition-colors">
-                      <td className="px-3 py-2.5">
-                        <StatusBadge status={r.status} />
-                      </td>
-                      <td className="px-3 py-2.5 font-medium text-text-primary truncate max-w-[150px] sm:max-w-[200px]">
-                        {r.nama_lokasi}
-                      </td>
-                      <td className="px-3 py-2.5 text-text-secondary text-xs hidden sm:table-cell">{r.pelapor}</td>
-                      <td className="px-3 py-2.5 text-text-secondary text-xs whitespace-nowrap hidden sm:table-cell">
-                        {formatRelativeTime(r.created_at)}
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        {r.terverifikasi > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                            <ShieldCheck className="h-3.5 w-3.5" /> {r.terverifikasi}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-text-secondary/40">0</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleVerify(r)}
-                            disabled={actionLoading}
-                            className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors"
-                            title="Verifikasi"
-                          >
-                            <ShieldCheck className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setEditTarget(r)}
-                            disabled={actionLoading}
-                            className="p-1.5 rounded-lg text-text-secondary/50 hover:text-waspada hover:bg-waspada-bg transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <Link
-                            to={`/reports/${r.id}`}
-                            className="p-1.5 rounded-lg text-text-secondary/50 hover:text-text-primary hover:bg-divider/30 transition-colors"
-                            title="Lihat detail"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => setDeleteTarget(r)}
-                            disabled={actionLoading}
-                            className="p-1.5 rounded-lg text-text-secondary/50 hover:text-bahaya hover:bg-bahaya-bg transition-colors"
-                            title="Hapus"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {filtered.length === 0 && (
-              <p className="text-center text-sm text-text-secondary py-8">Tidak ada laporan dengan filter ini.</p>
+          <>
+            {viewMode === 'table' ? (
+              /* ─── TABLE VIEW ─── */
+              <div className="rounded-xl border border-divider/60 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm">
+                    <thead>
+                      <tr className="bg-divider/20">
+                        <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Status</th>
+                        <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Lokasi</th>
+                        <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider hidden sm:table-cell">Pelapor</th>
+                        <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider w-12 sm:w-16">Verif</th>
+                        <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-right text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-divider/30">
+                      {filtered.map((r) => (
+                        <tr key={r.id} className="hover:bg-primary-surface/20 transition-colors">
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5">
+                            <StatusBadge status={r.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5" />
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 font-medium text-text-primary truncate max-w-[100px] sm:max-w-[200px] text-xs sm:text-sm">
+                            {r.nama_lokasi}
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-text-secondary text-[11px] sm:text-xs hidden sm:table-cell">{r.pelapor}</td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center">
+                            {r.terverifikasi > 0 ? (
+                              <span className="inline-flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-medium text-primary">
+                                <ShieldCheck className="h-3 sm:h-3.5 w-3 sm:w-3.5" /> {r.terverifikasi}
+                              </span>
+                            ) : <span className="text-[11px] sm:text-xs text-text-secondary/40">0</span>}
+                          </td>
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5">
+                            {/* Desktop: inline actions */}
+                            <div className="hidden sm:flex items-center justify-end gap-1">
+                              <button onClick={() => handleVerify(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi"><ShieldCheck className="h-4 w-4" /></button>
+                              <button onClick={() => setEditTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-waspada hover:bg-waspada-bg transition-colors" title="Edit"><Pencil className="h-4 w-4" /></button>
+                              <Link to={`/reports/${r.id}`} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-text-primary hover:bg-divider/30 transition-colors" title="Detail"><ExternalLink className="h-4 w-4" /></Link>
+                              <button onClick={() => setDeleteTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-bahaya hover:bg-bahaya-bg transition-colors" title="Hapus"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                            {/* Mobile: three-dot menu */}
+                            <div className="sm:hidden flex justify-end">
+                              <ActionsMenu report={r} onVerify={handleVerify} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {filtered.length === 0 && <p className="text-center text-sm text-text-secondary py-8">Tidak ada laporan dengan filter ini.</p>}
+              </div>
+            ) : (
+              /* ─── CARD VIEW ─── */
+              <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((r) => (
+                  <div key={r.id} className="rounded-xl bg-card border border-divider/60 p-3.5 sm:p-4 hover:shadow-sm transition-all">
+                    <div className="flex items-start justify-between mb-2">
+                      <StatusBadge status={r.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5" />
+                      <ActionsMenu report={r} onVerify={handleVerify} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} />
+                    </div>
+                    <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-1.5 truncate">{r.nama_lokasi}</h3>
+                    <div className="space-y-1 text-[10px] sm:text-[11px] text-text-secondary">
+                      <div className="flex items-center justify-between">
+                        <span>Pelapor: {r.pelapor}</span>
+                        <span>{formatRelativeTime(r.created_at)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span>Verifikasi: {r.terverifikasi > 0 ? r.terverifikasi : 'belum'}</span>
+                      </div>
+                      {r.catatan && <p className="text-text-secondary/70 line-clamp-2 mt-1">{r.catatan}</p>}
+                    </div>
+                  </div>
+                ))}
+                {filtered.length === 0 && <p className="text-center text-sm text-text-secondary py-8 col-span-full">Tidak ada laporan dengan filter ini.</p>}
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
-      {/* Dialogs */}
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="Hapus Laporan?"
-        message={`Laporan dari "${deleteTarget?.nama_lokasi}" akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.`}
-        confirmLabel="Hapus"
-        variant="danger"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-        loading={actionLoading}
-      />
-
-      {editTarget && (
-        <EditReportDialog
-          open={!!editTarget}
-          report={editTarget}
-          onSave={handleEditSave}
-          onCancel={() => setEditTarget(null)}
-          loading={actionLoading}
-        />
-      )}
+      <ConfirmDialog open={!!deleteTarget} title="Hapus Laporan?" message={`Laporan dari "${deleteTarget?.nama_lokasi}" akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.`} confirmLabel="Hapus" variant="danger" onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} loading={actionLoading} />
+      {editTarget && <EditReportDialog open={!!editTarget} report={editTarget} onSave={handleEditSave} onCancel={() => setEditTarget(null)} loading={actionLoading} />}
     </div>
   );
 }
 
 function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="rounded-xl bg-card border border-divider/60 p-3 sm:p-4 text-center">
-      <p className={`text-xl sm:text-2xl font-bold tabular-nums ${color}`}>{value}</p>
-      <p className="text-[10px] sm:text-xs text-text-secondary mt-0.5">{label}</p>
+    <div className="rounded-xl bg-card border border-divider/60 p-2.5 sm:p-4 text-center">
+      <p className={cn('text-lg sm:text-2xl font-bold tabular-nums', color)}>{value}</p>
+      <p className="text-[9px] sm:text-xs text-text-secondary mt-0.5">{label}</p>
     </div>
   );
 }

@@ -95,14 +95,14 @@ export function ReportFormPage() {
           setRiskError(null);
           try {
             const report = await calculateRisk({
-              mlResult: result.status,
+              mlResult: result,
               mlConfidence: result.confidence,
               latitude: lat,
               longitude: lng,
             });
             if (!predictingRef.current) return;
             setRiskReport(report);
-            if (report) setForm((prev) => ({ ...prev, status: report.finalResult }));
+            if (report) setForm((prev) => ({ ...prev, status: report.finalResult.status }));
           } catch {
             if (!predictingRef.current) return;
             setRiskError('Gagal menganalisis faktor lingkungan');
@@ -389,7 +389,7 @@ export function ReportFormPage() {
               <div className="px-3.5 py-2.5 border-b border-divider">
                 <span className="text-xs font-semibold text-text-primary">Analisis Multi-Faktor</span>
                 <span className="text-[10px] text-text-secondary ml-2">
-                  Skor akhir: {(riskReport.finalScore * 100).toFixed(0)}% — {riskReport.finalResult}
+                  Skor akhir: {(riskReport.finalScore * 100).toFixed(0)}% — {riskReport.finalResult.status}
                   {riskReport.isUpgraded && ' ⬆️'}
                   {riskReport.isDowngraded && ' ⬇️'}
                 </span>
@@ -434,6 +434,7 @@ export function ReportFormPage() {
               </div>
             </div>
           )}
+          <div className="grid grid-cols-3 gap-2">
             {STATUS_OPTIONS.map((opt) => {
               const isSelected = form.status === opt.value;
               return (
