@@ -122,7 +122,7 @@ export function ReportDetailPage() {
 
       {/* Catatan */}
       {report.catatan && (
-        <div className="rounded-xl bg-card border border-divider/50 p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="rounded-xl bg-card border border-divider p-3 sm:p-4 mb-4 sm:mb-6">
           <h3 className="text-[11px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
             Catatan
           </h3>
@@ -131,8 +131,8 @@ export function ReportDetailPage() {
       )}
 
       {/* Mini map */}
-      <div className="rounded-xl overflow-hidden border border-divider/50 mb-4 sm:mb-6">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-divider/50">
+      <div className="rounded-xl overflow-hidden border border-divider mb-4 sm:mb-6">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-divider">
           <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
             Lokasi
           </h3>
@@ -167,7 +167,7 @@ function InfoItem({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 sm:gap-3 rounded-xl bg-card border border-divider/50 px-3 py-2.5 sm:px-4 sm:py-3">
+    <div className="flex items-center gap-2.5 sm:gap-3 rounded-xl bg-card border border-divider px-3 py-2.5 sm:px-4 sm:py-3">
       <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-primary-surface">
         <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
       </div>

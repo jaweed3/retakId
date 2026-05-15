@@ -114,7 +114,7 @@ function RiwayatContent() {
               return (
                 <div
                   key={entry.id}
-                  className="rounded-xl bg-card border border-divider/60 p-4 sm:p-5 flex items-start gap-4"
+                  className="rounded-xl bg-card border border-divider p-4 sm:p-5 flex items-start gap-4"
                 >
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TINDAKAN_COLOR[entry.tindakan]}`}>
                     <Icon className="h-4 w-4" />

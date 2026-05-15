@@ -51,7 +51,7 @@ function ActionsMenu({ report, onVerify, onEdit, onDelete, disabled, verified }:
           <Link to={`/reports/${report.id}`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-divider/30 transition-colors">
             <ExternalLink className="h-3.5 w-3.5" /> Detail
           </Link>
-          <div className="border-t border-divider/40 my-1" />
+          <div className="border-t border-divider my-1" />
           <button onClick={() => { onDelete(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-bahaya hover:bg-bahaya-bg transition-colors">
             <Trash2 className="h-3.5 w-3.5" /> Hapus
           </button>
@@ -96,13 +96,13 @@ function DetailModal({ report, onClose, onVerify, onEdit, onDelete, actionLoadin
         </div>
 
         {report.catatan && (
-          <div className="rounded-xl bg-surface border border-divider/40 p-3 mb-4">
+          <div className="rounded-xl bg-surface border border-divider p-3 mb-4">
             <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Catatan</p>
             <p className="text-xs text-text-primary">{report.catatan}</p>
           </div>
         )}
 
-        <div className="flex gap-2 justify-end pt-2 border-t border-divider/40">
+        <div className="flex gap-2 justify-end pt-2 border-t border-divider">
           {!verified && (
             <button onClick={() => onVerify(report)} disabled={actionLoading} className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-light transition-colors disabled:opacity-50">
               <ShieldCheck className="h-3.5 w-3.5" /> Verifikasi
@@ -122,7 +122,7 @@ function DetailModal({ report, onClose, onVerify, onEdit, onDelete, actionLoadin
 
 function InfoItem({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-surface border border-divider/40 px-3 py-2">
+    <div className="flex items-center gap-2 rounded-xl bg-surface border border-divider px-3 py-2">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-surface"><Icon className="h-3.5 w-3.5 text-primary" /></div>
       <div className="min-w-0"><p className="text-[9px] font-semibold text-text-secondary uppercase">{label}</p><p className="text-xs font-medium text-text-primary truncate">{value}</p></div>
     </div>
@@ -260,7 +260,7 @@ export function AdminDashboardPage() {
 
         {!error && data.length > 0 && (
           viewMode === 'table' ? (
-            <div className="rounded-xl border border-divider/60 overflow-hidden">
+            <div className="rounded-xl border border-divider overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs sm:text-sm">
                   <thead><tr className="bg-divider/20">
@@ -298,7 +298,7 @@ export function AdminDashboardPage() {
           ) : (
             <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((r) => (
-                <div key={r.id} className="rounded-xl bg-card border border-divider/60 p-3.5 sm:p-4 hover:shadow-sm transition-all cursor-pointer" onClick={() => setDetailTarget(r)}>
+                <div key={r.id} className="rounded-xl bg-card border border-divider p-3.5 sm:p-4 hover:shadow-sm transition-all cursor-pointer" onClick={() => setDetailTarget(r)}>
                   <div className="flex items-start justify-between mb-2">
                     <StatusBadge status={r.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5" />
                     <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerify} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
@@ -329,7 +329,7 @@ export function AdminDashboardPage() {
 
 function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="rounded-xl bg-card border border-divider/60 p-2.5 sm:p-4 text-center">
+    <div className="rounded-xl bg-card border border-divider p-2.5 sm:p-4 text-center">
       <p className={cn('text-lg sm:text-2xl font-bold tabular-nums', color)}>{value}</p>
       <p className="text-[9px] sm:text-xs text-text-secondary mt-0.5">{label}</p>
     </div>

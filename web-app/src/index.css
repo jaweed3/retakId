@@ -39,7 +39,7 @@
   --color-text-secondary: #A0A0A0;
   --color-surface: #0F0F0F;
   --color-card: #1A1A1A;
-  --color-divider: #2A2A2A;
+  --color-divider: #1C1C1C;
 }
 
 /* ─── Base ─── */
@@ -117,4 +117,26 @@ body {
 
 .animate-scale-in {
   animation: scale-in 0.2s ease-out;
+}
+
+/* ─── Tables — striped rows, border only on header ─── */
+table thead tr {
+  border-bottom: 2px solid var(--color-divider);
+}
+
+table tbody tr:nth-child(even) {
+  background-color: var(--color-card);
+}
+
+table tbody tr:nth-child(odd) {
+  background-color: var(--color-surface);
+}
+
+table tbody tr:hover {
+  background-color: var(--color-primary-surface);
+}
+
+table td,
+table th {
+  border: none;
 }

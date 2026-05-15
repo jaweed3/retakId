@@ -28,7 +28,7 @@ const CustomTooltip = ({ active, payload }: Record<string, unknown>) => {
 export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusDistributionProps) {
   if (isLoading) {
     return (
-      <div className="rounded-2xl bg-card border border-divider/60 p-5 sm:p-6 animate-pulse">
+      <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6 animate-pulse">
         <div className="h-4 w-36 bg-divider/50 rounded mb-4" />
         <div className="h-44 bg-divider/20 rounded-full w-44 mx-auto" />
       </div>
@@ -38,7 +38,7 @@ export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusD
   const total = aman + waspada + bahaya;
   if (total === 0) {
     return (
-      <div className="rounded-2xl bg-card border border-divider/60 p-5 sm:p-6">
+      <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
         <h3 className="text-sm font-semibold text-text-primary mb-1">Distribusi Status</h3>
         <p className="text-xs text-text-secondary">Belum ada data laporan.</p>
       </div>
@@ -52,7 +52,7 @@ export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusD
   ];
 
   return (
-    <div className="rounded-2xl bg-card border border-divider/60 p-5 sm:p-6">
+    <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-2">Distribusi Status</h3>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>

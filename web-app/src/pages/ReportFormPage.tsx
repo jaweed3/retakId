@@ -449,7 +449,7 @@ export function ReportFormPage() {
                   className={`rounded-xl border px-3 py-3 text-center transition-colors ${
                     isSelected
                       ? 'border-primary bg-primary-surface text-primary'
-                      : 'border-divider text-text-secondary hover:border-divider/80'
+                      : 'border-divider text-text-secondary hover:border-divider'
                   } ${isPredicting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <div className="text-sm font-bold">{opt.label}</div>

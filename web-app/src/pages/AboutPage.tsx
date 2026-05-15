@@ -139,7 +139,7 @@ export function AboutPage() {
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 gap-8 sm:gap-10">
-            <div className="rounded-2xl bg-card border border-divider/60 p-6 sm:p-7">
+            <div className="rounded-2xl bg-card border border-divider p-6 sm:p-7">
               <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-3">Visi</h3>
               <p className="text-sm text-text-secondary leading-relaxed">
                 Menjadi platform crowdsourcing deteksi dini longsor terdepan di Indonesia
@@ -147,7 +147,7 @@ export function AboutPage() {
                 teknologi AI dan data terbuka.
               </p>
             </div>
-            <div className="rounded-2xl bg-card border border-divider/60 p-6 sm:p-7">
+            <div className="rounded-2xl bg-card border border-divider p-6 sm:p-7">
               <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-3">Misi</h3>
               <ul className="text-sm text-text-secondary space-y-2.5">
                 <li className="flex items-start gap-2.5">
@@ -234,7 +234,7 @@ export function AboutPage() {
             {PILLARS.map((p) => (
               <div
                 key={p.title}
-                className="group relative flex flex-col rounded-2xl bg-card border border-divider/60 p-6 sm:p-7 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                className="group relative flex flex-col rounded-2xl bg-card border border-divider p-6 sm:p-7 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
                 <div className={`absolute top-0 left-5 right-5 h-1 rounded-b-sm bg-gradient-to-r ${p.accent} opacity-60 group-hover:opacity-100 transition-opacity`} />
                 <div className={`flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl ${p.iconBg} mb-4 group-hover:scale-110 transition-transform duration-300`}>
@@ -269,7 +269,7 @@ export function AboutPage() {
             {TEAM.map((member) => (
               <div
                 key={member.name}
-                className="group relative rounded-2xl bg-surface border border-divider/40 p-6 sm:p-7 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                className="group relative rounded-2xl bg-surface border border-divider p-6 sm:p-7 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               >
                 {/* Top accent bar */}
                 <div className={`absolute top-0 left-8 right-8 h-1 rounded-b-sm bg-gradient-to-r ${member.color} opacity-70 group-hover:opacity-100 transition-opacity`} />
@@ -323,7 +323,7 @@ export function AboutPage() {
             {TECH_CATEGORIES.map((cat) => (
               <div
                 key={cat.cat}
-                className="rounded-2xl bg-card border border-divider/60 px-5 pt-6 pb-8 text-center hover:border-primary/20 hover:shadow-md transition-all"
+                className="rounded-2xl bg-card border border-divider px-5 pt-6 pb-8 text-center hover:border-primary/20 hover:shadow-md transition-all"
               >
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <cat.icon className="h-5 w-5" style={{ color: cat.iconColor }} />

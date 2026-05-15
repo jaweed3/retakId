@@ -76,7 +76,7 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-divider/60 mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="border-t border-divider mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-4 text-[10px] text-text-secondary/60">
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-3 w-3" />
