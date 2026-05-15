@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage              // tambahkan: implementation("io.coil-kt:coil-compose:2.7.0")
+import coil.compose.AsyncImage
 import com.unidagontor.retakid.data.notification.NotifStore
 import com.unidagontor.retakid.ui.theme.*
 import com.unidagontor.retakid.ui.viewmodel.BerandaViewModel
@@ -40,29 +40,59 @@ data class LaporanItem(
 // ─── Beranda Tab ──────────────────────────────────────────────
 @Composable
 fun BerandaTab(
-    viewModel    : BerandaViewModel = viewModel(),
     onNotifClick : () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-    val notifCount = remember { NotifStore.getAll(context).size }
+    val context   = LocalContext.current
+    val viewModel : BerandaViewModel = viewModel(
+        factory = BerandaViewModel.Factory(context)
+    )
+    val uiState    by viewModel.uiState.collectAsState()
+    val notifCount  = remember { NotifStore.getAll(context).size }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { msg ->
+            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.clearError()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(Surface)) {
 
         BerandaHeader(notifCount = notifCount, onNotifClick = onNotifClick)
         StatsSummaryRow(laporan = uiState.laporanList)
 
-        uiState.error?.let {
-            Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+        // ── Banner offline (ramah user) ──────────────────────────────────
+        if (uiState.isOffline) {
+            Surface(
+                color    = Color(0xFFFFF8E1),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier          = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { viewModel.fetchLaporan() }) { Text("Coba Lagi") }
+                    Icon(Icons.Default.WifiOff, null,
+                        tint     = Color(0xFFF57F17),
+                        modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Mode Offline",
+                            fontSize   = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = Color(0xFFF57F17)
+                        )
+                        if (uiState.lastUpdated.isNotEmpty()) {
+                            Text(
+                                "Menampilkan data ${uiState.lastUpdated}",
+                                fontSize = 11.sp,
+                                color    = Color(0xFFF57F17).copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                    TextButton(onClick = { viewModel.fetchLaporan() }) {
+                        Text("Coba", fontSize = 12.sp, color = Color(0xFFF57F17))
+                    }
                 }
             }
         }
@@ -118,7 +148,7 @@ fun BerandaHeader(notifCount: Int = 0, onNotifClick: () -> Unit = {}) {
     ) {
         Column {
             Text("Retak.id", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-            Text("Jenangan, Ponorogo", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+            Text("Lokasi Anda", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
         }
         // Tombol notifikasi dengan badge merah jika ada notif bahaya
         Box {

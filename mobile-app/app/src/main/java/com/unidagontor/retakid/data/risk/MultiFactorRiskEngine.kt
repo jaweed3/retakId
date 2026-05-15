@@ -30,24 +30,33 @@ enum class RiskFactor(val displayName: String) {
 }
 
 data class RiskFactorReport(
-    val mlResult: DetectionResult,
-    val mlConfidence: Float,
-    val finalScore: Double,
-    val finalResult: DetectionResult,
-    val factors: List<FactorContribution>,
-    val isUpgraded: Boolean,
-    val isDowngraded: Boolean
+    val mlResult       : DetectionResult,
+    val mlConfidence   : Float,
+    val finalScore     : Double,
+    val finalResult    : DetectionResult,
+    val factors        : List<FactorContribution>,
+    val isUpgraded     : Boolean,
+    val isDowngraded   : Boolean,
+    /** true = cuaca offline/kadaluarsa, faktor cuaca tidak dimasukkan ke perhitungan */
+    val weatherSkipped : Boolean = false
 )
 
 object MultiFactorRiskEngine {
 
     fun analyze(
-        mlResult: DetectionResult,
-        mlConfidence: Float,
-        slopeDegrees: Double? = null,
-        rainMm: Double? = null,
+        mlResult       : DetectionResult,
+        mlConfidence   : Float,
+        slopeDegrees   : Double? = null,
+        rainMm         : Double? = null,
         elevationMeters: Double? = null,
-        soilType: SoilType? = null
+        soilType       : SoilType? = null,
+        /**
+         * Jika true: data cuaca tidak tersedia karena offline / cache basi.
+         * Faktor hujan akan diskip tanpa mengurangi confidence score.
+         * Jika false (default): perilaku normal — null rainMm dianggap data hilang
+         * dan menyebabkan normalisasi bobot.
+         */
+        weatherIsOffline: Boolean = false
     ): RiskFactorReport {
         val factors = mutableListOf<FactorContribution>()
         var totalWeight = 0.0
@@ -72,9 +81,11 @@ object MultiFactorRiskEngine {
             addFactor(factors, RiskFactor.RAIN, "${rainMm.toInt()} mm", s, 0.15)
             totalWeight += 0.15
             weightedSum += s * 0.15
-        } else {
+        } else if (!weatherIsOffline) {
+            // Data hujan hilang tapi BUKAN karena offline → faktor memang tidak tersedia
             anyMissing = true
         }
+        // Jika weatherIsOffline && rainMm == null → skip tanpa penalti confidence
 
         if (elevationMeters != null) {
             val s = elevationScore(elevationMeters)
@@ -108,13 +119,14 @@ object MultiFactorRiskEngine {
         val isDowngraded = clampedScore < mlOnlyScore - 0.05
 
         return RiskFactorReport(
-            mlResult = mlResult,
-            mlConfidence = mlConfidence,
-            finalScore = clampedScore,
-            finalResult = finalResult,
-            factors = factors.sortedByDescending { it.weightedScore },
-            isUpgraded = isUpgraded,
-            isDowngraded = isDowngraded
+            mlResult       = mlResult,
+            mlConfidence   = mlConfidence,
+            finalScore     = clampedScore,
+            finalResult    = finalResult,
+            factors        = factors.sortedByDescending { it.weightedScore },
+            isUpgraded     = isUpgraded,
+            isDowngraded   = isDowngraded,
+            weatherSkipped = weatherIsOffline && rainMm == null
         )
     }
 

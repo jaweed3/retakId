@@ -7,6 +7,7 @@ import com.unidagontor.retakid.data.elevation.SlopeCalculator
 import com.unidagontor.retakid.data.elevation.SlopeData
 import com.unidagontor.retakid.data.ml.DetectionResult
 import com.unidagontor.retakid.data.ml.TFLiteMLAnalyzer
+import com.unidagontor.retakid.data.offline.NetworkMonitor
 import com.unidagontor.retakid.data.risk.MultiFactorRiskEngine
 import com.unidagontor.retakid.data.risk.RiskFactorReport
 import com.unidagontor.retakid.data.soil.SoilType
@@ -40,36 +41,51 @@ data class DataFetchStatus(
     val elevationOk: Boolean = false,
     val slopeOk    : Boolean = false,
     val soilOk     : Boolean = false,
-    val locationOk : Boolean = false
+    val locationOk : Boolean = false,
+    /** true jika perangkat dalam mode offline saat analisis dijalankan */
+    val isOffline  : Boolean = false,
+    /** true jika cuaca diskip karena offline/cache kadaluarsa */
+    val weatherSkipped: Boolean = false
 ) {
     val completedCount: Int get() =
         listOf(mlOk, weatherOk, elevationOk, slopeOk, soilOk, locationOk).count { it }
 
     val totalCount: Int get() = 6
 
-    val summaryText: String get() = "$completedCount/$totalCount sumber data berhasil"
+    val summaryText: String get() {
+        val base = "$completedCount/$totalCount sumber data berhasil"
+        return if (isOffline) "$base (mode offline)" else base
+    }
 }
 
 // ─── Orkestrator Analisis Gabungan ────────────────────────────────────────────
 class CombinedAnalysisEngine(context: Context) {
 
-    private val mlAnalyzer = TFLiteMLAnalyzer(context)
+    private val appContext = context.applicationContext
+    private val mlAnalyzer = TFLiteMLAnalyzer(appContext)
+
+    init {
+        // Inisialisasi service dengan context agar bisa akses NetworkMonitor & cache
+        ElevationService.init(appContext)
+        SoilTypeService.init(appContext)
+        WeatherApiService.init(appContext)
+    }
 
     /**
      * Menjalankan analisis penuh secara paralel:
      * 1. ML image analysis (TFLite)
-     * 2. Weather (Open-Meteo)
-     * 3. Elevation (Open-Meteo)
+     * 2. Weather (Open-Meteo, dengan cache offline ≤6 jam)
+     * 3. Elevation (Open-Meteo → disk cache → SRTM .hgt)
      * 4. Slope (berdasarkan elevasi 4 titik sekitar)
-     * 5. Soil type (ISRIC / fallback regional)
+     * 5. Soil type (ISRIC → disk cache → JSON lokal → hardcoded)
      *
-     * Semua dijalankan [coroutineScope] async agar paralel.
-     * Setiap sumber diberi timeout agar tidak memblokir hasil.
-     * Hasil akhir dihitung oleh [MultiFactorRiskEngine].
+     * Prinsip Fail-Fast: status network dicek SEKALI di awal.
+     * Timeout per sumber disesuaikan: lebih ketat saat online (API bisa slow),
+     * sangat cepat saat offline (hanya baca cache/file).
      *
-     * @param bitmap       Gambar yang diambil dari kamera
-     * @param latitude     Koordinat lokasi user
-     * @param longitude    Koordinat lokasi user
+     * @param bitmap    Gambar dari kamera
+     * @param latitude  Koordinat user
+     * @param longitude Koordinat user
      */
     suspend fun analyze(
         bitmap   : Bitmap,
@@ -77,22 +93,33 @@ class CombinedAnalysisEngine(context: Context) {
         longitude: Double
     ): CombinedAnalysisResult = coroutineScope {
 
+        val isOnline = NetworkMonitor.isOnline(appContext)
+
+        // Timeout lebih ketat saat offline (tidak perlu menunggu jaringan)
+        val weatherTimeout   = if (isOnline) 6_000L else 1_000L
+        val elevationTimeout = if (isOnline) 6_000L else 2_000L
+        val soilTimeout      = if (isOnline) 6_000L else 2_000L
+        val slopeTimeout     = if (isOnline) 10_000L else 4_000L
+
         // ── Jalankan semua sumber data SECARA PARALEL ─────────────────────
         val mlJob        = async { runML(bitmap) }
-        val weatherJob   = async { runWeather() }
-        val elevationJob = async { runElevation(latitude, longitude) }
-        val slopeJob     = async { runSlope(latitude, longitude) }
-        val soilJob      = async { runSoil(latitude, longitude) }
+        val weatherJob   = async { runWeather(weatherTimeout) }
+        val elevationJob = async { runElevation(latitude, longitude, elevationTimeout) }
+        val slopeJob     = async { runSlope(latitude, longitude, slopeTimeout) }
+        val soilJob      = async { runSoil(latitude, longitude, soilTimeout) }
 
         // ── Tunggu semua hasil ────────────────────────────────────────────
-        val mlPair       = mlJob.await()         // Pair<DetectionResult, Float>
-        val weather      = weatherJob.await()
-        val elevation    = elevationJob.await()
-        val slope        = slopeJob.await()
-        val soil         = soilJob.await()
+        val mlPair     = mlJob.await()
+        val weather    = weatherJob.await()
+        val elevation  = elevationJob.await()
+        val slope      = slopeJob.await()
+        val soil       = soilJob.await()
 
         val mlResult     = mlPair.first
         val mlConfidence = mlPair.second
+
+        // Cuaca dianggap "offline" jika tidak ada data DAN perangkat memang offline
+        val weatherIsOffline = weather == null && !isOnline
 
         // ── Hitung risiko gabungan ─────────────────────────────────────────
         val riskReport = MultiFactorRiskEngine.analyze(
@@ -101,16 +128,19 @@ class CombinedAnalysisEngine(context: Context) {
             slopeDegrees    = slope?.degrees,
             rainMm          = weather?.rain,
             elevationMeters = elevation,
-            soilType        = soil
+            soilType        = soil,
+            weatherIsOffline = weatherIsOffline
         )
 
         val status = DataFetchStatus(
-            mlOk        = true,
-            weatherOk   = weather   != null,
-            elevationOk = elevation != null,
-            slopeOk     = slope     != null,
-            soilOk      = soil      != null,
-            locationOk  = true   // latitude/longitude sudah tersedia jika dipanggil
+            mlOk           = true,
+            weatherOk      = weather != null,
+            elevationOk    = elevation != null,
+            slopeOk        = slope    != null,
+            soilOk         = soil     != null,
+            locationOk     = true,
+            isOffline      = !isOnline,
+            weatherSkipped = weatherIsOffline
         )
 
         CombinedAnalysisResult(
@@ -129,34 +159,31 @@ class CombinedAnalysisEngine(context: Context) {
 
     private suspend fun runML(bitmap: Bitmap): Pair<DetectionResult, Float> {
         return withTimeoutOrNull(10_000L) {
-            // TFLiteMLAnalyzer tidak return confidence secara langsung.
-            // Kita ambil result dan pakai fixed confidence 0.75f sebagai proxy
-            // (dapat direfine jika MLAnalyzer diubah agar return confidence).
             val result = mlAnalyzer.analyzeImage(bitmap)
             result to 0.75f
-        } ?: (DetectionResult.AMAN to 0.4f)   // fallback aman jika timeout
+        } ?: (DetectionResult.AMAN to 0.4f)
     }
 
-    private suspend fun runWeather(): WeatherData? {
-        return withTimeoutOrNull(5_000L) {
+    private suspend fun runWeather(timeoutMs: Long): WeatherData? {
+        return withTimeoutOrNull(timeoutMs) {
             WeatherApiService.getCurrentWeather().getOrNull()
         }
     }
 
-    private suspend fun runElevation(lat: Double, lon: Double): Double? {
-        return withTimeoutOrNull(5_000L) {
+    private suspend fun runElevation(lat: Double, lon: Double, timeoutMs: Long): Double? {
+        return withTimeoutOrNull(timeoutMs) {
             ElevationService.getElevation(lat, lon)?.elevationMeters
         }
     }
 
-    private suspend fun runSlope(lat: Double, lon: Double): SlopeData? {
-        return withTimeoutOrNull(8_000L) {
+    private suspend fun runSlope(lat: Double, lon: Double, timeoutMs: Long): SlopeData? {
+        return withTimeoutOrNull(timeoutMs) {
             SlopeCalculator.calculateSlope(lat, lon)
         }
     }
 
-    private suspend fun runSoil(lat: Double, lon: Double): SoilType? {
-        return withTimeoutOrNull(8_000L) {
+    private suspend fun runSoil(lat: Double, lon: Double, timeoutMs: Long): SoilType? {
+        return withTimeoutOrNull(timeoutMs) {
             SoilTypeService.getSoilType(lat, lon)
         }
     }

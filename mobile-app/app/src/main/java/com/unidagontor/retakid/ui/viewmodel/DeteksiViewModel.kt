@@ -174,7 +174,7 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
                     val fotoPath: String? = state.capturedImage?.let { bmp ->
                         val file = File(getApplication<Application>().cacheDir, "pending_foto_${UUID.randomUUID()}.jpg")
                         val out  = ByteArrayOutputStream()
-                        bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+                        resizeBitmapToMax1024(bmp).compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
                         file.writeBytes(out.toByteArray())
                         file.absolutePath
                     }
@@ -208,13 +208,26 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun resizeBitmapToMax1024(bitmap: Bitmap): Bitmap {
+        val maxDim = 1024
+        if (bitmap.width <= maxDim && bitmap.height <= maxDim) return bitmap
+        val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
+        val (width, height) = if (ratio > 1) {
+            maxDim to (maxDim / ratio).toInt()
+        } else {
+            (maxDim * ratio).toInt() to maxDim
+        }
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+    }
+
     private suspend fun uploadFoto(bitmap: Bitmap): String {
         val supabase   = SupabaseClient.client
         val bucketName = "laporan-images"
         val fileName   = "laporan/${UUID.randomUUID()}.jpg"
 
+        val scaledBmp = resizeBitmapToMax1024(bitmap)
         val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+        scaledBmp.compress(Bitmap.CompressFormat.JPEG, 80, stream)
         val bytes = stream.toByteArray()
 
         supabase.storage.from(bucketName).upload(fileName, bytes) { upsert = false }

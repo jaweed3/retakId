@@ -28,6 +28,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.unidagontor.retakid.data.weather.WeatherCondition
 import com.unidagontor.retakid.data.weather.WeatherData
+import com.unidagontor.retakid.data.location.LocationData
 import com.unidagontor.retakid.ui.theme.*
 import com.unidagontor.retakid.ui.viewmodel.FilterRisiko
 import com.unidagontor.retakid.ui.viewmodel.LaporanMarker
@@ -53,6 +54,7 @@ fun PetaTab(vm: PetaViewModel = viewModel()) {
         // ── Peta OSM ──────────────────────────────────────────────
         OsmdroidMapView(
             markers       = vm.filteredMarkers(),
+            userLocation  = state.userLocation,
             onMarkerClick = { vm.selectMarker(it) },
             modifier      = Modifier.fillMaxSize()
         )
@@ -97,7 +99,11 @@ fun PetaTab(vm: PetaViewModel = viewModel()) {
                 enter   = slideInVertically { -it } + fadeIn(),
                 exit    = slideOutVertically { -it } + fadeOut()
             ) {
-                OfflineBanner(pendingCount = state.pendingCount)
+                OfflineBanner(
+                    pendingCount     = state.pendingCount,
+                    markersFromCache = state.markersFromCache,
+                    markerCount      = state.markers.size
+                )
             }
         }
 
@@ -139,10 +145,12 @@ fun PetaTab(vm: PetaViewModel = viewModel()) {
                 exit    = slideOutVertically { it } + fadeOut()
             ) {
                 WeatherCard(
-                    weather   = state.weather,
-                    isLoading = state.isLoadingWeather,
-                    error     = state.weatherError,
-                    onRetry   = { vm.loadWeather() }
+                    weather        = state.weather,
+                    isLoading      = state.isLoadingWeather,
+                    error          = state.weatherError,
+                    isOnline       = state.isOnline,
+                    cachedWeatherAt = state.cachedWeatherAt,
+                    onRetry        = { vm.loadWeather() }
                 )
             }
         }
@@ -151,15 +159,19 @@ fun PetaTab(vm: PetaViewModel = viewModel()) {
 
 // ─── Offline Banner ───────────────────────────────────────────────────────────
 @Composable
-fun OfflineBanner(pendingCount: Int) {
+fun OfflineBanner(
+    pendingCount    : Int,
+    markersFromCache: Boolean = false,
+    markerCount     : Int     = 0
+) {
     Surface(
-        color  = Color(0xFF212121).copy(alpha = 0.88f),
-        shape  = RoundedCornerShape(50),
+        color          = Color(0xFF212121).copy(alpha = 0.88f),
+        shape          = RoundedCornerShape(50),
         tonalElevation = 0.dp
     ) {
         Row(
-            modifier          = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier              = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
@@ -169,12 +181,13 @@ fun OfflineBanner(pendingCount: Int) {
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text      = if (pendingCount > 0)
-                    "Offline · $pendingCount laporan antri"
-                else
-                    "Peta offline — tile dari cache",
-                color     = Color.White,
-                fontSize  = 12.sp,
+                text = when {
+                    pendingCount > 0 -> "Offline · $pendingCount laporan antri"
+                    markersFromCache -> "Offline · $markerCount marker dari cache"
+                    else             -> "Peta offline — tile dari cache"
+                },
+                color      = Color.White,
+                fontSize   = 12.sp,
                 fontWeight = FontWeight.Medium
             )
             if (pendingCount > 0) {
@@ -290,10 +303,12 @@ private fun markerCounts(markers: List<LaporanMarker>): Map<FilterRisiko, Int> =
 @Composable
 fun OsmdroidMapView(
     markers      : List<LaporanMarker>,
+    userLocation : LocationData?,
     onMarkerClick: (LaporanMarker) -> Unit,
     modifier     : Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var isMapCentered by remember { mutableStateOf(false) }
 
     Configuration.getInstance().userAgentValue = context.packageName
 
@@ -312,7 +327,34 @@ fun OsmdroidMapView(
             }
         },
         update = { mapView ->
+            if (userLocation != null && !isMapCentered) {
+                mapView.controller.animateTo(GeoPoint(userLocation.latitude, userLocation.longitude))
+                mapView.controller.setZoom(15.0)
+                isMapCentered = true
+            }
+
             mapView.overlays.clear()
+
+            // Marker untuk lokasi pengguna
+            if (userLocation != null) {
+                val userCircle = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(android.graphics.Color.parseColor("#2196F3")) // Biru
+                    setStroke(5, android.graphics.Color.WHITE)
+                    setSize(50, 50)
+                }
+                val userPin = Marker(mapView).apply {
+                    position = GeoPoint(userLocation.latitude, userLocation.longitude)
+                    title = "Lokasi Anda"
+                    icon = userCircle
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                    setOnMarkerClickListener { m, _ -> 
+                        m.showInfoWindow()
+                        true 
+                    }
+                }
+                mapView.overlays.add(userPin)
+            }
 
             markers.forEach { laporan ->
                 val pinColor = when (laporan.status) {
@@ -360,7 +402,7 @@ fun FilterChipRow(
     val filters = listOf(
         FilterRisiko.SEMUA   to "Semua",
         FilterRisiko.BAHAYA  to "🔴 Bahaya",
-        FilterRisiko.WASPADA to "🟡 Waspada",
+        FilterRisiko.WASPADA to "🟠 Waspada",
         FilterRisiko.AMAN    to "🟢 Aman"
     )
     val scrollState = rememberScrollState()
@@ -378,6 +420,13 @@ fun FilterChipRow(
             val isSelected = current == filter
             val count      = counts[filter] ?: 0
 
+            val chipColor = when (filter) {
+                FilterRisiko.BAHAYA  -> StatusBahaya
+                FilterRisiko.WASPADA -> StatusWaspada
+                FilterRisiko.AMAN    -> StatusAman
+                FilterRisiko.SEMUA   -> GreenPrimary
+            }
+
             FilterChip(
                 selected = isSelected,
                 onClick  = { onSelect(filter) },
@@ -389,7 +438,7 @@ fun FilterChipRow(
                             Box(
                                 modifier        = Modifier
                                     .clip(CircleShape)
-                                    .background(if (isSelected) Color.White.copy(alpha = 0.3f) else GreenSurface)
+                                    .background(if (isSelected) Color.White.copy(alpha = 0.3f) else chipColor.copy(alpha = 0.1f))
                                     .padding(horizontal = 5.dp, vertical = 1.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -397,14 +446,14 @@ fun FilterChipRow(
                                     count.toString(),
                                     fontSize   = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color      = if (isSelected) Color.White else GreenPrimary
+                                    color      = if (isSelected) Color.White else chipColor
                                 )
                             }
                         }
                     }
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = GreenPrimary,
+                    selectedContainerColor = chipColor,
                     selectedLabelColor     = Color.White,
                     containerColor         = Color.Transparent,
                     labelColor             = TextSecondary
@@ -424,10 +473,12 @@ fun FilterChipRow(
 // ─── Weather Card ──────────────────────────────────────────────────────────────
 @Composable
 fun WeatherCard(
-    weather  : WeatherData?,
-    isLoading: Boolean,
-    error    : String?,
-    onRetry  : () -> Unit
+    weather        : WeatherData?,
+    isLoading      : Boolean,
+    error          : String?,
+    isOnline       : Boolean,
+    cachedWeatherAt: String?,
+    onRetry        : () -> Unit
 ) {
     Card(
         modifier  = Modifier.fillMaxWidth(),
@@ -436,9 +487,23 @@ fun WeatherCard(
         elevation = CardDefaults.cardElevation(6.dp)
     ) {
         when {
-            isLoading    -> WeatherLoading()
-            error != null -> WeatherError(error, onRetry)
-            weather != null -> WeatherContent(weather)
+            isLoading       -> WeatherLoading()
+            // Offline + ada data cache → tampilkan data lama dengan badge
+            !isOnline && weather != null -> WeatherContent(
+                data            = weather,
+                isOffline       = true,
+                cachedWeatherAt = cachedWeatherAt
+            )
+            // Offline + tidak ada cache → placeholder ramah
+            !isOnline && weather == null -> WeatherOfflinePlaceholder()
+            // Online + error + tidak ada cache
+            error != null && weather == null -> WeatherError(onRetry)
+            // Online + ada data (normal)
+            weather != null -> WeatherContent(
+                data            = weather,
+                isOffline       = false,
+                cachedWeatherAt = cachedWeatherAt
+            )
         }
     }
 }
@@ -451,25 +516,91 @@ private fun WeatherLoading() {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = GreenPrimary, strokeWidth = 2.dp)
-        Text("Memuat data cuaca Jenangan…", color = TextSecondary, fontSize = 14.sp)
+        Text("Memuat data cuaca di lokasi Anda…", color = TextSecondary, fontSize = 14.sp)
     }
 }
 
 @Composable
-private fun WeatherError(message: String, onRetry: () -> Unit) {
+private fun WeatherOfflinePlaceholder() {
+    Row(
+        modifier              = Modifier.fillMaxWidth().padding(14.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            Icons.Default.WifiOff,
+            contentDescription = null,
+            tint     = TextSecondary,
+            modifier = Modifier.size(22.dp)
+        )
+        Column {
+            Text(
+                "Data cuaca tidak tersedia",
+                fontWeight = FontWeight.SemiBold,
+                fontSize   = 14.sp,
+                color      = TextPrimary
+            )
+            Text(
+                "Sambungkan internet untuk melihat cuaca terkini",
+                fontSize = 12.sp,
+                color    = TextSecondary
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeatherError(onRetry: () -> Unit) {
     Row(
         modifier              = Modifier.fillMaxWidth().padding(12.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(message, color = StatusBahaya, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(
+            "Gagal memuat data cuaca",
+            color    = StatusBahaya,
+            fontSize = 13.sp,
+            modifier = Modifier.weight(1f)
+        )
         TextButton(onClick = onRetry) { Text("Coba lagi", color = GreenPrimary) }
     }
 }
 
 @Composable
-private fun WeatherContent(data: WeatherData) {
+private fun WeatherContent(
+    data            : WeatherData,
+    isOffline       : Boolean = false,
+    cachedWeatherAt : String? = null
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        // Badge offline saat tampil data cache
+        if (isOffline) {
+            Surface(
+                color  = Color(0xFF212121).copy(alpha = 0.08f),
+                shape  = RoundedCornerShape(6.dp),
+                modifier = Modifier.padding(bottom = 10.dp)
+            ) {
+                Row(
+                    modifier          = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.WifiOff,
+                        contentDescription = null,
+                        tint     = TextSecondary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text      = if (cachedWeatherAt != null) "Offline · data pukul $cachedWeatherAt" else "Offline · data terakhir tersimpan",
+                        fontSize  = 11.sp,
+                        color     = TextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
         Row(
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,7 +28,9 @@ fun ProfilScreen(
     onRiwayat    : () -> Unit = {},
     onPanduan    : () -> Unit = {},
     onPengaturan : () -> Unit = {},
-    viewModel    : ProfilViewModel = viewModel()
+    viewModel    : ProfilViewModel = viewModel(
+        factory = ProfilViewModel.Factory(LocalContext.current)
+    )
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -72,30 +75,39 @@ fun ProfilScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Nama & email langsung dari Supabase
+                // Nama & email
                 Text(
-                    text       = if (uiState.isLoading) "Memuat..." else uiState.namaLengkap,
+                    text       = if (uiState.isLoading && uiState.namaLengkap.isEmpty()) "Memuat..." else uiState.namaLengkap,
                     fontSize   = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color      = Color.White
                 )
                 Text(
-                    text     = uiState.email,
+                    text     = uiState.email.ifEmpty { "—" },
                     fontSize = 14.sp,
                     color    = Color.White.copy(alpha = 0.8f)
                 )
 
-                // Tampilkan error jika ada, dengan tombol retry
-                uiState.error?.let { err ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                // Badge offline (jika tidak ada koneksi)
+                if (uiState.isOffline) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        color = Color.White.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(50)
                     ) {
-                        Text(err, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextButton(onClick = { viewModel.loadProfile() }) {
-                            Text("Coba lagi", color = Color.White, fontSize = 12.sp)
+                        Row(
+                            modifier          = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.WifiOff, null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Data tersimpan · Offline",
+                                fontSize = 11.sp,
+                                color    = Color.White
+                            )
                         }
                     }
                 }
