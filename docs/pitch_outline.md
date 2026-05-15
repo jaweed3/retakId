@@ -83,21 +83,36 @@ Staf BPBD buka dashboard → klik laporan BAHAYA
 
 ## Slide 5: Multi-Factor Risk Engine (1 menit)
 
-> **Visual:** Diagram pie 5 faktor + animasi kalkulasi
+> **Visual:** Pie chart 5 faktor (ML 50%, Slope 20%, Rain 15%, Elev 10%, Soil 5%) + kotak contoh hitung
+
+### Teks di slide:
+
+**Judul: Bukan Cuma Foto — 5 Faktor Risiko Real-Time**
 
 ```
-╔══════════════════════════════════════╗
-║        MultiFactorRiskEngine         ║
-╠══════════════════════════════════════╣
-║  🧠 ML Visual      50%  ← TFLite   ║
-║  ⛰️ Slope           20%  ← Open-Meteo║
-║  🌧️ Rainfall        15%  ← Open-Meteo║
-║  🏔️ Elevation       10%  ← SRTM     ║
-║  🪨 Soil Type        5%  ← ISRIC    ║
-╠══════════════════════════════════════╣
-║  AMAN floor score = 0.1              ║
-║  Graceful degradation ✓              ║
-╚══════════════════════════════════════╝
+PIE CHART (lingkaran):
+  🧠 ML Visual        50%
+  ⛰️ Kemiringan Lereng 20%
+  🌧️ Curah Hujan       15%
+  🏔️ Ketinggian        10%
+  🪨 Jenis Tanah        5%
+```
+
+**Kotak contoh di samping pie chart:**
+
+```
+ML bilang AMAN (confidence 90%)        = 0.1 × 50%
+Tapi lereng 30°                        = 1.0 × 20%
+Hujan deras 35mm                       = 1.0 × 15%
+────────────────────────────────────────
+FINAL SCORE = 0.42 → WASPADA ✅
+```
+
+**Footer:**
+```
+AMAN floor = 0.1   ·   Graceful degradation ✓
+ML prediksi bisa di-override lingkungan
+Area tanpa laporan tetap terdeteksi via slope + hujan
 ```
 
 **Key message:** *"ML hanya 50%. Lereng curam + hujan deras tetap dapat skor tinggi meskipun tanpa laporan warga. Aman tidak pernah nol."*
@@ -106,73 +121,110 @@ Staf BPBD buka dashboard → klik laporan BAHAYA
 
 ## Slide 6: ML Pipeline (1 menit)
 
-> **Visual:** Timeline / evolution chart
+> **Visual:** Timeline chart + tabel + 7 checklist
 
-### Dataset
-| Kelas | Sampel | Sumber |
-|-------|--------|--------|
-| AMAN | 2,009 | Scraping + anotasi manual |
-| WASPADA | 768 | Scraping + anotasi manual |
-| BAHAYA | 767 | Scraping + anotasi manual |
-| **Total** | **3,547** | 70+ query pencarian |
+### Teks di slide:
 
-### Training Evolution
+**Judul: MobileNetV2 INT8 — 84.9% Akurasi, 2.6 MB, <50ms**
+
 ```
-Baseline          73.0%
-+ Fine-tune       76.7%
-+ Conservative FT 81.8%
-+ Clean Labels    84.9%  ← v3a (PRODUKSI)
+INPUT:  uint8 [1, 224, 224, 3] RGB
+  → MobileNetV2 backbone (fine-tune layer 130+)
+  → Global Average Pooling → Dense(3) → softmax
+OUTPUT: float32 [1, 3] logits → AMAN / WASPADA / BAHAYA
 ```
 
-### Safety Gate
+**Tabel dataset:**
+
+| Kelas | Sampel |
+|-------|--------|
+| AMAN | 2,009 |
+| WASPADA | 768 |
+| BAHAYA | 767 |
+| **Total** | **3,547** |
+
+**Safety Gate — 7 checks sebelum deploy:**
+
 ```
-7 pemeriksaan sebelum deploy:
-✓ Load test  ✓ Shape  ✓ Dtype  ✓ Infer
-✓ Multi-class  ✓ Confidence  ✓ CV threshold
+✅ Load test     ✅ Input shape    ✅ Output dtype
+✅ Inference OK  ✅ Multi-class    ✅ Confidence
+✅ Cross-validation ≥ threshold
 ```
 
 **Key message:** *"84.9% akurasi, 2.6 MB, <50ms inferensi. Setiap model baru harus lewat 7 gates sebelum menggantikan yang lama."*
 
 ---
 
-## Slide 7: Continuous Improvement Loop (1 menit)
+## Slide 7: Continuous Improvement — Verifikasi → Retrain (1 menit)
 
 > **Visual:** Flowchart melingkar
 
+### Teks di slide:
+
+**Judul: Setiap Verifikasi Jadi Data Training**
+
 ```
-LAPORAN MASUK → ML PREDICT → ADMIN VERIFIKASI
-       ↑                              ↓
-   RETRAIN ←── INGEST ←── EXPORT CSV
+DIAGRAM LINGKARAN (6 langkah):
+  ┌─ ① Warga Lapor ─→ ② ML Predict ─→ ③ Admin Verifikasi ─┐
+  └──── ⑥ Retrain ←── ⑤ Ingest CSV ←── ④ Export CSV ──────┘
 ```
 
-### Alur Lengkap
-1. **Warga lapor** → ML + MultiFactorEngine → skor risiko
-2. **Admin verifikasi** → VerificationDialog: "Sesuai?" / pilih label benar
-3. **Data tersimpan** → `riwayat_penanganan` dengan `label_akhir`
-4. **Export CSV** → `fetchTrainingData()` → CSV dengan foto URL
-5. **Ingest** → `ingest_verification.py` → download foto + dedup phash
-6. **Retrain** → `make split && make train` → Model baru
+**Kotak 3 poin di samping diagram:**
+
+```
+✓ Admin klik "Sesuai" → label = prediksi ML
+✓ Admin klik "Tidak" → pilih label benar (AMAN/WASPADA/BAHAYA)
+✓ Keduanya jadi data training — tidak ada yang terbuang
+```
+
+**Footer:**
+```
+Pipeline: Export CSV → ingest_verification.py (phash dedup)
+→ make split && make train → Model v3b, v3c, ...
+```
 
 **Key message:** *"Setiap verifikasi — benar atau salah — jadi data training. Tidak ada yang terbuang. Model terus belajar dari koreksi staf BPBD."*
 
 ---
 
-## Slide 8: Delta OTA — Update Tanpa Boros Kuota (45 detik)
+## Slide 8: Delta OTA — Update Model Hemat Kuota (45 detik)
 
-> **Visual:** Perbandingan ukuran download
+> **Visual:** Dua kotak ukuran bersanding
+
+### Teks di slide:
+
+**Judul: Update Model 70–90% Lebih Kecil**
 
 ```
-Full model:  ██████████████████████████  2.6 MB
-Delta OTA:   ████░░░░░░░░░░░░░░░░░░░░░░  0.3–0.8 MB
-                                      └── 70–90% lebih kecil
+┌──────────────────────────────────┐
+│  FULL MODEL                      │
+│  █████████████████████████████   │
+│  2.6 MB — download semuanya     │
+└──────────────────────────────────┘
+┌──────────────────────────────────┐
+│  DELTA OTA (.rkd)                │
+│  ████░░░░░░░░░░░░░░░░░░░░░░░░░  │
+│  0.3–0.8 MB — byte-diff + gzip  │
+└──────────────────────────────────┘
 ```
 
 **Cara kerja:**
-1. Compute delta: byte-diff antara model lama + baru → gzip → `.rkd`
-2. Upload ke Supabase Storage + register versi
-3. HP download `.rkd` → patch byte regions → validasi TFLite → simpan
+```
+compute_delta.py → .rkd → upload Supabase
+    ↓
+HP download .rkd → gzip decompress → patch byte regions
+    ↓
+Validasi TFLite Interpreter → save ke internal storage
+```
 
-**Kenapa penting:** *"Warga di desa terpencil punya kuota terbatas. Update 2.6 MB full model seminggu sekali tidak realistis. Delta 0.5 MB bisa."*
+**3 lapis safety:**
+```
+1. Patch dari bundled assets (APK), bukan cached model
+2. Validasi Interpreter sebelum save
+3. Full model fallback kalo delta gagal
+```
+
+**Key message:** *"Warga di desa terpencil punya kuota terbatas. Update 2.6 MB full model seminggu sekali tidak realistis. Delta 0.5 MB bisa."*
 
 ---
 

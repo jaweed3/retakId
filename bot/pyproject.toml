@@ -1,0 +1,12 @@
+[project]
+name = "retakid-bot"
+version = "0.1.0"
+description = "Retak.id Telegram Bot — analisis retakan tanah via ML"
+requires-python = ">=3.11"
+dependencies = [
+    "python-telegram-bot>=20.0,<22.0",
+    "tflite-runtime>=2.14",
+    "numpy>=1.24,<2.0",
+    "Pillow>=10.0,<11.0",
+    "httpx>=0.25,<1.0",
+]

@@ -1,0 +1,5 @@
+python-telegram-bot>=20.0,<22.0
+tflite-runtime>=2.14
+numpy>=1.24,<2.0
+Pillow>=10.0,<11.0
+httpx>=0.25,<1.0

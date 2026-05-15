@@ -1,0 +1,11 @@
+services:
+  bot:
+    build:
+      context: ..
+      dockerfile: bot/Dockerfile
+    container_name: retakid-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Jakarta
