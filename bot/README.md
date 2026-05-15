@@ -53,19 +53,26 @@ Itu doang udah cukup buat bot jalan. Yang lain optional:
 | `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` | Kalo mau nyimpen laporan ke database |
 | `ADMIN_CHAT_ID` | Kalo mau dapet notifikasi kalo ada temuan BAHAYA |
 
-### 3. Jalanin
+### 3. Jalanin (Bareng Web + Backend)
 
 ```bash
-docker compose -f bot/docker-compose.yml up -d
+docker compose up -d
 ```
 
-Cek log:
+Ini jalanin **3 service sekaligus**: web (frontend), backend (training), dan bot (Telegram).
+
+Cek log bot:
 
 ```bash
-docker compose -f bot/docker-compose.yml logs -f
+docker compose logs -f bot
 ```
 
 Kalo keliatan `"Bot started (polling)"` — bot udah hidup. Langsung coba kirim `/start` ke bot di Telegram.
+
+> **Catatan:** Backend service running as training container (satu kali jalan, bukan server). Kalo mau jalanin training:
+> ```bash
+> docker compose --profile train up
+> ```
 
 ### 4. Setup Command (Sekali Aja)
 
@@ -136,7 +143,7 @@ Telegram → bot/src/main.py
 ## 🔧 Troubleshooting (Buat Temen)
 
 **Bot ga respon?**
-- Cek log: `docker compose -f bot/docker-compose.yml logs -f`
+- Cek log: `docker compose logs -f bot`
 - Pastiin `TELEGRAM_BOT_TOKEN` bener
 - Cek `/health` — harus jawab "Bot sehat"
 
