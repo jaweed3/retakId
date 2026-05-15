@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, AlertTriangle, Skull, Phone, ChevronDown, Smartphone, Camera, MapPin, ExternalLink, CheckCircle, PhoneCall, ArrowRight } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Skull, Phone, ChevronDown, Smartphone, Camera, MapPin, ExternalLink, CheckCircle, PhoneCall, ArrowRight, Download } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { SEOMeta } from '../components/SEOMeta';
 import { ScrollReveal } from '../components/ScrollReveal';
@@ -272,9 +272,9 @@ export function EdukasiPage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-6 items-start">
-                  {/* Phone mockup placeholder */}
-                  <div className="relative shrink-0 mx-auto sm:mx-0">
-                    <div className="w-40 h-80 rounded-[2rem] border-4 border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 relative shadow-lg">
+                  {/* Phone + QR column */}
+                  <div className="flex flex-col items-center gap-4 shrink-0 mx-auto sm:mx-0">
+                    <div className="relative w-40 h-80 rounded-[2rem] border-4 border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-lg">
                       <img
                         src="/edukasi/laporan-hp.png"
                         alt="Mockup Aplikasi Android"
@@ -283,7 +283,15 @@ export function EdukasiPage() {
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/40 to-transparent h-16 pointer-events-none" />
                     </div>
-
+                    <div className="w-28 h-28 rounded-xl border-2 border-divider overflow-hidden bg-card shadow-sm">
+                      <img
+                        src="/edukasi/qr-install-android.jpeg"
+                        alt="QR Code Install Android"
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                    <span className="text-[10px] text-text-secondary/50 -mt-2">Scan untuk download</span>
                   </div>
 
                   {/* Steps */}
@@ -308,6 +316,15 @@ export function EdukasiPage() {
                         Kirim online
                       </span>
                     </div>
+                    <a
+                      href="https://github.com/jaweed3/retakId/releases/download/v1.1.0/app-debug.apk"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-all duration-200 hover:bg-primary-light hover:shadow-lg hover:shadow-primary/30 active:scale-[0.97]"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download APK
+                    </a>
                   </div>
                 </div>
               </div>

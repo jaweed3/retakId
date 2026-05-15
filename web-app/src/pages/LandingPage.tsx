@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Smartphone, QrCode, BookOpen, ArrowRight } from 'lucide-react';
+import { Smartphone, QrCode, BookOpen, ArrowRight, Download } from 'lucide-react';
 import { HeroSection } from '../components/HeroSection';
 import { HowItWorks } from '../components/HowItWorks';
 import { WhySection } from '../components/WhySection';
@@ -65,12 +65,17 @@ export function LandingPage() {
       <section id="download" className="bg-card scroll-mt-20">
         <div className="max-w-3xl mx-auto px-6 sm:px-8 lg:px-10 py-12 sm:py-16">
           <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
-            {/* QR placeholder */}
-            <div className="flex h-32 w-32 sm:h-40 sm:w-40 shrink-0 items-center justify-center rounded-2xl bg-surface border-2 border-dashed border-divider">
-              <div className="flex flex-col items-center gap-1 text-text-secondary/40">
-                <QrCode className="h-14 w-14 sm:h-16 sm:w-16" />
-                <span className="text-[9px]">QR Code</span>
+            {/* QR Code */}
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-2xl border-2 border-divider overflow-hidden bg-card shadow-sm">
+                <img
+                  src="/edukasi/qr-install-android.jpeg"
+                  alt="QR Code Install Android"
+                  className="h-full w-full object-contain"
+                  loading="lazy"
+                />
               </div>
+              <span className="text-[10px] text-text-secondary/40">Scan untuk download</span>
             </div>
 
             {/* Text */}
@@ -86,13 +91,24 @@ export function LandingPage() {
                 laporkan ke BPBD — semuanya dari HP Anda. Deteksi tetap jalan
                 tanpa koneksi internet.
               </p>
-              <div className="inline-flex items-center gap-2 rounded-xl bg-primary-surface px-4 py-2.5 text-sm font-semibold text-primary">
-                <Smartphone className="h-4 w-4" />
-                Segera di Android
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href="https://github.com/jaweed3/retakId/releases/download/v1.1.0/app-debug.apk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-all duration-200 hover:bg-primary-light hover:shadow-lg hover:shadow-primary/30 active:scale-[0.97]"
+                >
+                  <Download className="h-4 w-4" />
+                  Download APK
+                </a>
+                <Link
+                  to="/edukasi"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary-surface px-5 py-2.5 text-sm font-semibold text-primary transition-all duration-200 hover:bg-primary/15 active:scale-[0.97]"
+                >
+                  <Smartphone className="h-4 w-4" />
+                  Cara Install
+                </Link>
               </div>
-              <p className="text-[10px] text-text-secondary/60 mt-2">
-                APK akan dirilis sebelum presentasi IYREF.
-              </p>
             </div>
           </div>
         </div>
