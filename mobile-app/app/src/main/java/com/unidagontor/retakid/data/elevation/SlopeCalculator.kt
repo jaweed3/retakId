@@ -1,9 +1,10 @@
 package com.unidagontor.retakid.data.elevation
 
+
 import kotlin.math.abs
 import kotlin.math.atan
 import kotlin.math.roundToInt
-import kotlin.math.toDegrees
+
 
 enum class SlopeCategory(val label: String, val minDeg: Double, val maxDeg: Double) {
     DATAR("Datar", 0.0, 8.0),
@@ -53,7 +54,7 @@ object SlopeCalculator {
             val elevDiff = abs(pointElevation.elevationMeters - centerElevation.elevationMeters)
             val distanceMeters = OFFSET_DEG * 111_320.0
             val slopeRadians = atan(elevDiff / distanceMeters)
-            slopeRadians.toDegrees()
+            Math.toDegrees(slopeRadians)
         }.maxOrNull() ?: return null
 
         val degrees = (maxGradient * 10.0).roundToInt() / 10.0

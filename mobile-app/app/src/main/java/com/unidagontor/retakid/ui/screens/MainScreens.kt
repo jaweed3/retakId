@@ -39,8 +39,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.unidagontor.retakid.data.ml.DetectionResult
+import com.unidagontor.retakid.data.risk.RiskFactor
+import com.unidagontor.retakid.data.risk.RiskFactorReport
+import com.unidagontor.retakid.data.risk.RiskLabel
 import com.unidagontor.retakid.ui.theme.*
 import com.unidagontor.retakid.ui.viewmodel.DeteksiStage
+import com.unidagontor.retakid.ui.viewmodel.DeteksiState
 import com.unidagontor.retakid.ui.viewmodel.DeteksiViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -79,25 +83,26 @@ fun DeteksiTab(vm: DeteksiViewModel = viewModel()) {
             DeteksiStage.CAMERA -> {
                 CameraView(onImageCaptured = { vm.onImageCaptured(it) })
             }
-            DeteksiStage.ANALYZING -> {
-                AnalyzingView()
+            DeteksiStage.VALIDATING -> {
+                ValidatingView()
             }
-            DeteksiStage.ANALYZING_ENV -> {
-                AnalyzingEnvView()
+            DeteksiStage.ANALYZING -> {
+                AnalyzingView(isAnalyzingContext = state.isAnalyzingContext)
+            }
+            DeteksiStage.UNCERTAIN -> {
+                UncertainView(
+                    validationError = state.validationError
+                        ?: "Hasil tidak pasti — ambil foto ulang lebih dekat",
+                    confidence = state.mlResult?.confidence ?: 0f,
+                    onRetake = { vm.reset() }
+                )
             }
             DeteksiStage.RESULT -> {
-                val displayResult = state.riskFactorReport?.finalResult ?: state.mlResult?.detectionResult
-                val displayConfidence = state.mlResult?.confidence ?: 0f
-                if (displayResult != null) {
-                    ResultView(
-                        result = displayResult,
-                        confidence = displayConfidence,
-                        report = state.riskFactorReport,
-                        image = state.capturedImage,
-                        onProceed = { vm.proceedToReport() },
-                        onRetry = { vm.reset() }
-                    )
-                }
+                ResultView(
+                    state     = state,
+                    onProceed = { vm.proceedToReport() },
+                    onRetry   = { vm.reset() }
+                )
             }
             DeteksiStage.REPORT_FORM -> {
                 ReportFormView(
@@ -217,10 +222,14 @@ fun CameraView(onImageCaptured: (Bitmap) -> Unit) {
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                                 val uri = Uri.fromFile(file)
                                 val bitmap = if (Build.VERSION.SDK_INT < 28) {
+                                    @Suppress("DEPRECATION")
                                     MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
                                 } else {
                                     val source = ImageDecoder.createSource(context.contentResolver, uri)
-                                    ImageDecoder.decodeBitmap(source)
+                                    ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                                        // Paksa SOFTWARE agar getPixels() bekerja di TFLite
+                                        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                                    }
                                 }
                                 onImageCaptured(bitmap)
                             }
@@ -249,192 +258,212 @@ fun CameraView(onImageCaptured: (Bitmap) -> Unit) {
 }
 
 @Composable
-fun AnalyzingView() {
+fun AnalyzingView(isAnalyzingContext: Boolean = false) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        CircularProgressIndicator(color = GreenPrimary)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Menganalisis retakan...", fontWeight = FontWeight.Medium, color = TextPrimary)
-    }
-}
-
-@Composable
-fun AnalyzingEnvView() {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        CircularProgressIndicator(color = GreenPrimary)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Menganalisis faktor lingkungan...", fontWeight = FontWeight.Medium, color = TextPrimary)
+        CircularProgressIndicator(color = GreenPrimary, modifier = Modifier.size(56.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            if (isAnalyzingContext) "Mengumpulkan data lingkungan..." else "Menganalisis gambar (ML)...",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            color = TextPrimary
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "Elevasi, kemiringan, cuaca, & jenis tanah",
-            fontSize = 13.sp,
-            color = TextSecondary
+            "Menjalankan: AI Visual · Cuaca · Elevasi · Lereng · Tanah",
+            fontSize = 12.sp,
+            color = TextSecondary,
+            textAlign = TextAlign.Center
         )
     }
 }
 
 @Composable
 fun ResultView(
-    result: DetectionResult,
-    confidence: Float,
-    report: com.unidagontor.retakid.data.risk.RiskFactorReport?,
-    image: Bitmap?,
+    state    : DeteksiState,
     onProceed: () -> Unit,
-    onRetry: () -> Unit
+    onRetry  : () -> Unit
 ) {
+    val result     = state.detectionResult
+    val image      = state.capturedImage
+    val report     = state.riskReport
+    val dataStatus = state.dataStatus
+
+    val (statusColor, statusTitle, statusDesc) = when (result) {
+        DetectionResult.BAHAYA  -> Triple(StatusBahaya,  "BAHAYA",  "Risiko tinggi! Retakan kritis terdeteksi.")
+        DetectionResult.WASPADA -> Triple(StatusWaspada, "WASPADA", "Risiko sedang. Pantau berkala saat hujan.")
+        else                    -> Triple(StatusAman,    "AMAN",    "Risiko rendah. Kondisi masih terkendali.")
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Hasil Analisis", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
+        Text("Hasil Analisis Gabungan", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Text("ML · Cuaca · Elevasi · Lereng · Tanah", fontSize = 12.sp, color = TextSecondary)
+        Spacer(modifier = Modifier.height(12.dp))
 
+        // ── Foto ──────────────────────────────────────────────────────────
         if (image != null) {
             Image(
-                bitmap = image.asImageBitmap(),
-                contentDescription = "Captured Image",
-                modifier = Modifier
+                bitmap             = image.asImageBitmap(),
+                contentDescription = "Foto retakan",
+                modifier           = Modifier
                     .fillMaxWidth()
-                    .height(250.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.LightGray)
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(12.dp))
             )
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        val (color, title, desc) = when (result) {
-            DetectionResult.BAHAYA -> Triple(
-                StatusBahaya,
-                "BAHAYA",
-                "Risiko tinggi! Ditemukan retakan kritis yang berpotensi menyebabkan longsor segera."
-            )
-            DetectionResult.WASPADA -> Triple(
-                StatusWaspada,
-                "WASPADA",
-                "Risiko sedang. Retakan terdeteksi, pantau kondisi tanah secara berkala terutama saat hujan."
-            )
-            else -> Triple(
-                StatusAman,
-                "AMAN",
-                "Risiko rendah. Retakan yang terdeteksi masih dalam batas wajar."
-            )
-        }
-
+        // ── Status Utama ──────────────────────────────────────────────────
         Surface(
-            color = color.copy(alpha = 0.1f),
-            shape = RoundedCornerShape(12.dp),
+            color    = statusColor.copy(alpha = 0.12f),
+            shape    = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    title,
-                    color = color,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 24.sp,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    desc,
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
+            Column(
+                modifier            = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(statusTitle, color = statusColor, fontWeight = FontWeight.Black, fontSize = 26.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(statusDesc, color = TextPrimary, fontSize = 13.sp, textAlign = TextAlign.Center)
 
-        if (confidence < 0.4f) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Surface(
-                color = StatusBahaya.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Warning, contentDescription = null, tint = StatusBahaya)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        "Gambar bukan retakan tanah? Pastikan memotret permukaan tanah",
-                        color = StatusBahaya,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                // Risk score bar
+                if (report != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val pct = report.finalScore.toFloat().coerceIn(0f, 1f)
+                    Text("Skor Risiko: ${(pct * 100).toInt()}%", fontSize = 12.sp, color = statusColor, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress         = { pct },
+                        modifier         = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                        color            = statusColor,
+                        trackColor       = statusColor.copy(alpha = 0.2f)
                     )
-                }
-            }
-        } else if (confidence < 0.6f) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Surface(
-                color = StatusWaspada.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = StatusWaspada)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        "Hasil tidak pasti — ambil foto ulang dengan pencahayaan lebih baik",
-                        color = StatusWaspada,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    if (report.isUpgraded) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("⚠️ Faktor lingkungan meningkatkan risiko", fontSize = 11.sp, color = StatusWaspada)
+                    } else if (report.isDowngraded) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("✅ Faktor lingkungan menurunkan risiko", fontSize = 11.sp, color = StatusAman)
+                    }
                 }
             }
         }
 
+        // ── Rincian per Faktor ────────────────────────────────────────────
+        if (report != null && report.factors.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(
+                color    = Color(0xFFF8F8F8),
+                shape    = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Kontribusi Faktor Risiko", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    report.factors.forEach { fc ->
+                        val fColor = when (fc.riskLabel) {
+                            RiskLabel.RENDAH       -> StatusAman
+                            RiskLabel.SEDANG       -> StatusWaspada
+                            RiskLabel.TINGGI       -> StatusBahaya
+                            RiskLabel.SANGAT_TINGGI -> StatusBahaya
+                        }
+                        val icon = when (fc.factor) {
+                            RiskFactor.ML        -> Icons.Default.CameraAlt
+                            RiskFactor.SLOPE     -> Icons.Default.Terrain
+                            RiskFactor.RAIN      -> Icons.Default.WaterDrop
+                            RiskFactor.ELEVATION -> Icons.Default.Landscape
+                            RiskFactor.SOIL      -> Icons.Default.Layers
+                        }
+                        Row(
+                            modifier          = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(icon, contentDescription = null, tint = fColor, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text(fc.factor.displayName, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                                    Text(fc.rawValue, fontSize = 11.sp, color = TextSecondary)
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                LinearProgressIndicator(
+                                    progress   = { fc.score.toFloat().coerceIn(0f, 1f) },
+                                    modifier   = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
+                                    color      = fColor,
+                                    trackColor = fColor.copy(alpha = 0.15f)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("${(fc.weight * 100).toInt()}%", fontSize = 10.sp, color = TextSecondary)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Cuaca & Status Data ───────────────────────────────────────────
+        val weather = state.combinedResult?.weather
+        if (weather != null || dataStatus != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (weather != null) {
+                    Surface(
+                        color    = Color(0xFFE8F5E9),
+                        shape    = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text("${weather.condition.emoji} ${weather.condition.label}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("${weather.temperatureCelsius.toInt()}°C · ${weather.rain} mm hujan", fontSize = 11.sp, color = TextSecondary)
+                            Text(weather.condition.riskNote, fontSize = 10.sp, color = TextSecondary)
+                        }
+                    }
+                }
+                if (dataStatus != null) {
+                    Surface(
+                        color    = Color(0xFFF3F3F3),
+                        shape    = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text("Data Terkumpul", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(dataStatus.summaryText, fontSize = 11.sp, color = GreenPrimary)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Peringatan Darurat ────────────────────────────────────────────
         if (result == DetectionResult.BAHAYA) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Surface(
-                color = StatusBahaya,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Surface(color = StatusBahaya, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        "PERINGATAN DARURAT: Segera menjauh dari area lereng dan infokan warga sekitar!",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("DARURAT: Segera menjauh & informasikan warga!", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
-        if (report != null) {
-            Spacer(modifier = Modifier.height(20.dp))
-            EnvironmentFactorCard(report = report)
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
+        Spacer(modifier = Modifier.height(20.dp))
         Button(
-            onClick = onProceed,
+            onClick  = onProceed,
             modifier = Modifier.fillMaxWidth().height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Lanjut ke Laporan")
-        }
+            colors   = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+            shape    = RoundedCornerShape(12.dp)
+        ) { Text("Lanjut ke Laporan", fontWeight = FontWeight.Bold) }
         TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
             Text("Coba Lagi", color = TextSecondary)
         }
@@ -442,183 +471,128 @@ fun ResultView(
 }
 
 @Composable
-fun EnvironmentFactorCard(report: com.unidagontor.retakid.data.risk.RiskFactorReport) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 2.dp
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Faktor Lingkungan", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                }
-                TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "Sembunyikan" else "Detail", fontSize = 12.sp, color = GreenPrimary)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                "Skor Risiko: ${"%.0f".format(report.finalScore * 100)}%",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = when {
-                    report.finalScore <= 0.33 -> StatusAman
-                    report.finalScore <= 0.66 -> StatusWaspada
-                    else -> StatusBahaya
-                }
-            )
-
-            if (report.isUpgraded) {
-                Text(
-                    "↑ Meningkat dari hasil ML karena faktor lingkungan",
-                    fontSize = 11.sp,
-                    color = StatusWaspada
-                )
-            } else if (report.isDowngraded) {
-                Text(
-                    "↓ Menurun karena faktor lingkungan mendukung",
-                    fontSize = 11.sp,
-                    color = StatusAman
-                )
-            }
-
-            if (expanded) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
-
-                report.factors.forEach { factor ->
-                    FactorRow(factor)
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FactorRow(factor: com.unidagontor.retakid.data.risk.FactorContribution) {
-    val color = when (factor.riskLabel) {
-        com.unidagontor.retakid.data.risk.RiskLabel.RENDAH -> StatusAman
-        com.unidagontor.retakid.data.risk.RiskLabel.SEDANG -> StatusWaspada
-        com.unidagontor.retakid.data.risk.RiskLabel.TINGGI -> StatusBahaya
-        com.unidagontor.retakid.data.risk.RiskLabel.SANGAT_TINGGI -> StatusBahaya
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(factor.factor.displayName, fontSize = 13.sp, color = TextPrimary, modifier = Modifier.width(130.dp))
-
-        Text(factor.rawValue, fontSize = 13.sp, color = TextSecondary, modifier = Modifier.width(80.dp))
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(Divider)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(factor.score.toFloat().coerceIn(0f, 1f))
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(color)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(factor.riskLabel.emoji, fontSize = 12.sp)
-    }
-}
-
-@Composable
 fun ReportFormView(
-    location: com.unidagontor.retakid.data.location.LocationData?,
+    location    : com.unidagontor.retakid.data.location.LocationData?,
     isSubmitting: Boolean,
-    onSubmit: (String, String) -> Unit
+    onSubmit    : (String, String) -> Unit
 ) {
     var locName by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
+    var note    by remember { mutableStateOf("") }
+
+    // Warna input field mengikuti tema hijau
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor   = GreenPrimary,
+        unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+        focusedLabelColor    = GreenPrimary,
+        unfocusedLabelColor  = TextSecondary,
+        cursorColor          = GreenPrimary,
+        focusedLeadingIconColor   = GreenPrimary,
+        unfocusedLeadingIconColor = TextSecondary
+    )
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
     ) {
-        Text("Form Laporan", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = locName,
-            onValueChange = { locName = it },
-            label = { Text("Nama Lokasi") },
-            placeholder = { Text("Contoh: Lereng Utara RT 02") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = note,
-            onValueChange = { note = it },
-            label = { Text("Catatan Tambahan") },
-            placeholder = { Text("Ceritakan kondisi detail...") },
-            modifier = Modifier.fillMaxWidth().height(120.dp),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Surface(
-            color = GreenSurface,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth()
+        // ── Header ────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(GreenPrimary)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = GreenPrimary)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text("Lokasi Terdeteksi", fontSize = 12.sp, color = GreenPrimary, fontWeight = FontWeight.Bold)
-                    Text(
-                        if (location != null) "${location.latitude}, ${location.longitude}" else "Mendeteksi lokasi...",
-                        fontSize = 14.sp,
-                        color = TextPrimary
-                    )
-                }
+            Column {
+                Text(
+                    "Form Laporan",
+                    fontSize   = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White
+                )
+                Text(
+                    "Isi data lokasi dan kondisi retakan",
+                    fontSize = 13.sp,
+                    color    = Color.White.copy(alpha = 0.8f)
+                )
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(32.dp))
+        // ── Body ──────────────────────────────────────────────────
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
 
-        Button(
-            onClick = { onSubmit(locName, note) },
-            modifier = Modifier.fillMaxWidth().height(54.dp),
-            enabled = !isSubmitting && locName.isNotEmpty(),
-            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            if (isSubmitting) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-            } else {
-                Text("Kirim Laporan", fontWeight = FontWeight.Bold)
+            // Lokasi GPS
+            Surface(
+                color    = GreenSurface,
+                shape    = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier          = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Lokasi GPS", fontSize = 11.sp, color = GreenPrimary, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text     = if (location != null)
+                                "%.5f, %.5f".format(location.latitude, location.longitude)
+                            else "Mendeteksi lokasi...",
+                            fontSize = 13.sp,
+                            color    = TextPrimary
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Nama Lokasi
+            OutlinedTextField(
+                value         = locName,
+                onValueChange = { locName = it },
+                label         = { Text("Nama Lokasi *") },
+                placeholder   = { Text("Contoh: Lereng Utara RT 02") },
+                leadingIcon   = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                colors        = fieldColors,
+                modifier      = Modifier.fillMaxWidth(),
+                shape         = RoundedCornerShape(12.dp),
+                singleLine    = true
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Catatan
+            OutlinedTextField(
+                value         = note,
+                onValueChange = { note = it },
+                label         = { Text("Catatan Tambahan") },
+                placeholder   = { Text("Ceritakan kondisi retakan secara detail...") },
+                leadingIcon   = { Icon(Icons.Default.Edit, contentDescription = null) },
+                colors        = fieldColors,
+                modifier      = Modifier.fillMaxWidth().height(130.dp),
+                shape         = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Tombol kirim
+            Button(
+                onClick  = { onSubmit(locName, note) },
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                enabled  = !isSubmitting && locName.isNotEmpty(),
+                colors   = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                shape    = RoundedCornerShape(12.dp)
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Mengirim...", color = Color.White, fontWeight = FontWeight.Bold)
+                } else {
+                    Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Kirim Laporan", color = Color.White, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
