@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,11 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage              // tambahkan: implementation("io.coil-kt:coil-compose:2.7.0")
+import com.unidagontor.retakid.data.notification.NotifStore
 import com.unidagontor.retakid.ui.theme.*
 import com.unidagontor.retakid.ui.viewmodel.BerandaViewModel
 
@@ -36,12 +39,17 @@ data class LaporanItem(
 
 // ─── Beranda Tab ──────────────────────────────────────────────
 @Composable
-fun BerandaTab(viewModel: BerandaViewModel = viewModel()) {
+fun BerandaTab(
+    viewModel    : BerandaViewModel = viewModel(),
+    onNotifClick : () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val notifCount = remember { NotifStore.getAll(context).size }
 
     Column(modifier = Modifier.fillMaxSize().background(Surface)) {
 
-        BerandaHeader()
+        BerandaHeader(notifCount = notifCount, onNotifClick = onNotifClick)
         StatsSummaryRow(laporan = uiState.laporanList)
 
         uiState.error?.let {
@@ -97,9 +105,9 @@ fun BerandaTab(viewModel: BerandaViewModel = viewModel()) {
     }
 }
 
-// ─── Header ───────────────────────────────────────────────────
+// ─── Header ──────────────────────────────────────────────
 @Composable
-fun BerandaHeader() {
+fun BerandaHeader(notifCount: Int = 0, onNotifClick: () -> Unit = {}) {
     Row(
         modifier              = Modifier
             .fillMaxWidth()
@@ -112,8 +120,29 @@ fun BerandaHeader() {
             Text("Retak.id", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
             Text("Jenangan, Ponorogo", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
         }
-        IconButton(onClick = { /* buka notifikasi */ }) {
-            Icon(Icons.Default.Notifications, contentDescription = "Notifikasi", tint = Color.White)
+        // Tombol notifikasi dengan badge merah jika ada notif bahaya
+        Box {
+            IconButton(onClick = onNotifClick) {
+                Icon(Icons.Default.Notifications, contentDescription = "Notifikasi", tint = Color.White)
+            }
+            if (notifCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 6.dp, end = 6.dp)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFF3B30)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (notifCount > 9) "9+" else notifCount.toString(),
+                        fontSize   = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White
+                    )
+                }
+            }
         }
     }
 }
@@ -167,39 +196,37 @@ fun LaporanCard(laporan: LaporanItem, onKonfirmasi: () -> Unit) {
         colors    = CardDefaults.cardColors(containerColor = CardBg),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            // Garis warna status di sisi kiri
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(statusColor)
-            )
+        Column {
+            // ── Foto (full width di atas) ──────────────────────────
+            laporan.fotoUrl?.let { url ->
+                AsyncImage(
+                    model              = url,
+                    contentDescription = "Foto laporan",
+                    contentScale       = ContentScale.Crop,
+                    modifier           = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                )
+            }
 
-            // ── Konten utama ──────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                // Thumbnail foto kecil di sisi kiri (jika ada)
-                laporan.fotoUrl?.let { url ->
-                    AsyncImage(
-                        model              = url,
-                        contentDescription = "Foto laporan",
-                        contentScale       = ContentScale.Crop,
-                        modifier           = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
+            // ── Garis status + konten ──────────────────────────────
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                // Garis warna status di sisi kiri
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(statusColor)
+                )
 
-                // Teks & info di sisi kanan
-                Column(modifier = Modifier.weight(1f)) {
-
-                    // Lokasi + badge status
+                // Konten teks
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    // Baris 1: Lokasi + Badge status
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -225,10 +252,11 @@ fun LaporanCard(laporan: LaporanItem, onKonfirmasi: () -> Unit) {
                                 overflow   = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         StatusBadge(status = laporan.status, bg = statusBg, color = statusColor)
                     }
 
+                    // Baris 2: Catatan
                     if (laporan.catatan.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -240,34 +268,63 @@ fun LaporanCard(laporan: LaporanItem, onKonfirmasi: () -> Unit) {
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Pelapor + waktu + tombol konfirmasi
+                    // Baris 3: Pelapor + Waktu | Tombol konfirmasi
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
+                        // Info pelapor & waktu
+                        Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(12.dp))
-                                Text(" ${laporan.pelapor}", fontSize = 11.sp, color = TextSecondary)
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint     = TextSecondary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    laporan.pelapor,
+                                    fontSize = 11.sp,
+                                    color    = TextSecondary,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
                             }
+                            Spacer(modifier = Modifier.height(1.dp))
                             Text(laporan.timestamp, fontSize = 11.sp, color = TextSecondary)
                         }
 
-                        // Tombol konfirmasi
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Tombol konfirmasi — lebar cukup, teks tidak wrap
                         Surface(
                             onClick = onKonfirmasi,
                             color   = GreenSurface,
-                            shape   = RoundedCornerShape(50)
+                            shape   = RoundedCornerShape(50.dp)
                         ) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier          = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier              = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = GreenPrimary, modifier = Modifier.size(12.dp))
-                                Text(" ${laporan.terverifikasi} konfirmasi", fontSize = 10.sp, color = GreenPrimary)
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint     = GreenPrimary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "${laporan.terverifikasi} konfirmasi",
+                                    fontSize   = 11.sp,
+                                    color      = GreenPrimary,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines   = 1
+                                )
                             }
                         }
                     }

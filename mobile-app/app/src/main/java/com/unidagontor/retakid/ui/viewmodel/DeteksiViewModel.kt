@@ -4,10 +4,17 @@ import android.app.Application
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.unidagontor.retakid.data.analysis.CombinedAnalysisEngine
+import com.unidagontor.retakid.data.analysis.CombinedAnalysisResult
+import com.unidagontor.retakid.data.analysis.DataFetchStatus
 import com.unidagontor.retakid.data.location.LocationData
 import com.unidagontor.retakid.data.location.LocationService
 import com.unidagontor.retakid.data.ml.DetectionResult
-import com.unidagontor.retakid.data.ml.TFLiteMLAnalyzer
+import com.unidagontor.retakid.data.offline.NetworkMonitor
+import com.unidagontor.retakid.data.offline.OfflineQueue
+import com.unidagontor.retakid.data.offline.PendingLaporan
+import com.unidagontor.retakid.data.offline.SyncLaporanWorker
+import com.unidagontor.retakid.data.risk.RiskFactorReport
 import com.unidagontor.retakid.data.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -22,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.UUID
 
 enum class DeteksiStage {
@@ -29,13 +37,18 @@ enum class DeteksiStage {
 }
 
 data class DeteksiState(
-    val stage           : DeteksiStage     = DeteksiStage.INITIAL,
-    val capturedImage   : Bitmap?          = null,
-    val detectionResult : DetectionResult? = null,
-    val location        : LocationData?    = null,
-    val isSubmitting    : Boolean          = false,
-    val uploadProgress  : Float            = 0f,
-    val error           : String?          = null
+    val stage              : DeteksiStage          = DeteksiStage.INITIAL,
+    val capturedImage      : Bitmap?               = null,
+    val detectionResult    : DetectionResult?      = null,
+    val location           : LocationData?         = null,
+    val isSubmitting       : Boolean               = false,
+    val uploadProgress     : Float                 = 0f,
+    val error              : String?               = null,
+    val combinedResult     : CombinedAnalysisResult? = null,
+    val riskReport         : RiskFactorReport?     = null,
+    val dataStatus         : DataFetchStatus?      = null,
+    val isAnalyzingContext : Boolean               = false,
+    val sentOffline        : Boolean               = false   // laporan disimpan lokal, belum online
 )
 
 @Serializable
@@ -56,7 +69,7 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(DeteksiState())
     val uiState: StateFlow<DeteksiState> = _uiState.asStateFlow()
 
-    private val mlAnalyzer      = TFLiteMLAnalyzer(application)
+    private val combinedEngine  = CombinedAnalysisEngine(application)
     private val locationService = LocationService(application)
 
     fun startDetection() {
@@ -71,26 +84,48 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
     private fun analyzeImage(bitmap: Bitmap) {
         viewModelScope.launch {
             try {
-                val result = mlAnalyzer.analyzeImage(bitmap)
-                _uiState.update { it.copy(detectionResult = result, stage = DeteksiStage.RESULT) }
+                // Tandai sedang mengambil data konteks lingkungan
+                _uiState.update { it.copy(isAnalyzingContext = true) }
+
+                // Ambil lokasi lebih dulu (dibutuhkan oleh engine)
+                val location = locationService.getCurrentLocation()
+                _uiState.update { it.copy(location = location) }
+
+                val lat = location?.latitude  ?: -7.8717
+                val lon = location?.longitude ?: 111.4638
+
+                // Jalankan analisis gabungan: ML + cuaca + elevasi + lereng + tanah
+                val combined = combinedEngine.analyze(
+                    bitmap    = bitmap,
+                    latitude  = lat,
+                    longitude = lon
+                )
+
+                _uiState.update {
+                    it.copy(
+                        detectionResult    = combined.riskReport.finalResult,
+                        combinedResult     = combined,
+                        riskReport         = combined.riskReport,
+                        dataStatus         = combined.dataStatus,
+                        isAnalyzingContext = false,
+                        stage              = DeteksiStage.RESULT
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(error = "Gagal menganalisis gambar: ${e.message}", stage = DeteksiStage.INITIAL)
+                    it.copy(
+                        isAnalyzingContext = false,
+                        error = "Gagal menganalisis: ${e.message}",
+                        stage = DeteksiStage.INITIAL
+                    )
                 }
             }
         }
     }
 
     fun proceedToReport() {
+        // Lokasi sudah diambil saat analyzeImage, tidak perlu fetch lagi
         _uiState.update { it.copy(stage = DeteksiStage.REPORT_FORM) }
-        fetchLocation()
-    }
-
-    private fun fetchLocation() {
-        viewModelScope.launch {
-            val location = locationService.getCurrentLocation()
-            _uiState.update { it.copy(location = location) }
-        }
     }
 
     fun submitReport(namaLokasi: String, catatan: String) {
@@ -102,45 +137,68 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val supabase = SupabaseClient.client
-
-                // ── Ambil session dengan cara robust ─────────────────
-                // Dengan SettingsSessionManager di SupabaseClient,
-                // sesi tersimpan di SharedPreferences dan auto-load.
-                // loadFromStorage() sebagai fallback kalau belum ter-load.
-                val session = supabase.auth.currentSessionOrNull()
+                val session  = supabase.auth.currentSessionOrNull()
                     ?: run {
                         supabase.auth.loadFromStorage()
                         supabase.auth.currentSessionOrNull()
                     }
                     ?: throw Exception("Sesi berakhir, silakan login ulang.")
-
                 val user = session.user
-                    ?: throw Exception("Data user tidak tersedia, silakan login ulang.")
+                    ?: throw Exception("Data user tidak tersedia.")
 
-                // 1. Upload foto
-                val fotoUrl = state.capturedImage?.let { bitmap -> uploadFoto(bitmap) }
-
-                // 2. Pastikan lokasi tersedia
+                val isOnline = NetworkMonitor.isOnline(getApplication())
                 val finalLocation = state.location ?: locationService.getCurrentLocation()
 
-                // 3. Insert laporan
-                val laporan = LaporanInsert(
-                    userId     = user.id,
-                    namaLokasi = namaLokasi,
-                    status     = state.detectionResult.name,
-                    catatan    = catatan,
-                    latitude   = finalLocation?.latitude  ?: 0.0,
-                    longitude  = finalLocation?.longitude ?: 0.0,
-                    fotoUrl    = fotoUrl,
-                    pelapor    = user.email ?: "User",
-                )
+                if (isOnline) {
+                    // ── ONLINE: kirim langsung ke Supabase ────────────────────────
+                    val fotoUrl = state.capturedImage?.let { uploadFoto(it) }
 
-                supabase.from("laporan").insert(laporan)
+                    supabase.from("laporan").insert(
+                        LaporanInsert(
+                            userId     = user.id,
+                            namaLokasi = namaLokasi,
+                            status     = state.detectionResult.name,
+                            catatan    = catatan,
+                            latitude   = finalLocation?.latitude  ?: 0.0,
+                            longitude  = finalLocation?.longitude ?: 0.0,
+                            fotoUrl    = fotoUrl,
+                            pelapor    = user.email ?: "User"
+                        )
+                    )
+                    tambahPoin(user.id, poin = 10)
+                    _uiState.update { it.copy(isSubmitting = false, sentOffline = false, stage = DeteksiStage.SUCCESS) }
 
-                // 4. Tambah poin (+10 per laporan) via RPC
-                tambahPoin(user.id, poin = 10)
+                } else {
+                    // ── OFFLINE: simpan ke Room, jadwalkan sync ──────────────────
+                    // Simpan foto ke file lokal
+                    val fotoPath: String? = state.capturedImage?.let { bmp ->
+                        val file = File(getApplication<Application>().cacheDir, "pending_foto_${UUID.randomUUID()}.jpg")
+                        val out  = ByteArrayOutputStream()
+                        bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+                        file.writeBytes(out.toByteArray())
+                        file.absolutePath
+                    }
 
-                _uiState.update { it.copy(isSubmitting = false, stage = DeteksiStage.SUCCESS) }
+                    val db = OfflineQueue
+                    db.enqueue(
+                        getApplication(),
+                        PendingLaporan(
+                            userId     = user.id,
+                            namaLokasi = namaLokasi,
+                            status     = state.detectionResult.name,
+                            catatan    = catatan,
+                            latitude   = finalLocation?.latitude  ?: 0.0,
+                            longitude  = finalLocation?.longitude ?: 0.0,
+                            fotoPath   = fotoPath,
+                            pelapor    = user.email ?: "User"
+                        )
+                    )
+
+                    // Jadwalkan sync otomatis saat online
+                    SyncLaporanWorker.schedule(getApplication())
+
+                    _uiState.update { it.copy(isSubmitting = false, sentOffline = true, stage = DeteksiStage.SUCCESS) }
+                }
 
             } catch (e: Exception) {
                 _uiState.update {

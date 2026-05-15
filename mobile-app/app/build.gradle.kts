@@ -130,4 +130,11 @@ dependencies {
 
     // 2. Coroutines Play Services (Untuk menggunakan fungsi .await() pada Task)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
+
+    // ── Offline support ───────────────────────────────────────────────────────
+    // WorkManager (background sync saat kembali online)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Serialization JSON (queue laporan offline ke SharedPreferences)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }

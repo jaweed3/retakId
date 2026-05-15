@@ -23,8 +23,11 @@ import com.unidagontor.retakid.ui.viewmodel.ProfilViewModel
 
 @Composable
 fun ProfilScreen(
-    onLogout: () -> Unit,
-    viewModel: ProfilViewModel = viewModel()
+    onLogout     : () -> Unit,
+    onRiwayat    : () -> Unit = {},
+    onPanduan    : () -> Unit = {},
+    onPengaturan : () -> Unit = {},
+    viewModel    : ProfilViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -130,19 +133,19 @@ fun ProfilScreen(
                 icon     = Icons.Default.History,
                 title    = "Riwayat Laporan",
                 subtitle = "Foto & status laporan lama",
-                onClick  = { /* Todo: Navigasi ke Riwayat */ }
+                onClick  = onRiwayat
             )
             MenuListItem(
                 icon     = Icons.Default.MenuBook,
                 title    = "Panduan Kearifan Lokal",
                 subtitle = "Tanda alam & akses offline",
-                onClick  = { /* Todo: Navigasi ke Panduan */ }
+                onClick  = onPanduan
             )
             MenuListItem(
                 icon     = Icons.Default.Settings,
                 title    = "Pengaturan",
                 subtitle = "Notifikasi & preferensi akun",
-                onClick  = { /* Todo: Navigasi ke Pengaturan */ }
+                onClick  = onPengaturan
             )
 
             Spacer(modifier = Modifier.weight(1f))

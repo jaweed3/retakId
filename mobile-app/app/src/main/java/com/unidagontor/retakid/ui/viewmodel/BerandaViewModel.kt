@@ -71,6 +71,9 @@ class BerandaViewModel : ViewModel() {
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
+                // Urutan prioritas status: BAHAYA (0) → WASPADA (1) → AMAN (2)
+                val statusOrder = mapOf("BAHAYA" to 0, "WASPADA" to 1, "AMAN" to 2)
+
                 val list = SupabaseClient.client
                     .from("laporan")
                     .select {
@@ -78,6 +81,10 @@ class BerandaViewModel : ViewModel() {
                         limit(50)                               // ambil 50 terbaru
                     }
                     .decodeList<LaporanDto>()
+                    .sortedWith(
+                        compareBy<LaporanDto> { statusOrder[it.status] ?: 3 }  // BAHAYA → WASPADA → AMAN
+                            .thenByDescending { it.createdAt }                  // dalam tiap grup: terbaru dulu
+                    )
                     .map { it.toLaporanItem() }
 
                 _uiState.update { it.copy(laporanList = list, isLoading = false) }
