@@ -101,14 +101,30 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
                     longitude = lon
                 )
 
-                _uiState.update {
-                    it.copy(
-                        detectionResult    = combined.riskReport.finalResult,
-                        combinedResult     = combined,
-                        riskReport         = combined.riskReport,
-                        dataStatus         = combined.dataStatus,
-                        isAnalyzingContext = false,
-                        stage              = DeteksiStage.RESULT
+            val lat = location.latitude
+            val lon = location.longitude
+
+            withTimeoutOrNull(5000L) {
+                coroutineScope {
+                    val elevationDeferred = async { ElevationService.getElevation(lat, lon) }
+                    val weatherDeferred = async { WeatherApiService.getCurrentWeather(lat, lon).getOrNull() }
+                    val soilDeferred = async { SoilTypeService.getSoilType(lat, lon) }
+
+                    val elevation = elevationDeferred.await()
+                    val weather = weatherDeferred.await()
+                    val soil = soilDeferred.await()
+
+                    val slope = if (elevation != null) {
+                        SlopeCalculator.calculateSlope(lat, lon)
+                    } else null
+
+                    MultiFactorRiskEngine.analyze(
+                        mlResult = mlResult.detectionResult,
+                        mlConfidence = mlResult.confidence,
+                        slopeDegrees = slope?.degrees,
+                        rainMm = weather?.rain,
+                        elevationMeters = elevation?.elevationMeters,
+                        soilType = soil
                     )
                 }
             } catch (e: Exception) {
@@ -149,55 +165,32 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
                 val isOnline = NetworkMonitor.isOnline(getApplication())
                 val finalLocation = state.location ?: locationService.getCurrentLocation()
 
-                if (isOnline) {
-                    // ── ONLINE: kirim langsung ke Supabase ────────────────────────
-                    val fotoUrl = state.capturedImage?.let { uploadFoto(it) }
+                val json = org.json.JSONObject().apply {
+                    put("nama_lokasi", namaLokasi)
+                    put("status", finalResult.name)
+                    put("catatan", catatan)
+                    put("latitude", finalLocation?.latitude ?: 0.0)
+                    put("longitude", finalLocation?.longitude ?: 0.0)
+                    put("pelapor", "User")
+                    put("terverifikasi", 0)
+                }.toString()
 
-                    supabase.from("laporan").insert(
-                        LaporanInsert(
-                            userId     = user.id,
-                            namaLokasi = namaLokasi,
-                            status     = state.detectionResult.name,
-                            catatan    = catatan,
-                            latitude   = finalLocation?.latitude  ?: 0.0,
-                            longitude  = finalLocation?.longitude ?: 0.0,
-                            fotoUrl    = fotoUrl,
-                            pelapor    = user.email ?: "User"
-                        )
-                    )
-                    tambahPoin(user.id, poin = 10)
-                    _uiState.update { it.copy(isSubmitting = false, sentOffline = false, stage = DeteksiStage.SUCCESS) }
-
-                } else {
-                    // ── OFFLINE: simpan ke Room, jadwalkan sync ──────────────────
-                    // Simpan foto ke file lokal
-                    val fotoPath: String? = state.capturedImage?.let { bmp ->
-                        val file = File(getApplication<Application>().cacheDir, "pending_foto_${UUID.randomUUID()}.jpg")
-                        val out  = ByteArrayOutputStream()
-                        bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
-                        file.writeBytes(out.toByteArray())
-                        file.absolutePath
+                withContext(Dispatchers.IO) {
+                    val url = URL("${com.unidagontor.retakid.BuildConfig.SUPABASE_URL}/rest/v1/laporan")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("apikey", com.unidagontor.retakid.BuildConfig.SUPABASE_ANON_KEY)
+                    conn.setRequestProperty("Authorization", "Bearer ${com.unidagontor.retakid.BuildConfig.SUPABASE_ANON_KEY}")
+                    conn.doOutput = true
+                    conn.connectTimeout = 15_000
+                    conn.readTimeout = 15_000
+                    conn.outputStream.use { it.write(json.toByteArray()) }
+                    val code = conn.responseCode
+                    if (code !in 200..299) {
+                        val error = conn.errorStream?.bufferedReader()?.readText() ?: "Unknown"
+                        throw RuntimeException("HTTP $code: $error")
                     }
-
-                    val db = OfflineQueue
-                    db.enqueue(
-                        getApplication(),
-                        PendingLaporan(
-                            userId     = user.id,
-                            namaLokasi = namaLokasi,
-                            status     = state.detectionResult.name,
-                            catatan    = catatan,
-                            latitude   = finalLocation?.latitude  ?: 0.0,
-                            longitude  = finalLocation?.longitude ?: 0.0,
-                            fotoPath   = fotoPath,
-                            pelapor    = user.email ?: "User"
-                        )
-                    )
-
-                    // Jadwalkan sync otomatis saat online
-                    SyncLaporanWorker.schedule(getApplication())
-
-                    _uiState.update { it.copy(isSubmitting = false, sentOffline = true, stage = DeteksiStage.SUCCESS) }
                 }
 
             } catch (e: Exception) {

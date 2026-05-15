@@ -169,6 +169,14 @@ def main():
         logger.warning("No changes detected. Nothing to deploy.")
         sys.exit(0)
 
+    if stats["savings_vs_full"] < 50:
+        logger.warning(
+            f"Delta only saves {stats['savings_vs_full']}% — "
+            "too large for delta. Deploying full model only."
+        )
+        # Reset delta path — edge function will return full_url
+        delta_path = None
+
     if args.dry_run:
         logger.info("Dry-run — stopping here.")
         sys.exit(0)
@@ -180,7 +188,8 @@ def main():
     if args.no_upload or not supabase_url or not supabase_key:
         logger.info("─" * 50)
         logger.info("STEP 2: Skipping upload (--no-upload or missing env vars)")
-        logger.info(f"  Delta saved locally: {delta_path}")
+        if delta_path:
+            logger.info(f"  Delta saved locally: {delta_path}")
         logger.info("  To upload later:")
         logger.info(
             f"    SUPABASE_URL=... SUPABASE_SERVICE_KEY=... {sys.argv[0]} --old {args.old} --new {args.new} --version {version}"
@@ -192,14 +201,20 @@ def main():
     logger.info("STEP 2: Uploading to Supabase Storage…")
     logger.info("─" * 50)
 
-    # Upload delta
-    storage_delta_path = f"{version}/{delta_name}"
-    upload_to_supabase(
-        str(delta_path),
-        storage_delta_path,
-        supabase_url,
-        supabase_key,
-    )
+    # Upload delta (if it was computed)
+    storage_delta_path = None
+    delta_size = None
+    if delta_path and delta_path.exists():
+        storage_delta_path = f"{version}/{delta_name}"
+        upload_to_supabase(
+            str(delta_path),
+            storage_delta_path,
+            supabase_url,
+            supabase_key,
+        )
+        delta_size = stats["compressed_delta_size"]
+    else:
+        logger.info("  No delta file — full model only")
 
     # Upload full model as fallback
     full_storage_path = f"{version}/retak_mobilenetv2_{version}.tflite"
@@ -217,7 +232,7 @@ def main():
     register_version(
         version=version,
         model_size=stats["new_size"],
-        delta_size=stats["compressed_delta_size"],
+        delta_size=delta_size,
         delta_path=storage_delta_path,
         changelog=changelog,
         supabase_url=supabase_url,
@@ -228,12 +243,11 @@ def main():
     logger.info("✅ DEPLOY COMPLETE")
     logger.info("─" * 50)
     logger.info(f"  Version:       {version}")
-    logger.info(f"  Delta:         {stats['compressed_delta_size']:,} bytes")
+    if delta_size:
+        logger.info(f"  Delta:         {delta_size:,} bytes")
     logger.info(f"  Full model:    {stats['new_size']:,} bytes")
-    logger.info(f"  Savings:       {stats['savings_vs_full']}%")
-    logger.info(
-        f"  User downloads: {stats['compressed_delta_size']:,} bytes (instead of {stats['new_size']:,})"
-    )
+    if delta_size:
+        logger.info(f"  Savings:       {stats['savings_vs_full']}%")
     logger.info("─" * 50)
     logger.info("Android app will auto-detect update on next launch.")
 

@@ -49,17 +49,21 @@ object WeatherApiService {
     private const val LONGITUDE = 111.4638
     private const val TIMEZONE  = "Asia/Jakarta"
 
-    private val BASE_URL = buildString {
-        append("https://api.open-meteo.com/v1/forecast")
-        append("?latitude=$LATITUDE")
-        append("&longitude=$LONGITUDE")
-        append("&current=temperature_2m,relative_humidity_2m,precipitation,rain,weathercode,windspeed_10m")
-        append("&timezone=$TIMEZONE")
-    }
+    /** Jenangan default — used by Peta screen (legacy). */
+    suspend fun getCurrentWeather(): Result<WeatherData> =
+        getCurrentWeather(LATITUDE, LONGITUDE)
 
-    suspend fun getCurrentWeather(): Result<WeatherData> = withContext(Dispatchers.IO) {
+    /** Fetch weather for actual GPS coordinates. */
+    suspend fun getCurrentWeather(latitude: Double, longitude: Double): Result<WeatherData> = withContext(Dispatchers.IO) {
         runCatching {
-            val response = URL(BASE_URL).readText()
+            val url = buildString {
+                append("https://api.open-meteo.com/v1/forecast")
+                append("?latitude=$latitude")
+                append("&longitude=$longitude")
+                append("&current=temperature_2m,relative_humidity_2m,precipitation,rain,weathercode,windspeed_10m")
+                append("&timezone=$TIMEZONE")
+            }
+            val response = URL(url).readText()
             val json     = JSONObject(response)
             val current  = json.getJSONObject("current")
 
