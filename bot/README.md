@@ -10,12 +10,14 @@ Bot ini nge-scan foto retakan tanah dari Telegram, jalanin ML model buat klasifi
 
 | Fitur | Detail |
 |-------|--------|
-| **Foto → ML** | Kirim foto retakan tanah → langsung diklasifikasi pake MobileNetV2 |
-| **Lokasi opsional** | Kirim lokasi + foto → dapet analisis lingkungan tambahan |
+| **Wizard /lapor** | Step-by-step: foto → lokasi → review → simpan ke database |
+| **Foto → ML** | Foto retakan tanah diklasifikasi pake MobileNetV2 INT8 |
+| **Lokasi wajib** | User harus kirim lokasi — data lingkungan (cuaca, lereng, elevasi, tanah) diambil otomatis dari API |
 | **Multi-faktor** | ML (50%) + Lereng (20%) + Curah Hujan (15%) + Elevasi (10%) + Tanah (5%) |
-| **Sequential flow** | Bisa kirim foto dulu → nanti kirim lokasi, atau sebaliknya |
+| **Konfirmasi sebelum simpan** | User review laporan dulu → pilih Simpan / Ulangi / Batal |
 | **Rate limited** | Maks 10 request per 60 detik per user (bisa diatur) |
 | **Notifikasi admin** | Kalo hasil BAHAYA, admin dapet notif langsung |
+| **Tes diagnostik** | `/test` buat ngecek ML model + API lingkungan + risk engine |
 | **Supabase opsional** | Kalo gaada Supabase, bot tetep jalan (cuma ga nyimpen riwayat) |
 
 ---
@@ -86,21 +88,37 @@ Pilih bot lu, terus kirim:
 
 ```
 start - Mulai bot
+lapor - Laporkan retakan tanah
 health - Cek status bot
 stats - Statistik (admin only)
+test - Tes diagnostik sistem
+batal - Batalkan laporan
 ```
 
 ---
 
 ## 🧪 Cara Pake
 
-### A. Foto doang
+### Wizard /lapor (Rekomendasi)
 
-Kirim foto retakan tanah → bot jawab klasifikasi ML (AMAN / WASPADA / BAHAYA).
+Step-by-step:
 
-### B. Foto + Lokasi (Rekomendasi)
+1. Ketik `/lapor` buat mulai
+2. Kirim foto retakan tanah
+3. Kirim lokasi (tekan 📎 → Location → Kirim)
+4. Bot ambil data lingkungan otomatis
+5. Review hasil → tap tombol:
+   - **✅ Simpan** → upload foto ke Supabase + simpan laporan
+   - **🔄 Ulangi** → ulang dari foto
+   - **❌ Batal** → batalkan
 
-Kirim foto, trus kirim lokasi (pake fitur attach location di Telegram). Atau kirim lokasi dulu baru foto. Bot bakal ngumpulin data lingkungan dan ngasih laporan risiko lengkap.
+### Laporan Cepat (Tanpa Simpan)
+
+Kirim foto aja → bot jawab hasil ML tanpa lingkungan, tanpa simpan.
+
+### Tes Diagnostik
+
+Ketik `/test` buat ngecek semua komponen sekaligus.
 
 Contoh laporan lengkap:
 
@@ -122,20 +140,27 @@ Skor Risiko: 0.74
 ## 🏗️ Arsitektur (Buat yang Penasaran)
 
 ```
-Telegram → bot/src/main.py
-               ├── handlers/photo.py    — proses foto → ML → risk
-               ├── handlers/location.py — lokasi + gabung ML pending
-               ├── handlers/start.py    — /start
-               ├── handlers/admin.py    — /stats /health
+Telegram → bot/src/main.py → ConversationHandler (group=0)
+               │
+               ├── /lapor → handlers/lapor.py
+               │      ├── PHOTO state   → ML inference
+               │      ├── LOCATION state → gather 4 API paralel
+               │      └── CONFIRM state  → simpan / ulang / batal
+               │
+               ├── /start  → handlers/start.py
+               ├── /stats  → handlers/admin.py (admin only)
+               ├── /health → handlers/admin.py
+               ├── /test   → handlers/admin.py (diagnostik)
+               │
                ├── handlers/error_handler.py — catch all errors
-               ├── ml/inference.py      — TFLite + softmax
-               ├── risk/engine.py       — MultiFactorRiskEngine
-               ├── services/weather.py  → Open-Meteo API
-               ├── services/elevation.py → Open-Meteo API
-               ├── services/slope.py    → Open-Meteo 4-point
-               ├── services/soil.py     → ISRIC SoilGrids
-               ├── services/supabase.py → Supabase Storage + DB
-               └── middleware/rate_limit.py — anti spam
+               ├── ml/inference.py           — TFLite INT8 + softmax
+               ├── risk/engine.py            — MultiFactorRiskEngine
+               ├── services/weather.py       → Open-Meteo API
+               ├── services/elevation.py     → Open-Meteo API
+               ├── services/slope.py         → Open-Meteo 4-point
+               ├── services/soil.py          → ISRIC SoilGrids
+               ├── services/supabase.py      → Supabase Storage + DB
+               └── middleware/rate_limit.py  — anti spam
 ```
 
 ---

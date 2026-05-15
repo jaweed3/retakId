@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Camera, MapPin, BarChart3, Shield, Sparkles } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ClipboardList, MapPin, BarChart3, Shield, Sparkles } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 const STEPS = [
@@ -12,13 +12,14 @@ const STEPS = [
       'berbasis kecerdasan buatan dan data lingkungan.',
   },
   {
-    icon: Camera,
-    title: 'Laporkan Retakan Tanah',
+    icon: ClipboardList,
+    title: 'Cara Laporkan di Web',
     description:
-      'Ambil foto retakan tanah di sekitar Anda. ' +
-      'Pastikan pencahayaan cukup, foto dari jarak ~1 meter, ' +
-      'dan hindari bayangan atau silau. ' +
-      'Sertakan lokasi untuk analisis yang lebih akurat.',
+      '1. Buka halaman Laporan → klik "Laporkan Baru"\n' +
+      '2. Upload foto retakan tanah\n' +
+      '3. Sistem otomatis deteksi tingkat bahaya via AI\n' +
+      '4. Pilih lokasi (dari GPS foto atau pilih manual)\n' +
+      '5. Isi detail laporan & kirim',
   },
   {
     icon: MapPin,
