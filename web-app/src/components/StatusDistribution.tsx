@@ -54,16 +54,16 @@ export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusD
   return (
     <div className="rounded-2xl bg-card dark:bg-black border border-divider dark:border-white/10 p-5 sm:p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-2">Distribusi Status</h3>
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={240}>
         <PieChart>
-          <Pie data={chartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+          <Pie data={chartData} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
             {chartData.map((entry) => (
               <Cell key={entry.name} fill={entry.fill} stroke="var(--color-card)" strokeWidth={2} />
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            wrapperStyle={{ fontSize: 12, color: 'var(--color-text-secondary)' }}
+            wrapperStyle={{ fontSize: 12, color: 'var(--color-text-secondary)', paddingTop: 4 }}
             formatter={(v: string) => <span style={{ color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>{v}</span>}
           />
         </PieChart>
