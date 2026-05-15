@@ -274,7 +274,7 @@ export function AdminDashboardPage() {
             <div className="rounded-xl border border-divider overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs sm:text-sm">
-                  <thead><tr className="bg-divider/20">
+                  <thead><tr className="bg-black/10 dark:bg-white/10">
                     <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Status</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Lokasi</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider hidden sm:table-cell">Pelapor</th>
