@@ -244,7 +244,7 @@ export function EdukasiPage() {
       <SectionDivider variant="wave" />
 
       {/* ── Cara Melapor ── */}
-      <section className="bg-card py-16 sm:py-20 lg:py-24">
+      <section id="cara-melapor" className="bg-card py-16 sm:py-20 lg:py-24">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10">
           <ScrollReveal>
             <div className="text-center mb-10 sm:mb-14">
@@ -260,7 +260,7 @@ export function EdukasiPage() {
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Android */}
             <ScrollReveal delay={100}>
-              <div className="group rounded-2xl bg-surface border border-divider p-6 sm:p-8 transition-all duration-300 hover:shadow-lg hover:border-primary/20">
+              <div id="install-android" className="group rounded-2xl bg-surface border border-divider p-6 sm:p-8 transition-all duration-300 hover:shadow-lg hover:border-primary/20">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-surface transition-colors group-hover:bg-primary/15">
                     <Smartphone className="h-7 w-7 text-primary" />

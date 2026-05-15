@@ -26,6 +26,18 @@ logger = logging.getLogger(__name__)
 
 PHOTO, LOCATION, CONFIRM = range(3)
 
+SAVE_KEYWORDS = ("simpan", "save", "ya", "y", "yes", "ok", "oke", "oké")
+RETRY_KEYWORDS = ("ulangi", "ulang", "retry", "ulang lagi", "coba lagi", "reset")
+CANCEL_KEYWORDS = ("batal", "cancel", "tidak", "no", "n", "nggak", "gak", "batalkan")
+
+
+def _match_keyword(text: str, keywords: tuple[str, ...]) -> bool:
+    t = text.strip().lower()
+    for kw in keywords:
+        if kw in t:
+            return True
+    return False
+
 
 async def lapor_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_markdown(
@@ -160,114 +172,10 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def handle_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = update.message.text.strip()
 
-    if "Simpan" in text:
-        await update.message.reply_text(
-            "Menyimpan laporan...", reply_markup=ReplyKeyboardRemove()
-        )
+    if _match_keyword(text, SAVE_KEYWORDS):
+        return await _save_report(update, context)
 
-        ml = context.user_data["ml_result"]
-        env = context.user_data["env_data"]
-        report = context.user_data["report"]
-        lat = context.user_data["lat"]
-        lon = context.user_data["lon"]
-        photo_bytes = context.user_data.get("photo_bytes")
-        user = update.effective_user
-
-        name = "?"
-        user_id = 0
-        if user:
-            name = user.username or f"{user.first_name or ''} {user.last_name or ''}".strip()
-            user_id = user.id
-        pelapor_str = f"@{name}" if name and name != "?" else f"tg:{user_id}"
-
-        context.bot_data["total_analyses"] = context.bot_data.get("total_analyses", 0) + 1
-
-        if report.final_label == "BAHAYA":
-            chat_id = context.bot_data.get("admin_chat_id", "")
-            if chat_id:
-                try:
-                    await context.bot.send_message(
-                        chat_id=int(chat_id),
-                        text=(
-                            "🚨 *LAPORAN BAHAYA* 🚨\n\n"
-                            f"Pelapor: {pelapor_str}\n"
-                            f"Skor Risiko: {report.final_score:.2f}\n"
-                            f"Koordinat: {lat:.6f}, {lon:.6f}"
-                        ),
-                        parse_mode="Markdown",
-                    )
-                except Exception as e:
-                    logger.warning("Admin notification failed: %s", e)
-
-        supabase_url = context.bot_data.get("supabase_url", "")
-        service_key = context.bot_data.get("supabase_service_key", "")
-
-        if not supabase_url or not service_key:
-            await update.message.reply_markdown(
-                f"{EMOJI.get(report.final_label, '✅')} *Analisis selesai!*\n\n"
-                "ℹ️ Laporan tidak disimpan ke database (Supabase tidak dikonfigurasi).\n"
-                "Hasil ini hanya untuk informasi pribadi."
-            )
-            logger.debug("Supabase not configured, report not saved")
-            context.user_data.clear()
-            return ConversationHandler.END
-
-        ts = str(int(time.time()))
-        foto_url = None
-        if photo_bytes:
-            foto_url = await upload_photo(supabase_url, service_key, photo_bytes, user_id, ts)
-
-        catatan = {
-            "source": "telegram",
-            "telegram_user_id": user_id,
-            "ml_label": ml["label"],
-            "ml_confidence": round(ml["confidence"], 4),
-            "ml_probabilities": [round(p, 4) for p in ml.get("probabilities", [])],
-            "final_score": round(report.final_score, 4),
-            "factors": [
-                {"name": f.name, "score": f.score, "weight": f.weight}
-                for f in report.factors
-            ],
-        }
-        s = env["slope_deg"]
-        w = env["weather"]
-        e = env["elevation_m"]
-        sl = env["soil"]
-        if s is not None:
-            catatan["slope_deg"] = round(s, 1)
-        if w and w.get("rain") is not None:
-            catatan["rain_mm"] = round(w["rain"], 1)
-        if e is not None:
-            catatan["elevation_m"] = round(e, 1)
-        if sl:
-            catatan["soil_code"] = sl.get("code")
-            catatan["soil_name"] = sl.get("name")
-
-        data = build_report_data(
-            lat=lat,
-            lon=lon,
-            pelapor=pelapor_str,
-            status=report.final_label,
-            foto_url=foto_url,
-            catatan=catatan,
-        )
-
-        ok = await insert_report(supabase_url, service_key, data)
-        if ok:
-            await update.message.reply_markdown(
-                f"{EMOJI.get(report.final_label, '✅')} *Laporan berhasil disimpan!*\n\n"
-                "Terima kasih atas partisipasi Anda."
-            )
-            logger.info("Report saved to Supabase: %s %s", report.final_label, pelapor_str)
-        else:
-            await update.message.reply_text(
-                "❌ Gagal menyimpan laporan ke database. Silakan coba lagi nanti."
-            )
-
-        context.user_data.clear()
-        return ConversationHandler.END
-
-    elif "Ulangi" in text:
+    elif _match_keyword(text, RETRY_KEYWORDS):
         await update.message.reply_text(
             "📸 Kirim ulang foto retakan tanah.",
             reply_markup=ReplyKeyboardRemove(),
@@ -286,6 +194,114 @@ async def handle_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         context.user_data.clear()
         return ConversationHandler.END
+
+
+async def _save_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "Menyimpan laporan...", reply_markup=ReplyKeyboardRemove()
+    )
+
+    ml = context.user_data["ml_result"]
+    env = context.user_data["env_data"]
+    report = context.user_data["report"]
+    lat = context.user_data["lat"]
+    lon = context.user_data["lon"]
+    photo_bytes = context.user_data.get("photo_bytes")
+    user = update.effective_user
+
+    name = "?"
+    user_id = 0
+    if user:
+        name = user.username or f"{user.first_name or ''} {user.last_name or ''}".strip()
+        user_id = user.id
+    pelapor_str = f"@{name}" if name and name != "?" else f"tg:{user_id}"
+
+    context.bot_data["total_analyses"] = context.bot_data.get("total_analyses", 0) + 1
+
+    if report.final_label == "BAHAYA":
+        chat_id = context.bot_data.get("admin_chat_id", "")
+        if chat_id:
+            try:
+                await context.bot.send_message(
+                    chat_id=int(chat_id),
+                    text=(
+                        "🚨 *LAPORAN BAHAYA* 🚨\n\n"
+                        f"Pelapor: {pelapor_str}\n"
+                        f"Skor Risiko: {report.final_score:.2f}\n"
+                        f"Koordinat: {lat:.6f}, {lon:.6f}"
+                    ),
+                    parse_mode="Markdown",
+                )
+            except Exception as e:
+                logger.warning("Admin notification failed: %s", e)
+
+    supabase_url = context.bot_data.get("supabase_url", "")
+    service_key = context.bot_data.get("supabase_service_key", "")
+
+    if not supabase_url or not service_key:
+        await update.message.reply_markdown(
+            f"{EMOJI.get(report.final_label, '✅')} *Analisis selesai!*\n\n"
+            "ℹ️ Laporan tidak disimpan ke database (Supabase tidak dikonfigurasi).\n"
+            "Hasil ini hanya untuk informasi pribadi."
+        )
+        logger.debug("Supabase not configured, report not saved")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    ts = str(int(time.time()))
+    foto_url = None
+    if photo_bytes:
+        foto_url = await upload_photo(supabase_url, service_key, photo_bytes, user_id, ts)
+
+    catatan = {
+        "source": "telegram",
+        "telegram_user_id": user_id,
+        "ml_label": ml["label"],
+        "ml_confidence": round(ml["confidence"], 4),
+        "ml_probabilities": [round(p, 4) for p in ml.get("probabilities", [])],
+        "final_score": round(report.final_score, 4),
+        "factors": [
+            {"name": f.name, "score": f.score, "weight": f.weight}
+            for f in report.factors
+        ],
+    }
+    s = env["slope_deg"]
+    w = env["weather"]
+    e = env["elevation_m"]
+    sl = env["soil"]
+    if s is not None:
+        catatan["slope_deg"] = round(s, 1)
+    if w and w.get("rain") is not None:
+        catatan["rain_mm"] = round(w["rain"], 1)
+    if e is not None:
+        catatan["elevation_m"] = round(e, 1)
+    if sl:
+        catatan["soil_code"] = sl.get("code")
+        catatan["soil_name"] = sl.get("name")
+
+    data = build_report_data(
+        lat=lat,
+        lon=lon,
+        pelapor=pelapor_str,
+        status=report.final_label,
+        foto_url=foto_url,
+        catatan=catatan,
+    )
+
+    ok = await insert_report(supabase_url, service_key, data)
+    if ok:
+        await update.message.reply_markdown(
+            f"{EMOJI.get(report.final_label, '✅')} *Laporan berhasil disimpan!*\n\n"
+            "Terima kasih atas partisipasi Anda."
+        )
+        logger.info("Report saved to Supabase: %s %s", report.final_label, pelapor_str)
+    else:
+        await update.message.reply_text(
+            "❌ Gagal menyimpan laporan ke database. Silakan coba lagi nanti."
+        )
+
+    context.user_data.clear()
+    return ConversationHandler.END
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -315,7 +331,8 @@ async def _wrong_location(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def _wrong_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         "Tap salah satu tombol di bawah:\n"
-        "✅ Simpan / 🔄 Ulangi / ❌ Batal"
+        "✅ Simpan / 🔄 Ulangi / ❌ Batal\n\n"
+        "Atau ketik: Simpan, Ulangi, atau Batal"
     )
     return CONFIRM
 
@@ -335,11 +352,7 @@ def build_conversation_handler() -> ConversationHandler:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, _wrong_location),
             ],
             CONFIRM: [
-                MessageHandler(
-                    filters.Regex(r"^(✅ Simpan|🔄 Ulangi|❌ Batal)$"),
-                    handle_confirm,
-                ),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, _wrong_confirm),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirm),
             ],
         },
         fallbacks=[CommandHandler("batal", cancel)],

@@ -102,7 +102,7 @@ export function LandingPage() {
                   Download APK
                 </a>
                 <Link
-                  to="/edukasi"
+                  to="/edukasi#cara-melapor"
                   className="inline-flex items-center gap-2 rounded-xl bg-primary-surface px-5 py-2.5 text-sm font-semibold text-primary transition-all duration-200 hover:bg-primary/15 active:scale-[0.97]"
                 >
                   <Smartphone className="h-4 w-4" />
