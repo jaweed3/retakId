@@ -76,70 +76,100 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
   const fetchData = useCallback(async () => {
     if (!supabase) { setIsLoading(false); return; }
     const client = requireSupabase();
+
+    abortRef.current?.abort();
+    const abort = new AbortController();
+    abortRef.current = abort;
+
     setIsLoading(true); setError(null);
 
     const opts = { status, dateFrom, dateTo, resolvedFilter, limit, page };
 
     try {
-      // Main query
       let countOpts = opts;
       let query = buildQuery(client, opts);
       let result = await query;
 
-      // If is_resolved column doesn't exist, handle gracefully
       if (result.error && ((result.error.message || '').includes('is_resolved') || result.error.code === '42703')) {
-        // If filtering for resolved, return empty — nothing is resolved yet
         if (opts.resolvedFilter === 'resolved') {
-          setData([]);
-          setTotalCount(0);
-          setCounts(EMPTY_COUNTS);
-          setIsLoading(false);
+          if (!abort.signal.aborted) {
+            setData([]);
+            setTotalCount(0);
+            setCounts(EMPTY_COUNTS);
+            setIsLoading(false);
+          }
           return;
         }
-        // If filtering for active, retry without filter (all data is active)
         countOpts = { ...opts, resolvedFilter: 'all' as ResolvedFilter };
         result = await buildQuery(client, countOpts);
       }
 
       if (result.error) throw result.error;
-      setData((result.data || []).map(mapRow));
-      setTotalCount(result.count || 0);
 
-      // Count queries — use same fallback opts as main query
+      if (!abort.signal.aborted) {
+        setData((result.data || []).map(mapRow));
+        setTotalCount(result.count || 0);
+      }
+
       try {
         const results = await Promise.all([
           buildCountQuery(client, 'AMAN', countOpts),
           buildCountQuery(client, 'WASPADA', countOpts),
           buildCountQuery(client, 'BAHAYA', countOpts),
         ]);
-        const aman = results[0].count || 0;
-        const waspada = results[1].count || 0;
-        const bahaya = results[2].count || 0;
-        setCounts({ total: aman + waspada + bahaya, aman, waspada, bahaya });
+        if (!abort.signal.aborted) {
+          const aman = results[0].count || 0;
+          const waspada = results[1].count || 0;
+          const bahaya = results[2].count || 0;
+          setCounts({ total: aman + waspada + bahaya, aman, waspada, bahaya });
+        }
       } catch {
-        setCounts(EMPTY_COUNTS);
+        if (!abort.signal.aborted) setCounts(EMPTY_COUNTS);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat data');
+      if (!abort.signal.aborted) {
+        setError(err instanceof Error ? err.message : 'Gagal memuat data');
+      }
     } finally {
-      setIsLoading(false);
+      if (!abort.signal.aborted) setIsLoading(false);
     }
   }, [status, dateFrom, dateTo, resolvedFilter, limit, page]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchData();
+    return () => { mountedRef.current = false; abortRef.current?.abort(); };
+  }, [fetchData]);
 
   const fetchRef = useRef(fetchData); fetchRef.current = fetchData;
   const channelId = useRef(`laporan-rt-${Math.random().toString(36).slice(2, 8)}`);
   useEffect(() => {
     if (!supabase) return;
     const client = requireSupabase();
+    let reconnectTimer: ReturnType<typeof setTimeout>;
+
     const channel = client.channel(channelId.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'laporan' }, () => { fetchRef.current(); })
-      .subscribe();
-    return () => { client.removeChannel(channel); };
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'laporan' }, () => {
+        if (mountedRef.current) fetchRef.current();
+      })
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' && mountedRef.current) {
+          reconnectTimer = setTimeout(() => {
+            if (mountedRef.current) fetchRef.current();
+          }, 2000);
+        }
+      });
+
+    return () => {
+      clearTimeout(reconnectTimer);
+      client.removeChannel(channel);
+    };
   }, []);
 
   return { data, totalCount, counts, isLoading, error, refetch: fetchData };
