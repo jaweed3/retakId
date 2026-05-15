@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS riwayat_penanganan (
 -- ============================================================
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE riwayat_penanganan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE model_versions ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN

@@ -35,7 +35,8 @@ object DeltaModelLoader {
     private fun getDeltaFile(context: Context): File =
         File(context.cacheDir, DELTA_FILE)
 
-    private fun getVersionFile(context: Context): File =
+    /** Version tracking file in internal storage. */
+    fun getVersionFile(context: Context): File =
         File(context.filesDir, "$DELTA_DIR/$CACHE_VERSION_FILE")
 
     /** Returns true if a delta-updated model exists in internal storage. */
@@ -72,7 +73,7 @@ object DeltaModelLoader {
 
             // 2. Decompress and parse delta
             val deltaBytes = deltaFile.readBytes()
-            val decompressed = GZIPInputStream(deltaBytes.inputStream()).readBytes()
+            val decompressed = GZIPInputStream(deltaBytes.inputStream()).use { it.readBytes() }
 
             // 3. Verify magic
             val magic = decompressed.take(4).toByteArray()

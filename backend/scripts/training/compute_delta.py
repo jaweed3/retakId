@@ -26,6 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 RKD_MAGIC = b"RKD1"
+DELTA_DIR = "backend/models/delta"
 
 
 def find_changed_regions(old: bytes, new: bytes) -> list[tuple[int, int, bytes]]:
@@ -102,10 +103,13 @@ def build_delta(old_path: str, new_path: str, out_path: str | None = None) -> di
     }
 
     if out_path:
-        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
-        Path(out_path).write_bytes(compressed)
-        stats["delta_path"] = out_path
-        logger.info(f"Delta written: {out_path}  ({compressed_size:,} bytes)")
+        if stats["changed_regions"] == 0:
+            logger.info("No changes — skipping delta file write")
+        else:
+            Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(out_path).write_bytes(compressed)
+            stats["delta_path"] = out_path
+            logger.info(f"Delta written: {out_path}  ({compressed_size:,} bytes)")
 
     return stats
 

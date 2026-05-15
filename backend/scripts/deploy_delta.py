@@ -30,7 +30,12 @@ from pathlib import Path
 
 import requests
 
-from backend.scripts.training.compute_delta import build_delta, print_stats
+# Ensure project root is in path for sibling imports
+_project_root = Path(__file__).resolve().parent.parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+from backend.scripts.training.compute_delta import build_delta, print_stats  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

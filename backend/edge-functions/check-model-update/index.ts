@@ -20,8 +20,8 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const STORAGE_BUCKET = "model-deltas";
 
 interface CheckRequest {
@@ -30,6 +30,14 @@ interface CheckRequest {
 
 Deno.serve(async (req: Request) => {
   try {
+    // Validate env
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
     // Parse request
     const { current_version }: CheckRequest = await req.json();
     if (!current_version) {

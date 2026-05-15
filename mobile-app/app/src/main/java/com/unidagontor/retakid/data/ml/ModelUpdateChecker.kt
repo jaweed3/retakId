@@ -5,7 +5,6 @@ import com.unidagontor.retakid.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -105,11 +104,7 @@ object ModelUpdateChecker {
             }
             val buffer = java.nio.ByteBuffer.wrap(modelFile.readBytes())
             org.tensorflow.lite.Interpreter(buffer).close()
-            val versionFile = File(
-                context.filesDir,
-                "model_deltas/model_version.txt"
-            )
-            versionFile.writeText(version)
+            DeltaModelLoader.getVersionFile(context).writeText(version)
             true
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Full model download failed: ${e.message}", e)
