@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 PHOTO, LOCATION, CONFIRM = range(3)
 
-SAVE_KEYWORDS = ("simpan", "save", "ya", "y", "yes", "ok", "oke", "oké")
+SAVE_KEYWORDS = ("simpan", "save", "ya", "y", "yes", "ok", "oke", "oké", "iya")
 RETRY_KEYWORDS = ("ulangi", "ulang", "retry", "ulang lagi", "coba lagi", "reset")
 CANCEL_KEYWORDS = ("batal", "cancel", "tidak", "no", "n", "nggak", "gak", "batalkan")
 
