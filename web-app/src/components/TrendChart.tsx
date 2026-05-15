@@ -67,17 +67,17 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
       <div className="h-[220px] sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: -5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider)" strokeOpacity={0.5} />
-            <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} allowDecimals={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-text-secondary)" strokeOpacity={0.15} />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} axisLine={{ stroke: 'var(--color-divider)' }} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} axisLine={{ stroke: 'var(--color-divider)' }} allowDecimals={false} />
             <Tooltip content={<CustomTooltip />} />
             <Legend
-              wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-              formatter={(v: string) => <span className="text-text-secondary capitalize">{v}</span>}
+              wrapperStyle={{ fontSize: 12, paddingTop: 8, color: 'var(--color-text-secondary)' }}
+              formatter={(v: string) => <span style={{ color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>{v}</span>}
             />
-            <Line type="monotone" dataKey="aman" name="aman" stroke="#388E3C" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            <Line type="monotone" dataKey="waspada" name="waspada" stroke="#F57C00" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            <Line type="monotone" dataKey="bahaya" name="bahaya" stroke="#D32F2F" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line type="monotone" dataKey="aman" name="aman" stroke="var(--color-aman)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line type="monotone" dataKey="waspada" name="waspada" stroke="var(--color-waspada)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line type="monotone" dataKey="bahaya" name="bahaya" stroke="var(--color-bahaya)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>

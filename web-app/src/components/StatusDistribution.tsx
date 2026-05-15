@@ -7,7 +7,7 @@ interface StatusDistributionProps {
   isLoading?: boolean;
 }
 
-const COLORS = { aman: '#388E3C', waspada: '#F57C00', bahaya: '#D32F2F' };
+const COLOR_VARS = { aman: 'var(--color-aman)', waspada: 'var(--color-waspada)', bahaya: 'var(--color-bahaya)' };
 
 const CustomTooltip = ({ active, payload }: Record<string, unknown>) => {
   if (!active || !payload || !Array.isArray(payload)) return null;
@@ -46,9 +46,9 @@ export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusD
   }
 
   const chartData = [
-    { name: 'aman', value: aman, fill: COLORS.aman },
-    { name: 'waspada', value: waspada, fill: COLORS.waspada },
-    { name: 'bahaya', value: bahaya, fill: COLORS.bahaya },
+    { name: 'aman', value: aman, fill: COLOR_VARS.aman },
+    { name: 'waspada', value: waspada, fill: COLOR_VARS.waspada },
+    { name: 'bahaya', value: bahaya, fill: COLOR_VARS.bahaya },
   ];
 
   return (
@@ -63,8 +63,8 @@ export function StatusDistribution({ aman, waspada, bahaya, isLoading }: StatusD
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            wrapperStyle={{ fontSize: 12 }}
-            formatter={(v: string) => <span className="text-text-secondary capitalize">{v}</span>}
+            wrapperStyle={{ fontSize: 12, color: 'var(--color-text-secondary)' }}
+            formatter={(v: string) => <span style={{ color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>{v}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

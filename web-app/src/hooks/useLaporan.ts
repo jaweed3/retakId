@@ -50,7 +50,7 @@ function buildQuery(
   if (opts.status !== 'SEMUA') q = q.eq('status', opts.status);
   if (opts.dateFrom) q = q.gte('created_at', opts.dateFrom);
   if (opts.dateTo) q = q.lte('created_at', opts.dateTo);
-  if (opts.resolvedFilter === 'active') q = q.or('is_resolved.is.null,is_resolved.eq.false');
+  if (opts.resolvedFilter === 'active') q = q.not('is_resolved', 'is', 'true');
   else if (opts.resolvedFilter === 'resolved') q = q.eq('is_resolved', true);
   return q.range(opts.page * opts.limit, opts.page * opts.limit + opts.limit - 1);
 }
@@ -63,7 +63,7 @@ function buildCountQuery(
   let q = client.from('laporan').select('*', { count: 'exact', head: true }).eq('status', s);
   if (opts.dateFrom) q = q.gte('created_at', opts.dateFrom);
   if (opts.dateTo) q = q.lte('created_at', opts.dateTo);
-  if (opts.resolvedFilter === 'active') q = q.or('is_resolved.is.null,is_resolved.eq.false');
+  if (opts.resolvedFilter === 'active') q = q.not('is_resolved', 'is', 'true');
   else if (opts.resolvedFilter === 'resolved') q = q.eq('is_resolved', true);
   return q;
 }
@@ -85,25 +85,35 @@ export function useLaporan(options: UseLaporanOptions = {}): UseLaporanReturn {
 
     try {
       // Main query
+      let countOpts = opts;
       let query = buildQuery(client, opts);
       let result = await query;
 
-      // If is_resolved column doesn't exist, retry without filter
-      if (result.error && (result.error.message || '').includes('is_resolved')) {
-        const fallbackOpts = { ...opts, resolvedFilter: 'all' as ResolvedFilter };
-        result = await buildQuery(client, fallbackOpts);
+      // If is_resolved column doesn't exist, handle gracefully
+      if (result.error && ((result.error.message || '').includes('is_resolved') || result.error.code === '42703')) {
+        // If filtering for resolved, return empty — nothing is resolved yet
+        if (opts.resolvedFilter === 'resolved') {
+          setData([]);
+          setTotalCount(0);
+          setCounts(EMPTY_COUNTS);
+          setIsLoading(false);
+          return;
+        }
+        // If filtering for active, retry without filter (all data is active)
+        countOpts = { ...opts, resolvedFilter: 'all' as ResolvedFilter };
+        result = await buildQuery(client, countOpts);
       }
 
       if (result.error) throw result.error;
       setData((result.data || []).map(mapRow));
       setTotalCount(result.count || 0);
 
-      // Count queries
+      // Count queries — use same fallback opts as main query
       try {
         const results = await Promise.all([
-          buildCountQuery(client, 'AMAN', opts),
-          buildCountQuery(client, 'WASPADA', opts),
-          buildCountQuery(client, 'BAHAYA', opts),
+          buildCountQuery(client, 'AMAN', countOpts),
+          buildCountQuery(client, 'WASPADA', countOpts),
+          buildCountQuery(client, 'BAHAYA', countOpts),
         ]);
         const aman = results[0].count || 0;
         const waspada = results[1].count || 0;

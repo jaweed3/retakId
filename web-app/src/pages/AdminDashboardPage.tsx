@@ -48,6 +48,9 @@ function ActionsMenu({ report, onVerify, onEdit, onDelete, onResolve, disabled, 
               <ShieldCheck className="h-3.5 w-3.5" /> Verif. ML
             </button>
           )}
+          <button onClick={() => { onResolve(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-primary hover:bg-primary-surface transition-colors">
+            <CheckCircle className="h-3.5 w-3.5" /> {report.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}
+          </button>
           <button onClick={() => { onEdit(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-waspada hover:bg-waspada-bg transition-colors">
             <Pencil className="h-3.5 w-3.5" /> Edit
           </button>
@@ -240,14 +243,14 @@ export function AdminDashboardPage() {
           <div className="flex items-center gap-1.5 justify-between">
             <div className="flex gap-1.5">
               {[{ key: 'all' as const, label: 'Semua', short: 'Semua' }, { key: 'unverified' as const, label: 'Belum Verif', short: 'B.V' }, { key: 'verified' as const, label: 'Terverifikasi', short: 'T.V' }].map((opt) => (
-                <button key={opt.key} onClick={() => setFilterVerif(opt.key)} className={cn('rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-colors', filterVerif === opt.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30')}>
+                <button key={opt.key} onClick={() => setFilterVerif(opt.key)} className={cn('rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-colors', filterVerif === opt.key ? 'bg-primary text-white shadow-sm' : 'bg-black/5 dark:bg-white/10 text-text-secondary/60 hover:text-text-primary hover:bg-black/10 dark:hover:bg-white/15')}>
                   <span className="hidden sm:inline">{opt.label}</span><span className="sm:hidden">{opt.short}</span>
                 </button>
               ))}
             </div>
             <div className="flex rounded-lg border border-divider bg-surface p-0.5">
-              <button onClick={() => setViewMode('table')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'table' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary')}>Tabel</button>
-              <button onClick={() => setViewMode('card')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'card' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary')}>Card</button>
+              <button onClick={() => setViewMode('table')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'table' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary/40 hover:text-text-primary')}>Tabel</button>
+              <button onClick={() => setViewMode('card')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'card' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary/40 hover:text-text-primary')}>Card</button>
             </div>
           </div>
         </div>
@@ -257,7 +260,7 @@ export function AdminDashboardPage() {
           {[{ key: 'active' as ResolvedFilter, label: 'Aktif' }, { key: 'resolved' as ResolvedFilter, label: 'Teratasi' }].map((opt) => (
             <button key={opt.key} onClick={() => setAdminResolvedFilter(opt.key)}
               className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                adminResolvedFilter === opt.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30')}>
+                adminResolvedFilter === opt.key ? 'bg-primary text-white shadow-sm' : 'bg-black/5 dark:bg-white/10 text-text-secondary/60 hover:text-text-primary hover:bg-black/10 dark:hover:bg-white/15')}>
               {opt.label}
             </button>
           ))}
@@ -290,6 +293,7 @@ export function AdminDashboardPage() {
                         <td className="px-2 sm:px-3 py-2 sm:py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="hidden sm:flex items-center justify-end gap-1">
                             {!isVerified(r.id) && <button onClick={() => handleVerifyOpen(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi ML"><ShieldCheck className="h-4 w-4" /></button>}
+                            <button onClick={() => handleResolve(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title={r.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}><CheckCircle className="h-4 w-4" /></button>
                             <button onClick={() => setEditTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-waspada hover:bg-waspada-bg transition-colors" title="Edit"><Pencil className="h-4 w-4" /></button>
                             <Link to={`/reports/${r.id}`} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-text-primary hover:bg-divider/30 transition-colors" title="Detail" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></Link>
                             <button onClick={() => setDeleteTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-bahaya hover:bg-bahaya-bg transition-colors" title="Hapus"><Trash2 className="h-4 w-4" /></button>

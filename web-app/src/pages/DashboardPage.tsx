@@ -68,7 +68,7 @@ export function DashboardPage() {
         {RESOLVED_OPTIONS.map((opt) => (
           <button key={opt.key} onClick={() => setResolvedFilter(opt.key)}
             className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-              resolvedFilter === opt.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30')}>
+              resolvedFilter === opt.key ? 'bg-primary text-white shadow-sm' : 'bg-black/5 dark:bg-white/10 text-text-secondary/60 hover:text-text-primary hover:bg-black/10 dark:hover:bg-white/15')}>
             {opt.label}
           </button>
         ))}
