@@ -25,13 +25,13 @@ export function Layout() {
     <div className="flex flex-col h-screen overflow-hidden bg-surface">
       <RealtimeAlert />
       {/* ─── Top Navbar (desktop) ─── */}
-      <header className="hidden lg:flex items-center justify-between h-16 shrink-0 border-b border-divider bg-card px-6">
+      <header className="hidden lg:flex items-center justify-between h-16 shrink-0 border-b bg-white dark:bg-black border-gray-200 dark:border-white/10 px-6">
         {/* Left: Logo — clickable to home */}
         <Link to="/" className="flex items-center gap-3">
           <img src="/retak-favicon.svg" alt="Retak.id" className="h-9 w-9 rounded-xl shadow-md shadow-primary/25" />
           <div>
-            <span className="text-lg font-bold text-text-primary">Retak.id</span>
-            <span className="text-xs text-text-secondary ml-2">Crowdsourcing Dashboard</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">Retak.id</span>
+            <span className="text-xs text-gray-500 dark:text-white/60 ml-2">Crowdsourcing Dashboard</span>
           </div>
         </Link>
 
@@ -48,7 +48,7 @@ export function Layout() {
                   'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200',
                   active
                     ? 'bg-primary text-white shadow-sm shadow-primary/20'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-divider/40',
+                    : 'text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10',
                 )}
               >
                 <item.icon className="h-4 w-4" />
@@ -62,7 +62,7 @@ export function Layout() {
         <div className="flex items-center gap-2">
           <NavLink
             to="/admin/login"
-            className="flex items-center gap-1.5 rounded-lg border border-divider px-3 py-1.5 text-[11px] text-text-secondary/70 hover:text-text-secondary hover:border-divider transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-white/20 px-3 py-1.5 text-[11px] text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white hover:border-gray-300 dark:hover:border-white/40 transition-all"
           >
             <LogIn className="h-3 w-3" />
             Admin

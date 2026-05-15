@@ -55,11 +55,14 @@ export function DashboardPage() {
             <FilterStatusBar current={statusFilter} onChange={setStatusFilter} counts={counts} />
           </div>
 
-          {chartsOpen && (
-            <div className="mt-3 sm:mt-4">
+          <div className={cn(
+            'grid transition-all duration-300 ease-in-out',
+            chartsOpen ? 'grid-rows-[1fr] opacity-100 mt-3 sm:mt-4' : 'grid-rows-[0fr] opacity-0 mt-0',
+          )}>
+            <div className="overflow-hidden">
               <ChartsSection data={data} counts={counts} isLoading={isLoading} />
             </div>
-          )}
+          </div>
         </div>
       </div>
 
