@@ -8,7 +8,7 @@ import { ImageUploadPreview } from '../components/ImageUploadPreview';
 import { LocationPicker } from '../components/LocationPicker';
 import { useModelInference } from '../hooks/useModelInference';
 import { calculateRisk } from '../lib/risk';
-import type { ReportStatus, PredictionLabel, RiskFactorReport, FactorContribution } from '../types/laporan';
+import type { ReportStatus, PredictionLabel, RiskFactorReport, FactorContribution, DetectionResult } from '../types/laporan';
 
 interface FormState {
   file: File | null;
@@ -118,7 +118,7 @@ export function ReportFormPage() {
           setRiskError(null);
           try {
             const report = await calculateRisk({
-              mlResult: result,
+              mlResult: result as DetectionResult,
               mlConfidence: result.confidence,
               latitude: lat,
               longitude: lng,
@@ -545,6 +545,7 @@ export function ReportFormPage() {
                 </button>
               );
             })}
+        </div>
         </div>
 
         {/* Catatan */}
