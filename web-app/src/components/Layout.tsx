@@ -62,7 +62,7 @@ export function Layout() {
         <div className="flex items-center gap-2">
           <NavLink
             to="/admin/login"
-            className="flex items-center gap-1.5 rounded-lg border border-divider/60 px-3 py-1.5 text-[11px] text-text-secondary/70 hover:text-text-secondary hover:border-divider transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-divider px-3 py-1.5 text-[11px] text-text-secondary/70 hover:text-text-secondary hover:border-divider transition-all"
           >
             <LogIn className="h-3 w-3" />
             Admin

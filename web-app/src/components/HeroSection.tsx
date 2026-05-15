@@ -79,7 +79,7 @@ function StatCard({
   return (
     <div className="relative group">
       <div className={`absolute inset-0 ${bg} rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-      <div className="relative rounded-2xl bg-card border border-divider/50 p-4 sm:p-5 text-center hover:border-divider hover:shadow-lg transition-all duration-300">
+      <div className="relative rounded-2xl bg-card border border-divider p-4 sm:p-5 text-center hover:border-divider hover:shadow-lg transition-all duration-300">
         <div className={`flex h-10 w-10 sm:h-12 sm:w-12 mx-auto items-center justify-center rounded-xl ${bg} ring-2 ${ringColor} mb-2.5 sm:mb-3`}>
           <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${color}`} />
         </div>

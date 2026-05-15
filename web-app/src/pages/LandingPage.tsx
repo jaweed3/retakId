@@ -29,7 +29,7 @@ export function LandingPage() {
       {/* Edukasi Banner — langsung di bawah Misi Kami, sebelum ombak */}
       <section className="bg-surface">
         <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 pt-0 pb-8 sm:pb-10">
-          <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6 rounded-2xl bg-card border border-divider/60 p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6 rounded-2xl bg-card border border-divider p-5 sm:p-6">
             <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-primary-surface ring-2 ring-primary/20">
               <BookOpen className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
             </div>
