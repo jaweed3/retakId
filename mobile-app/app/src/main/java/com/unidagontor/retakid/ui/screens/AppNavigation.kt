@@ -1,11 +1,13 @@
 package com.unidagontor.retakid.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -27,20 +29,34 @@ sealed class BottomNav(val route: String, val title: String, val icon: ImageVect
 @Composable
 fun RetakIdApp() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("retakid", Context.MODE_PRIVATE) }
+    val elevasiReady = remember { prefs.getBoolean("elevasi_ready", false) }
+    val startDest = if (elevasiReady) "main" else "splash"
 
-    // NavHost Utama mengatur perpindahan Splash -> Onboarding -> Login -> Main
-    NavHost(navController = navController, startDestination = "splash") {
+    NavHost(navController = navController, startDestination = startDest) {
         composable("splash") {
-            SplashScreen(onSplashFinished = { navController.navigate("onboarding") { popUpTo("splash") { inclusive = true } } })
+            SplashScreen(onSplashFinished = {
+                navController.navigate("onboarding") { popUpTo("splash") { inclusive = true } }
+            })
         }
         composable("onboarding") {
-            OnboardingScreen(onFinishOnboarding = { navController.navigate("login") { popUpTo("onboarding") { inclusive = true } } })
+            OnboardingScreen(onFinishOnboarding = {
+                navController.navigate("elevasi-onboarding") { popUpTo("onboarding") { inclusive = true } }
+            })
+        }
+        composable("elevasi-onboarding") {
+            ElevasiOnboardingScreen(onFinished = {
+                navController.navigate("login") { popUpTo("elevasi-onboarding") { inclusive = true } }
+            })
         }
         composable("login") {
-            LoginScreen(onLoginSuccess = { navController.navigate("main") { popUpTo("login") { inclusive = true } } })
+            LoginScreen(onLoginSuccess = {
+                navController.navigate("main") { popUpTo("login") { inclusive = true } }
+            })
         }
         composable("main") {
-            MainContainerScreen() // Memanggil Scaffold 4 Tab
+            MainContainerScreen()
         }
     }
 }
