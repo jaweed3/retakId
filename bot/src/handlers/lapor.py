@@ -296,21 +296,50 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+async def _wrong_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.message and update.message.location:
+        await update.message.reply_text("Tunggu, kirim foto dulu.")
+    else:
+        await update.message.reply_text("📸 Kirim foto retakan tanah, bukan teks.")
+    return PHOTO
+
+
+async def _wrong_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.message and update.message.photo:
+        await update.message.reply_text("Tunggu, kirim lokasi dulu.")
+    else:
+        await update.message.reply_text("📍 Kirim lokasi retakan tanah, bukan teks.")
+    return LOCATION
+
+
+async def _wrong_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "Tap salah satu tombol di bawah:\n"
+        "✅ Simpan / 🔄 Ulangi / ❌ Batal"
+    )
+    return CONFIRM
+
+
 def build_conversation_handler() -> ConversationHandler:
     return ConversationHandler(
         entry_points=[CommandHandler("lapor", lapor_start)],
         states={
             PHOTO: [
                 MessageHandler(filters.PHOTO, handle_photo),
+                MessageHandler(filters.LOCATION, _wrong_photo),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, _wrong_photo),
             ],
             LOCATION: [
                 MessageHandler(filters.LOCATION, handle_location),
+                MessageHandler(filters.PHOTO, _wrong_location),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, _wrong_location),
             ],
             CONFIRM: [
                 MessageHandler(
                     filters.Regex(r"^(✅ Simpan|🔄 Ulangi|❌ Batal)$"),
                     handle_confirm,
                 ),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, _wrong_confirm),
             ],
         },
         fallbacks=[CommandHandler("batal", cancel)],

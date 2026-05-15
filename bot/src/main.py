@@ -5,16 +5,13 @@ import time
 from telegram.ext import (
     Application,
     CommandHandler,
-    MessageHandler,
-    filters,
 )
 
 from config import Config
 from handlers.admin import health_handler, stats_handler
 from handlers.error_handler import error_handler
 from handlers.lapor import build_conversation_handler
-from handlers.location import location_handler
-from handlers.photo import init_predictor, photo_handler
+from handlers.photo import init_predictor
 from handlers.start import start_handler
 from middleware.rate_limit import RateLimiter
 
@@ -62,8 +59,6 @@ def main() -> None:
     app.add_handler(CommandHandler("start", start_handler), group=0)
     app.add_handler(CommandHandler("stats", stats_handler), group=1)
     app.add_handler(CommandHandler("health", health_handler), group=1)
-    app.add_handler(MessageHandler(filters.PHOTO, photo_handler), group=1)
-    app.add_handler(MessageHandler(filters.LOCATION, location_handler), group=1)
 
     logger.info(
         "Bot started — mode=%s rate=%d/%ds admin_chat=%s",
