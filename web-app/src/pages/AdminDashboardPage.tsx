@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, Download, CheckCircle } from 'lucide-react';
+import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, Download, CheckCircle, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLaporan, type ResolvedFilter } from '../hooks/useLaporan';
@@ -49,7 +49,7 @@ function ActionsMenu({ report, onVerify, onEdit, onDelete, onResolve, disabled, 
             </button>
           )}
           <button onClick={() => { onResolve(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-primary hover:bg-primary-surface transition-colors">
-            <CheckCircle className="h-3.5 w-3.5" /> {report.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}
+            {report.is_resolved ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />} {report.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}
           </button>
           <button onClick={() => { onEdit(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-waspada hover:bg-waspada-bg transition-colors">
             <Pencil className="h-3.5 w-3.5" /> Edit
@@ -292,13 +292,13 @@ export function AdminDashboardPage() {
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="hidden sm:flex items-center justify-end gap-1">
-                            {!isVerified(r.id) && <button onClick={() => handleVerifyOpen(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi ML"><ShieldCheck className="h-4 w-4" /></button>}
-                            <button onClick={() => handleResolve(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title={r.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}><CheckCircle className="h-4 w-4" /></button>
+                            {r.terverifikasi === 0 && !isVerified(r.id) && <button onClick={() => handleVerifyOpen(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi ML"><ShieldCheck className="h-4 w-4" /></button>}
+                            <button onClick={() => handleResolve(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title={r.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}>{r.is_resolved ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}</button>
                             <button onClick={() => setEditTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-waspada hover:bg-waspada-bg transition-colors" title="Edit"><Pencil className="h-4 w-4" /></button>
                             <Link to={`/reports/${r.id}`} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-text-primary hover:bg-divider/30 transition-colors" title="Detail" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></Link>
                             <button onClick={() => setDeleteTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-bahaya hover:bg-bahaya-bg transition-colors" title="Hapus"><Trash2 className="h-4 w-4" /></button>
                           </div>
-                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} onResolve={handleResolve} /></div>
+                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={r.terverifikasi > 0 || isVerified(r.id)} onResolve={handleResolve} /></div>
                         </td>
                       </tr>
                     ))}
@@ -313,7 +313,7 @@ export function AdminDashboardPage() {
                 <div key={r.id} className="rounded-xl bg-card border border-divider p-3.5 sm:p-4 hover:shadow-sm transition-all cursor-pointer" onClick={() => navigate(`/reports/${r.id}`)}>
                   <div className="flex items-start justify-between mb-2">
                     <StatusBadge status={r.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5" />
-                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} onResolve={handleResolve} /></div>
+                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={r.terverifikasi > 0 || isVerified(r.id)} onResolve={handleResolve} /></div>
                   </div>
                   <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-1.5 truncate">{r.nama_lokasi}</h3>
                   <div className="space-y-1 text-[10px] sm:text-[11px] text-text-secondary">
