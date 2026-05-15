@@ -96,7 +96,7 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
             withTimeoutOrNull(5000L) {
                 coroutineScope {
                     val elevationDeferred = async { ElevationService.getElevation(lat, lon) }
-                    val weatherDeferred = async { WeatherApiService.getCurrentWeather().getOrNull() }
+                    val weatherDeferred = async { WeatherApiService.getCurrentWeather(lat, lon).getOrNull() }
                     val soilDeferred = async { SoilTypeService.getSoilType(lat, lon) }
 
                     val elevation = elevationDeferred.await()
@@ -139,20 +139,33 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
             try {
                 val finalLocation = state.location ?: locationService.getCurrentLocation()
 
-                val report = hashMapOf(
-                    "namaLokasi" to namaLokasi,
-                    "status" to finalResult.name,
-                    "catatan" to catatan,
-                    "latitude" to (finalLocation?.latitude ?: 0.0),
-                    "longitude" to (finalLocation?.longitude ?: 0.0),
-                    "timestamp" to System.currentTimeMillis(),
-                    "pelapor" to "User",
-                    "terverifikasi" to 0
-                )
+                val json = org.json.JSONObject().apply {
+                    put("nama_lokasi", namaLokasi)
+                    put("status", finalResult.name)
+                    put("catatan", catatan)
+                    put("latitude", finalLocation?.latitude ?: 0.0)
+                    put("longitude", finalLocation?.longitude ?: 0.0)
+                    put("pelapor", "User")
+                    put("terverifikasi", 0)
+                }.toString()
 
-                db.collection("laporan")
-                    .add(report)
-                    .await()
+                withContext(Dispatchers.IO) {
+                    val url = URL("${com.unidagontor.retakid.BuildConfig.SUPABASE_URL}/rest/v1/laporan")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("apikey", com.unidagontor.retakid.BuildConfig.SUPABASE_ANON_KEY)
+                    conn.setRequestProperty("Authorization", "Bearer ${com.unidagontor.retakid.BuildConfig.SUPABASE_ANON_KEY}")
+                    conn.doOutput = true
+                    conn.connectTimeout = 15_000
+                    conn.readTimeout = 15_000
+                    conn.outputStream.use { it.write(json.toByteArray()) }
+                    val code = conn.responseCode
+                    if (code !in 200..299) {
+                        val error = conn.errorStream?.bufferedReader()?.readText() ?: "Unknown"
+                        throw RuntimeException("HTTP $code: $error")
+                    }
+                }
 
                 _uiState.update { it.copy(isSubmitting = false, stage = DeteksiStage.SUCCESS) }
             } catch (e: Exception) {

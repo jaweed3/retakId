@@ -78,7 +78,7 @@ class PetaViewModel : ViewModel() {
         }
     }
 
-    // Data contoh — nanti ganti dengan Firestore repository
+    // TODO: Ganti dengan query Supabase Postgrest — dummy untuk development
     private fun loadDummyMarkers() {
         _uiState.value = _uiState.value.copy(
             markers = listOf(

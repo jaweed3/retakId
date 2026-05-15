@@ -105,6 +105,12 @@ def build_delta(old_path: str, new_path: str, out_path: str | None = None) -> di
     if out_path:
         if stats["changed_regions"] == 0:
             logger.info("No changes — skipping delta file write")
+        elif stats["savings_vs_full"] < 50:
+            logger.warning(
+                f"Delta only saves {stats['savings_vs_full']}% vs full model "
+                f"({compressed_size:,} B vs {new_size:,} B) — "
+                "skipping delta write, use full model instead"
+            )
         else:
             Path(out_path).parent.mkdir(parents=True, exist_ok=True)
             Path(out_path).write_bytes(compressed)
@@ -134,11 +140,11 @@ def print_stats(stats: dict):
     logger.info(sep)
     # Recommendation
     if stats["compressed_delta_size"] < stats["new_size"] * 0.5:
-        logger.info("  ✅ RECOMMENDATION: Use delta update")
+        logger.info("   RECOMMENDATION: Use delta update")
     elif stats["compressed_delta_size"] < stats["new_size"] * 0.8:
-        logger.info("  ⚠️  RECOMMENDATION: Delta is moderate — still better than full")
+        logger.info("    RECOMMENDATION: Delta is moderate — still better than full")
     else:
-        logger.info("  ❌ RECOMMENDATION: Delta too large — use full model instead")
+        logger.info("   RECOMMENDATION: Delta too large — use full model instead")
     logger.info(f"{sep}\n")
 
 

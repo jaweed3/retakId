@@ -77,18 +77,21 @@ Deno.serve(async (req: Request) => {
     let delta_url: string | null = null;
     let full_url: string | null = null;
 
-    if (update_available && latest.delta_path) {
-      const { data: urlData } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(latest.delta_path);
-      delta_url = urlData.publicUrl;
-
-      // Full model URL (fallback if delta apply fails)
-      const fullPath = latest.delta_path.replace(/\.rkd$/i, ".tflite");
+    if (update_available) {
+      // Full model URL (fallback when delta fails or is unavailable)
+      const fullPath = `${latest.version}/retak_mobilenetv2_${latest.version}.tflite`;
       const { data: fullUrlData } = supabase.storage
         .from(STORAGE_BUCKET)
         .getPublicUrl(fullPath);
       full_url = fullUrlData.publicUrl;
+
+      // Delta URL (optional — null when delta too large or unavailable)
+      if (latest.delta_path) {
+        const { data: urlData } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(latest.delta_path);
+        delta_url = urlData.publicUrl;
+      }
     }
 
     return new Response(

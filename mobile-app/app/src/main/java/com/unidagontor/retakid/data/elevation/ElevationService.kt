@@ -25,11 +25,10 @@ object ElevationService {
                 append("&longitude=$longitude")
             }
 
-            val response = java.net.URL(url).also {
-                val conn = it.openConnection()
-                conn.connectTimeout = TIMEOUT_MS
-                conn.readTimeout = TIMEOUT_MS
-            }.readText()
+            val conn = java.net.URL(url).openConnection()
+            conn.connectTimeout = TIMEOUT_MS
+            conn.readTimeout = TIMEOUT_MS
+            val response = conn.getInputStream().bufferedReader().readText()
 
             val json = JSONObject(response)
             val elevationArray = json.getJSONObject("elevation").getJSONArray("elevation")

@@ -87,12 +87,12 @@ dependencies {
     implementation("androidx.camera:camera-view:1.3.3")
 //Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
-//    Firebase
+//    Firebase (auth only — reports use Supabase)
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
     implementation("com.google.firebase:firebase-auth-ktx")
-    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("com.google.firebase:firebase-analytics")
+
 
 }
