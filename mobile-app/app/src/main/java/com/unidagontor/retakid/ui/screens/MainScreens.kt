@@ -79,11 +79,22 @@ fun DeteksiTab(vm: DeteksiViewModel = viewModel()) {
             DeteksiStage.CAMERA -> {
                 CameraView(onImageCaptured = { vm.onImageCaptured(it) })
             }
+            DeteksiStage.VALIDATING -> {
+                ValidatingView()
+            }
             DeteksiStage.ANALYZING -> {
                 AnalyzingView()
             }
             DeteksiStage.ANALYZING_ENV -> {
                 AnalyzingEnvView()
+            }
+            DeteksiStage.UNCERTAIN -> {
+                UncertainView(
+                    validationError = state.validationError
+                        ?: "Hasil tidak pasti — ambil foto ulang lebih dekat",
+                    confidence = state.mlResult?.confidence ?: 0f,
+                    onRetake = { vm.reset() }
+                )
             }
             DeteksiStage.RESULT -> {
                 val displayResult = state.riskFactorReport?.finalResult ?: state.mlResult?.detectionResult
@@ -249,6 +260,21 @@ fun CameraView(onImageCaptured: (Bitmap) -> Unit) {
 }
 
 @Composable
+fun ValidatingView() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(color = GreenPrimary)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Memeriksa kualitas gambar...", fontWeight = FontWeight.Medium, color = TextPrimary)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Ketajaman & pencahayaan", fontSize = 13.sp, color = TextSecondary)
+    }
+}
+
+@Composable
 fun AnalyzingView() {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -258,6 +284,101 @@ fun AnalyzingView() {
         CircularProgressIndicator(color = GreenPrimary)
         Spacer(modifier = Modifier.height(16.dp))
         Text("Menganalisis retakan...", fontWeight = FontWeight.Medium, color = TextPrimary)
+    }
+}
+
+@Composable
+fun UncertainView(
+    validationError: String,
+    confidence: Float,
+    onRetake: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.Warning,
+            contentDescription = null,
+            tint = StatusWaspada,
+            modifier = Modifier.size(72.dp)
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            "Hasil Tidak Pasti",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            validationError,
+            textAlign = TextAlign.Center,
+            color = TextSecondary,
+            fontSize = 14.sp
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        ConfidenceBar(confidence = confidence)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "Tingkat keyakinan AI: ${(confidence * 100).toInt()}%",
+            fontSize = 12.sp,
+            color = TextSecondary
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = onRetake,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Foto Ulang", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun ConfidenceBar(confidence: Float) {
+    val barColor = when {
+        confidence < 0.5f -> StatusBahaya
+        confidence < 0.7f -> StatusWaspada
+        else -> StatusAman
+    }
+    val pct = (confidence * 100).toInt()
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Divider)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(confidence.coerceIn(0f, 1f))
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(barColor)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("0%", fontSize = 10.sp, color = TextSecondary)
+            Text(
+                "${pct}%",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = barColor
+            )
+            Text("100%", fontSize = 10.sp, color = TextSecondary)
+        }
     }
 }
 
@@ -352,6 +473,9 @@ fun ResultView(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        ConfidenceBar(confidence = confidence)
 
         if (confidence < 0.4f) {
             Spacer(modifier = Modifier.height(12.dp))

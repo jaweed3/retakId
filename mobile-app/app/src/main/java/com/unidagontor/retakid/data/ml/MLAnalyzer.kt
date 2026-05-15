@@ -16,7 +16,12 @@ import kotlin.random.Random
 enum class DetectionResult(val label: String) {
     AMAN("AMAN"),
     WASPADA("WASPADA"),
-    BAHAYA("BAHAYA")
+    BAHAYA("BAHAYA"),
+    TIDAK_PASTI("TIDAK PASTI");
+
+    companion object {
+        const val CONFIDENCE_THRESHOLD = 0.50f
+    }
 }
 
 data class MLResult(
@@ -81,6 +86,10 @@ class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
 
             val maxIdx = probs.indices.maxByOrNull { probs[it] } ?: 0
             val confidence = probs[maxIdx]
+
+            if (confidence < DetectionResult.CONFIDENCE_THRESHOLD) {
+                return@withContext MLResult(DetectionResult.TIDAK_PASTI, confidence)
+            }
 
             val result = when (maxIdx) {
                 0 -> DetectionResult.AMAN

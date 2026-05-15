@@ -1,4 +1,5 @@
 export type ReportStatus = 'AMAN' | 'WASPADA' | 'BAHAYA';
+export type PredictionLabel = ReportStatus | 'TIDAK_PASTI';
 export type StatusFilter = 'SEMUA' | ReportStatus;
 
 export interface DetectionResult {

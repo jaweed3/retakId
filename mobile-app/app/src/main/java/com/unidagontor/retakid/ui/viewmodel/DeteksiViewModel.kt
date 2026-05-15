@@ -12,6 +12,7 @@ import com.unidagontor.retakid.data.location.LocationService
 import com.unidagontor.retakid.data.ml.DetectionResult
 import com.unidagontor.retakid.data.ml.MLResult
 import com.unidagontor.retakid.data.risk.MultiFactorRiskEngine
+import com.unidagontor.retakid.util.BitmapUtils
 import com.unidagontor.retakid.data.risk.RiskFactorReport
 import com.unidagontor.retakid.data.soil.SoilTypeService
 import com.unidagontor.retakid.data.weather.WeatherApiService
@@ -32,8 +33,10 @@ import java.util.*
 enum class DeteksiStage {
     INITIAL,
     CAMERA,
+    VALIDATING,
     ANALYZING,
     ANALYZING_ENV,
+    UNCERTAIN,
     RESULT,
     REPORT_FORM,
     SUCCESS
@@ -46,7 +49,8 @@ data class DeteksiState(
     val riskFactorReport: RiskFactorReport? = null,
     val location: LocationData? = null,
     val isSubmitting: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val validationError: String? = null
 )
 
 class DeteksiViewModel(application: Application) : AndroidViewModel(application) {
@@ -62,15 +66,35 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun onImageCaptured(bitmap: Bitmap) {
-        _uiState.update { it.copy(capturedImage = bitmap, stage = DeteksiStage.ANALYZING) }
+        _uiState.update { it.copy(capturedImage = bitmap, stage = DeteksiStage.VALIDATING, validationError = null) }
         analyzeImage(bitmap)
     }
 
     private fun analyzeImage(bitmap: Bitmap) {
         viewModelScope.launch {
             try {
+                val validation = withContext(Dispatchers.Default) { BitmapUtils.validateImage(bitmap) }
+                if (!validation.valid) {
+                    _uiState.update { it.copy(
+                        stage = DeteksiStage.UNCERTAIN,
+                        validationError = validation.message
+                    )}
+                    return@launch
+                }
+
+                _uiState.update { it.copy(stage = DeteksiStage.ANALYZING) }
                 val mlResult = mlAnalyzer.analyzeImage(bitmap)
-                _uiState.update { it.copy(mlResult = mlResult, stage = DeteksiStage.ANALYZING_ENV) }
+                _uiState.update { it.copy(mlResult = mlResult) }
+
+                if (mlResult.detectionResult == DetectionResult.TIDAK_PASTI) {
+                    _uiState.update { it.copy(
+                        stage = DeteksiStage.UNCERTAIN,
+                        validationError = "Hasil tidak pasti (${(mlResult.confidence * 100).toInt()}% yakin) — ambil foto ulang lebih dekat"
+                    )}
+                    return@launch
+                }
+
+                _uiState.update { it.copy(stage = DeteksiStage.ANALYZING_ENV) }
                 fetchEnvironmentalFactors(mlResult)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Gagal menganalisis gambar: ${e.message}", stage = DeteksiStage.INITIAL) }
