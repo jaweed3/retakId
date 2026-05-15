@@ -34,6 +34,7 @@ export function AdminLoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
       <SEOMeta title="Login Admin" noindex />
+      <div className="absolute top-4 right-4"><ThemeToggle /></div>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -62,7 +63,7 @@ export function AdminLoginPage() {
               required
               autoFocus
               className="w-full rounded-xl border border-divider bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
-              placeholder="admin@retak.id"
+              placeholder="admin@unida.gontor.ac.id"
             />
           </div>
 

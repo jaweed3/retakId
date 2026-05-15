@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Clock, CheckCircle, Pencil, Trash2 } from 'lucide-react';
 import { supabase, requireSupabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorState } from '../components/ErrorState';
@@ -98,6 +99,7 @@ function RiwayatContent() {
               <p className="text-[10px] sm:text-xs text-text-secondary">Audit trail semua aksi admin</p>
             </div>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 

@@ -1,4 +1,4 @@
-import { MapPin, Github, Mail, ExternalLink, Users, Cpu, Globe } from 'lucide-react';
+import { MapPin, Github, Mail, ExternalLink, Users, Cpu, Globe, Phone } from 'lucide-react';
 import { SectionDivider } from '../components/SectionDivider';
 import {
   SiKotlin, SiAndroid, SiTensorflow,
@@ -377,11 +377,18 @@ export function AboutPage() {
                 <ExternalLink className="h-3 w-3" />
               </a>
               <a
-                href="mailto:retak.id@email.com"
+                href="tel:+6281333731713"
+                className="inline-flex items-center gap-2 rounded-xl border border-divider bg-surface px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:border-primary/30 transition-all"
+              >
+                <Phone className="h-4 w-4" />
+                +62 81 3337 31713
+              </a>
+              <a
+                href="mailto:rektorat@unida.gontor.ac.id"
                 className="inline-flex items-center gap-2 rounded-xl border border-divider bg-surface px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:border-primary/30 transition-all"
               >
                 <Mail className="h-4 w-4" />
-                retak.id@email.com
+                rektorat@unida.gontor.ac.id
               </a>
             </div>
           </div>

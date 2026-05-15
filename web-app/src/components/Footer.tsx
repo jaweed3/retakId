@@ -83,8 +83,12 @@ export function Footer() {
               Jenangan, Ponorogo
             </span>
             <span className="inline-flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              +62 81 3337 31713
+            </span>
+            <span className="inline-flex items-center gap-1">
               <Mail className="h-3 w-3" />
-              retak.id@email.com
+              rektorat@unida.gontor.ac.id
             </span>
           </div>
           <span className="text-[10px] text-text-secondary/40">
