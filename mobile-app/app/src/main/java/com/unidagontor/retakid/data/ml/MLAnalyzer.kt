@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
+import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
@@ -36,13 +37,20 @@ class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
     private var interpreter: Interpreter? = null
     private val labels = arrayOf("AMAN", "WASPADA", "BAHAYA")
 
-    // Output: float32 [1, 3] — raw logits, apply softmax
     private val outputArray = Array(1) { FloatArray(3) }
 
     private fun loadModelFile(): MappedByteBuffer {
-        return context.assets.openFd("retak_mobilenetv2.tflite").use { afd ->
-            FileInputStream(afd.fileDescriptor).channel.use { channel ->
-                channel.map(FileChannel.MapMode.READ_ONLY, afd.startOffset, afd.declaredLength)
+        // Prefer delta-updated model in internal storage; fall back to bundled assets
+        val cachedModel = DeltaModelLoader.getCachedModelPath(context)
+        return if (cachedModel.exists()) {
+            RandomAccessFile(cachedModel, "r").use { raf ->
+                raf.channel.map(FileChannel.MapMode.READ_ONLY, 0, raf.length())
+            }
+        } else {
+            context.assets.openFd("retak_mobilenetv2.tflite").use { afd ->
+                FileInputStream(afd.fileDescriptor).channel.use { channel ->
+                    channel.map(FileChannel.MapMode.READ_ONLY, afd.startOffset, afd.declaredLength)
+                }
             }
         }
     }

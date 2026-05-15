@@ -20,7 +20,7 @@ export function LaporanCard({ report }: LaporanCardProps) {
     <Link
       to={`/reports/${report.id}`}
       className={cn(
-        'block rounded-xl bg-card border border-divider/50 border-l-4 shadow-sm',
+        'block rounded-xl bg-card border border-divider border-l-4 shadow-sm',
         'hover:shadow-md hover:border-l-[5px] transition-all',
         BORDER_COLORS[report.status],
       )}

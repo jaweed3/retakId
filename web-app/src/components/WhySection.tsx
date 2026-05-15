@@ -54,7 +54,7 @@ export function WhySection() {
           {PILLARS.map((p) => (
             <div
               key={p.title}
-              className="group relative flex flex-col rounded-2xl bg-card border border-divider/60 p-5 sm:p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              className="group relative flex flex-col rounded-2xl bg-card border border-divider p-5 sm:p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             >
               <div className={`absolute top-0 left-5 right-5 h-1 rounded-b-sm bg-gradient-to-r ${p.accent} opacity-60 group-hover:opacity-100 transition-opacity`} />
 

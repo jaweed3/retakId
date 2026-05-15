@@ -64,7 +64,7 @@ export function EditReportDialog({
                   className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
                     status === opt.value
                       ? 'border-primary bg-primary-surface text-primary'
-                      : 'border-divider text-text-secondary hover:border-divider/80'
+                      : 'border-divider text-text-secondary hover:border-divider'
                   }`}
                 >
                   {opt.label}

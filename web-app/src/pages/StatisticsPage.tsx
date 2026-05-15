@@ -32,7 +32,7 @@ function TopLocationsChart({ data }: { data: Laporan[] }) {
   if (locations.length < 2) return null;
 
   return (
-    <div className="rounded-2xl bg-card border border-divider/60 p-5 sm:p-6">
+    <div className="rounded-2xl bg-card border border-divider p-5 sm:p-6">
       <h3 className="text-sm font-semibold text-text-primary mb-4">Top 10 Lokasi Terbanyak Laporan</h3>
       <ResponsiveContainer width="100%" height={Math.max(200, locations.length * 32)}>
         <BarChart data={locations} layout="vertical" margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
@@ -143,7 +143,7 @@ function MetricCard({
   bg: string;
 }) {
   return (
-    <div className="rounded-xl bg-card border border-divider/60 p-4 sm:p-5">
+    <div className="rounded-xl bg-card border border-divider p-4 sm:p-5">
       <div className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg ${bg} mb-3`}>
         <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
       </div>
