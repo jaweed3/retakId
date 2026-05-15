@@ -252,7 +252,8 @@ Baseline (frozen)         ████████░░░░░░░░░░
 | **Testing** | pytest (16 backend tests), TypeScript strict mode (web), Delta round-trip tests |
 | **Deploy** | Vercel (web), Docker (training), Supabase (edge functions) |
 | **Delta OTA** | Custom `.rkd` format (byte-region patches + gzip), Supabase Storage |
-| **Notifications** | Telegram Bot (edge functions) — BAHAYA alerts + daily summary |
+| **Notifications** | Telegram Bot — BAHAYA alerts + daily summary |
+| **Telegram Bot** | Python (python-telegram-bot v20+), ConversationHandler, TFLite runtime, httpx |
 
 ---
 
@@ -262,10 +263,10 @@ Baseline (frozen)         ████████░░░░░░░░░░
 retakId/
 ├── web-app/                      # Web Dashboard (React + Vite + TypeScript)
 │   ├── src/
-│   │   ├── components/           # MapView, VerificationDialog, StatusBadge, etc.
+│   │   ├── components/           # MapView, VerificationDialog, OnboardingTour, etc.
 │   │   ├── pages/                # AdminDashboard, RiwayatPenanganan, ReportForm
 │   │   ├── hooks/                # useLaporan, useModelInference (LiteRT)
-│   │   ├── context/              # ThemeContext (dark/light mode)
+│   │   ├── context/              # ThemeContext, AuthContext, ToastContext
 │   │   ├── utils/                # exportTrainingData, preprocess, cn
 │   │   └── lib/                  # risk.ts (edge function client), Supabase
 │   └── public/
@@ -281,6 +282,16 @@ retakId/
 │       │   ├── soil/             # SoilTypeService (ISRIC + fallback)
 │       │   └── elevation/        # ElevationService, SlopeCalculator
 │       └── java/.../ui/          # CameraX + Compose screens + theme
+│
+├── bot/                          # Telegram Bot (Python)
+│   ├── src/
+│   │   ├── handlers/             # lapor.py (wizard), admin.py, start.py
+│   │   ├── ml/                   # TFLite inference
+│   │   ├── risk/                 # MultiFactorRiskEngine
+│   │   ├── services/             # weather, elevation, slope, soil, supabase
+│   │   └── middleware/           # Rate limiter
+│   ├── Dockerfile
+│   └── README.md
 │
 ├── backend/
 │   ├── config/                   # training.yaml, benchmark.yaml, grid search
@@ -361,6 +372,20 @@ git checkout mobile-app
 
 ---
 
+## Telegram Bot
+
+Bot Telegram untuk pelaporan via chat — `/lapor` wizard dengan 3 langkah:
+
+| Langkah | State | Aksi |
+|---------|-------|------|
+| 1 | `PHOTO` | Kirim foto retakan → ML inference |
+| 2 | `LOCATION` | Kirim lokasi → ambil 4 data lingkungan (paralel) |
+| 3 | `CONFIRM` | Review hasil → Simpan / Ulangi / Batal |
+
+**Komponen:** `bot/src/handlers/lapor.py` — ConversationHandler (python-telegram-bot v20+).
+
+Detail lengkap: [`bot/README.md`](bot/README.md)
+
 ## Edge Functions
 
 | Function | Trigger | Purpose |
@@ -406,7 +431,7 @@ git checkout mobile-app
 
 ---
 
-## Team — SAYA AKAN LAWAN
+## Team
 
 | Role | Member |
 |------|--------|

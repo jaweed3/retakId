@@ -10,15 +10,16 @@ Dokumentasi lengkap platform **Retak.id**: crowdsourcing deteksi dini retakan ta
 2. [Arsitektur Sistem](#2-arsitektur-sistem)
 3. [Komponen 1: Web Dashboard](#3-komponen-1-web-dashboard)
 4. [Komponen 2: Android App](#4-komponen-2-android-app)
-5. [Komponen 3: ML Pipeline](#5-komponen-3-ml-pipeline)
-6. [Komponen 4: Backend (Supabase)](#6-komponen-4-backend-supabase)
-7. [Data Pipeline & Versioning](#7-data-pipeline--versioning)
-8. [Model Machine Learning](#8-model-machine-learning)
-9. [Panduan Setup & Menjalankan](#9-panduan-setup--menjalankan)
-10. [Deployment](#10-deployment)
-11. [Testing](#11-testing)
-12. [Tim & Peran](#12-tim--peran)
-13. [FAQ](#13-faq)
+5. [Komponen 5: Telegram Bot](#5-komponen-5-telegram-bot)
+6. [Komponen 3: ML Pipeline](#6-komponen-3-ml-pipeline)
+7. [Komponen 4: Backend (Supabase)](#7-komponen-4-backend-supabase)
+8. [Data Pipeline & Versioning](#8-data-pipeline--versioning)
+9. [Model Machine Learning](#9-model-machine-learning)
+10. [Panduan Setup & Menjalankan](#10-panduan-setup--menjalankan)
+11. [Deployment](#11-deployment)
+12. [Testing](#12-testing)
+13. [Tim & Peran](#13-tim--peran)
+14. [FAQ](#14-faq)
 
 ---
 
@@ -49,44 +50,44 @@ Jenangan, Ponorogo merupakan daerah rawan longsor dengan infrastruktur internet 
 ## 2. Arsitektur Sistem
 
 ```
-                            ┌─────────────────────────┐
-                            │       SUPABASE           │
-                            │  ┌───────────────────┐   │
-                            │  │ PostgreSQL         │   │
-                            │  │ - users           │   │
-                            │  │ - laporan         │   │
-                            │  ├───────────────────┤   │
-                            │  │ Auth (JWT)        │   │
-                            │  │ Storage (S3)      │   │
-                            │  │ Realtime (WS)     │   │
-                            │  └───────────────────┘   │
-                            └──────┬──────────┬────────┘
-                                   │          │
-                      ┌────────────┘          └────────────┐
-                      ▼                                    ▼
-┌──────────────────────────────┐     ┌──────────────────────────────┐
-│         ANDROID APP          │     │        WEB DASHBOARD          │
-│  ┌────────────────────────┐  │     │  ┌────────────────────────┐  │
-│  │ CameraX → Bitmap       │  │     │  │ React 18 + Vite 6      │  │
-│  │   ↓                    │  │     │  │ TypeScript             │  │
-│  │ Preprocessing          │  │     │  │ Tailwind CSS           │  │
-│  │ 224×224 RGB uint8      │  │     │  └────────────────────────┘  │
-│  │   ↓                    │  │     │  ┌────────────────────────┐  │
-│  │ TFLite INT8 Inference  │  │     │  │ Halaman:               │  │
-│  │   ↓                    │  │     │  │ /             Peta     │  │
-│  │ AMAN/WASPADA/BAHAYA    │  │     │  │ /reports      List    │  │
-│  └────────────────────────┘  │     │  │ /reports/:id  Detail  │  │
-│  ┌────────────────────────┐  │     │  └────────────────────────┘  │
-│  │ Laporan → Supabase     │  │     │  ┌────────────────────────┐  │
-│  │ - Foto ke Storage      │  │     │  │ Leaflet Map            │  │
-│  │ - Data ke PostgreSQL   │  │     │  │ StatusBadge            │  │
-│  │ - Auth user            │  │     │  │ FilterStatusBar        │  │
-│  └────────────────────────┘  │     │  │ StatsSummaryCards      │  │
-│                              │     │  │ LaporanCard            │  │
-│  Kotlin + Jetpack Compose   │     │  │ Dark/Light Mode        │  │
-│  CameraX + TFLite INT8      │     │  │ Responsive             │  │
-│  Supabase Kotlin SDK        │     │  │ Supabase JS SDK        │  │
-└──────────────────────────────┘     └──────────────────────────────┘
+                            ┌─────────────────────────────────┐
+                            │           SUPABASE               │
+                            │  ┌───────────────────────────┐   │
+                            │  │ PostgreSQL                 │   │
+                            │  │ - users                   │   │
+                            │  │ - laporan                 │   │
+                            │  ├───────────────────────────┤   │
+                            │  │ Auth (JWT)                │   │
+                            │  │ Storage (S3)              │   │
+                            │  │ Realtime (WS)             │   │
+                            │  └───────────────────────────┘   │
+                            └──────┬──────────┬────────┬───────┘
+                                   │          │        │
+                      ┌────────────┘          │        └──────────────┐
+                      ▼                       ▼                      ▼
+┌──────────────────────────────┐  ┌──────────────────────┐  ┌──────────────────────────┐
+│         ANDROID APP          │  │   TELEGRAM BOT        │  │      WEB DASHBOARD        │
+│  ┌────────────────────────┐  │  │ ┌──────────────────┐ │  │ ┌──────────────────────┐  │
+│  │ CameraX → Bitmap       │  │  │ │ /lapor wizard    │ │  │ │ LandingPage           │  │
+│  │   ↓                    │  │  │ │ PHOTO→LOCATION   │ │  │ │ DashboardPage (map)   │  │
+│  │ Preprocessing          │  │  │ │ →CONFIRM         │ │  │ │ ReportsPage           │  │
+│  │ 224×224 RGB uint8      │  │  │ └──────────────────┘ │  │ │ ReportDetailPage      │  │
+│  │   ↓                    │  │  │ ┌──────────────────┐ │  │ │ ReportFormPage        │  │
+│  │ TFLite INT8 Inference  │  │  │ │ TFLite Inference  │ │  │ │ StatisticsPage        │  │
+│  │   ↓                    │  │  │ │ Risk Engine       │ │  │ │ EdukasiPage           │  │
+│  │ AMAN/WASPADA/BAHAYA    │  │  │ │ 5 faktor scoring  │ │  │ │ AboutPage             │  │
+│  └────────────────────────┘  │  │ └──────────────────┘ │  │ │ AdminDashboard        │  │
+│  ┌────────────────────────┐  │  │ ┌──────────────────┐ │  │ └──────────────────────┘  │
+│  │ Laporan → Supabase     │  │  │ │ Laporan → DB     │ │  │ ┌──────────────────────┐  │
+│  │ - Foto ke Storage      │  │  │ │ Notif BAHAYA     │ │  │ │ 25+ komponen UI      │  │
+│  │ - Data ke PostgreSQL   │  │  │ │ ke admin         │ │  │ │ Leaflet, Charts      │  │
+│  │ - Auth user            │  │  │ └──────────────────┘ │  │ │ Dark/Light Mode      │  │
+│  └────────────────────────┘  │  │                      │  │ │ Responsive            │  │
+│                              │  │ Python 3.11           │  │ │ Supabase JS SDK       │  │
+│  Kotlin + Jetpack Compose   │  │ python-telegram-bot   │  │ │ React 18 + Vite 6     │  │
+│  CameraX + TFLite INT8      │  │ TFLite Runtime        │  │ │ TypeScript            │  │
+│  Supabase Kotlin SDK        │  │ httpx + Docker        │  │ │ Tailwind CSS          │  │
+└──────────────────────────────┘  └──────────────────────┘  │ └──────────────────────────┘
 
 ┌────────────────────────────────────────────────────────────────┐
 │                       ML PIPELINE (offline)                     │
@@ -128,47 +129,87 @@ web-app/
 ├── .gitignore
 ├── public/
 │   └── retak-favicon.svg             # Ikon aplikasi
-└── src/
-    ├── main.tsx                      # Entry React (BrowserRouter + ThemeProvider)
-    ├── App.tsx                       # Router definition
-    ├── index.css                     # Tailwind directives + CSS variables (light/dark)
-    ├── types/
-    │   └── laporan.ts                # Interface Laporan, ReportStatus, Database
-    ├── lib/
-    │   └── supabase.ts               # Supabase client + requireSupabase()
-    ├── context/
-    │   └── ThemeContext.tsx           # Dark/light mode context + toggle + localStorage
-    ├── hooks/
-    │   └── useLaporan.ts             # Fetch, filter, realtime subscription
-    ├── utils/
-    │   ├── cn.ts                     # clsx + tailwind-merge helper
-    │   ├── statusColors.ts           # Mapping status → warna
-    │   └── formatDate.ts             # Format tanggal relatif (bahasa Indonesia)
-    ├── components/
-    │   ├── Layout.tsx                # Sidebar (desktop) + bottom nav (mobile)
-    │   ├── ThemeToggle.tsx           # Tombol switch dark/light
-    │   ├── StatusBadge.tsx           # Badge AMAN (hijau) / WASPADA (oranye) / BAHAYA (merah)
-    │   ├── LoadingSpinner.tsx        # Spinner animasi + teks
-    │   ├── ErrorState.tsx            # Pesan error + tombol "Coba Lagi"
-    │   ├── EmptyState.tsx            # Ilustrasi + teks saat data kosong
-    │   ├── StatsSummaryCards.tsx     # 3 kartu statistik (loading skeleton + data)
-    │   ├── FilterStatusBar.tsx       # Chip filter: Semua / AMAN / WASPADA / BAHAYA + count
-    │   ├── MapView.tsx               # Peta Leaflet + custom marker + state handling
-    │   ├── LaporanCard.tsx           # Kartu laporan (garis status + info)
-    │   └── LaporanMapPopup.tsx       # Isi popup saat klik marker di peta
-    └── pages/
-        ├── DashboardPage.tsx         # Halaman utama: peta + stats overlay + filter
-        ├── ReportsPage.tsx           # List laporan + search + filter + pagination
-        └── ReportDetailPage.tsx      # Detail laporan + foto + info + mini map
+    └── src/
+        ├── main.tsx                      # Entry React (BrowserRouter + ThemeProvider)
+        ├── App.tsx                       # Router definition
+        ├── index.css                     # Tailwind directives + CSS variables (light/dark)
+        ├── types/
+        │   └── laporan.ts                # Interface Laporan, ReportStatus, Database
+        ├── lib/
+        │   └── supabase.ts               # Supabase client + requireSupabase()
+        ├── context/
+        │   └── ThemeContext.tsx           # Dark/light mode context + toggle + localStorage
+        ├── hooks/
+        │   └── useLaporan.ts             # Fetch, filter, realtime subscription
+        ├── utils/
+        │   ├── cn.ts                     # clsx + tailwind-merge helper
+        │   ├── statusColors.ts           # Mapping status → warna
+        │   └── formatDate.ts             # Format tanggal relatif (bahasa Indonesia)
+        ├── components/
+        │   ├── Layout.tsx                # Sidebar (desktop) + bottom nav (mobile)
+        │   ├── ThemeToggle.tsx           # Tombol switch dark/light
+        │   ├── StatusBadge.tsx           # Badge AMAN (hijau) / WASPADA (oranye) / BAHAYA (merah)
+        │   ├── LoadingSpinner.tsx        # Spinner animasi + teks
+        │   ├── ErrorState.tsx            # Pesan error + tombol "Coba Lagi"
+        │   ├── EmptyState.tsx            # Ilustrasi + teks saat data kosong
+        │   ├── StatsSummaryCards.tsx     # 3 kartu statistik (loading skeleton + data)
+        │   ├── FilterStatusBar.tsx       # Chip filter: Semua / AMAN / WASPADA / BAHAYA + count
+        │   ├── MapView.tsx               # Peta Leaflet + custom marker + state handling
+        │   ├── LaporanCard.tsx           # Kartu laporan (garis status + info)
+        │   ├── LaporanMapPopup.tsx       # Isi popup saat klik marker di peta
+        │   ├── HeroSection.tsx           # Hero banner landing page
+        │   ├── HowItWorks.tsx            # Langkah-langkah cara pakai
+        │   ├── WhySection.tsx            # Mengapa Retak.id
+        │   ├── Footer.tsx                # Footer global
+        │   ├── ScrollReveal.tsx          # Animasi scroll masuk
+        │   ├── SectionDivider.tsx        # Pembatas antar section
+        │   ├── RealtimeAlert.tsx         # Notifikasi laporan baru realtime
+        │   ├── ViewToggle.tsx            # Toggle peta/list view
+        │   ├── ChartsSection.tsx         # Section bagan statistik
+        │   ├── TrendChart.tsx            # Bagan tren laporan
+        │   ├── StatusDistribution.tsx    # Bagan distribusi status
+        │   ├── DateRangeFilter.tsx       # Filter rentang tanggal
+        │   ├── ReportTable.tsx           # Tabel laporan (admin)
+        │   ├── VerificationDialog.tsx    # Dialog verifikasi laporan
+        │   ├── EditReportDialog.tsx      # Dialog edit laporan
+        │   ├── ConfirmDialog.tsx         # Dialog konfirmasi umum
+        │   ├── MiniMapPreview.tsx        # Mini peta untuk detail
+        │   ├── LocationPicker.tsx        # Picker lokasi di form
+        │   ├── ImageUploadPreview.tsx    # Preview upload gambar
+        │   ├── ProtectedRoute.tsx        # Route guard admin
+        │   ├── ErrorBoundary.tsx         # Batas error React
+        │   ├── SEOMeta.tsx              # Meta tags SEO
+        │   ├── ScrollToTop.tsx           # Scroll ke atas tiap navigasi
+        │   └── OnboardingTour.tsx        # Tur interaktif pertama kali
+        └── pages/
+            ├── LandingPage.tsx           # Halaman utama publik
+            ├── DashboardPage.tsx         # Peta + stats overlay + filter
+            ├── ReportsPage.tsx           # List laporan + search + filter
+            ├── ReportDetailPage.tsx      # Detail laporan + foto + info
+            ├── ReportFormPage.tsx        # Form laporan baru
+            ├── StatisticsPage.tsx        # Statistik & tren laporan
+            ├── EdukasiPage.tsx           # Halaman edukasi longsor
+            ├── AboutPage.tsx             # Halaman tentang
+            ├── AdminLoginPage.tsx        # Login admin
+            ├── AdminDashboardPage.tsx    # Dashboard admin (CRUD)
+            └── RiwayatPenangananPage.tsx # Riwayat tindakan admin
 ```
 
 ### 3.2 Route & Halaman
 
 | Route | Halaman | Komponen Utama |
 |-------|---------|---------------|
-| `/` | DashboardPage | MapView, StatsSummaryCards, FilterStatusBar |
-| `/reports` | ReportsPage | Search bar, FilterStatusBar, LaporanCard grid, Pagination |
-| `/reports/:id` | ReportDetailPage | Foto, StatusBadge, Info grid, Catatan, Mini map |
+| `/` | LandingPage | HeroSection, HowItWorks, WhySection, Footer |
+| `/dashboard` | DashboardPage | MapView, StatsSummaryCards, FilterStatusBar, RealtimeAlert |
+| `/reports` | ReportsPage | Search bar, FilterStatusBar, LaporanCard grid, ViewToggle |
+| `/reports/new` | ReportFormPage | LocationPicker, ImageUploadPreview |
+| `/reports/:id` | ReportDetailPage | Foto, StatusBadge, Info grid, Catatan, MiniMapPreview |
+| `/statistics` | StatisticsPage | TrendChart, StatusDistribution, DateRangeFilter |
+| `/edukasi` | EdukasiPage | Artikel edukasi tanah longsor |
+| `/about` | AboutPage | Informasi tim & proyek |
+| `/admin/login` | AdminLoginPage | Form login admin |
+| `/admin` | AdminDashboardPage | ReportTable, VerificationDialog, EditReportDialog |
+| `/admin/riwayat` | RiwayatPenangananPage | Riwayat tindakan admin |
 
 ### 3.3 State Handling
 
@@ -291,12 +332,145 @@ mobile-app/app/src/main/java/com/unidagontor/retakid/
 
 ---
 
-## 5. Komponen 3: ML Pipeline
+## 5. Komponen 5: Telegram Bot
+
+**Lokasi**: `bot/`  
+**Teknologi**: Python 3.11, python-telegram-bot 20.x, TFLite Runtime, httpx, Risk Engine  
+**Deploy**: Docker (polling mode)
+
+### 5.1 Fitur
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **/lapor** | Wizard 3-langkah: foto → lokasi → konfirmasi, dengan analisis ML + data lingkungan |
+| **/start** | Pesan sambutan & panduan penggunaan |
+| **/health** | Cek kesehatan bot |
+| **/stats** | Statistik bot (khusus admin) |
+| **/test** | Tes diagnostik menyeluruh (model, API lingkungan, risk engine, database) |
+| **/batal** | Batalkan laporan yang sedang berjalan |
+
+### 5.2 Struktur
+
+```
+bot/
+├── Dockerfile                        # Container deployment
+├── pyproject.toml                    # Dependensi Python
+├── requirements.txt                  # Lock dependensi
+├── .env.example                      # Template environment
+├── models/
+│   └── retak_mobilenetv2.tflite      # Model INT8 (<5MB)
+└── src/
+    ├── main.py                       # Entry point: setup handlers & polling
+    ├── config.py                     # Config dari environment variables
+    ├── handlers/
+    │   ├── lapor.py                  # ConversationHandler 3-state (PHOTO→LOCATION→CONFIRM)
+    │   ├── start.py                  # Handler /start
+    │   ├── admin.py                  # Handler /health, /stats, /test
+    │   ├── photo.py                  # Inisialisasi & prediksi TFLite
+    │   ├── location.py               # Handler lokasi (legacy)
+    │   └── error_handler.py          # Global error handler
+    ├── risk/
+    │   └── engine.py                 # Risk scoring: ML (50%) + lereng (20%) + hujan (15%) + elevasi (10%) + tanah (5%)
+    ├── services/
+    │   ├── supabase.py               # Upload foto & insert laporan ke Supabase
+    │   ├── weather.py                # Cuaca real-time via Open-Meteo
+    │   ├── soil.py                   # Jenis tanah via ISRIC
+    │   ├── elevation.py              # Elevasi via Open-Meteo
+    │   ├── slope.py                  # Kemiringan lereng via Open-Meteo
+    │   └── __init__.py
+    ├── ml/
+    │   ├── inference.py              # TFLite inference wrapper
+    │   ├── preprocess.py             # Preprocessing gambar (224×224, uint8)
+    │   └── __init__.py
+    ├── middleware/
+    │   ├── rate_limit.py             # Rate limiter per-user
+    │   └── __init__.py
+    └── templates/
+        ├── messages.py               # Template pesan & emoji mapping
+        └── __init__.py
+```
+
+### 5.3 Alur Wizard /lapor
+
+```
+User                  Bot                   Sistem
+ │                     │                      │
+ ├─ /lapor ───────────►│                      │
+ │◄───── "Kirim foto" ─┤                      │
+ │                     │                      │
+ ├─ 📸 Foto ──────────►│                      │
+ │                     ├──► TFLite Inference  │
+ │                     │◄── AMAN/WASP/BAHAYA  │
+ │◄── "Hasil ML: ..." ─┤                      │
+ │◄── "Kirim lokasi" ──┤                      │
+ │                     │                      │
+ ├─ 📍 Location ──────►│                      │
+ │                     ├──► Cuaca (Open-Meteo)│
+ │                     ├──► Elevasi           │
+ │                     ├──► Lereng            │
+ │                     ├──► Tanah (ISRIC)     │
+ │                     ├──► Risk Engine       │
+ │◄──"Laporan risiko"──┤                      │
+ │◄──"Simpan/Ulangi/Batal"─┤                 │
+ │                     │                      │
+ ├─ ✅ Simpan ────────►│                      │
+ │                     ├──► Upload foto       │
+ │                     ├──► Insert ke DB      │
+ │◄── "Laporan disimpan"─┤                   │
+```
+
+### 5.4 Risk Engine
+
+Bot menggabungkan **5 faktor** dengan bobot berbeda untuk menentukan tingkat risiko akhir:
+
+| Faktor | Bobot | Sumber Data |
+|--------|-------|-------------|
+| Analisis Visual (ML) | 50% | MobileNetV2 INT8 (TFLite) |
+| Kemiringan Lereng | 20% | Open-Meteo (SRTM 90m) |
+| Curah Hujan | 15% | Open-Meteo (real-time) |
+| Ketinggian | 10% | Open-Meteo (SRTM 90m) |
+| Jenis Tanah | 5% | ISRIC SoilGrids |
+
+Skor akhir (0.0–1.0) dikonversi ke 3 tingkat: **AMAN** (≤0.33), **WASPADA** (0.34–0.66), **BAHAYA** (>0.66).
+
+### 5.5 Environment Variables
+
+| Variabel | Deskripsi |
+|----------|-----------|
+| `TELEGRAM_BOT_TOKEN` | Token bot dari BotFather |
+| `SUPABASE_URL` | URL project Supabase |
+| `SUPABASE_SERVICE_KEY` | Service role key (bisa insert data) |
+| `MODEL_PATH` | Path ke model .tflite |
+| `CONFIDENCE_THRESHOLD` | Threshold confidence ML (default: 0.5) |
+| `ADMIN_CHAT_ID` | Chat ID untuk notifikasi laporan BAHAYA |
+| `ADMIN_IDS` | Daftar user ID admin (dipisah koma) |
+| `RATE_LIMIT_MAX` | Maks request per window (default: 10) |
+| `RATE_LIMIT_WINDOW` | Window rate limit dalam detik (default: 60) |
+
+### 5.6 Setup & Run
+
+```bash
+cd bot
+
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Setup environment
+cp .env.example .env
+# Isi TELEGRAM_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_KEY, dll.
+
+# 3. Jalankan bot
+python -m src.main
+```
+
+---
+
+## 6. Komponen 3: ML Pipeline
 
 **Lokasi**: `backend/`  
 **Teknologi**: Python 3.11, TensorFlow 2.15+, DVC, MLflow, Docker
 
-### 5.1 Struktur
+### 6.1 Struktur
 
 ```
 backend/
@@ -341,7 +515,7 @@ backend/
     └── tensorboard/                # TensorBoard logs
 ```
 
-### 5.2 Makefile Targets
+### 6.2 Makefile Targets
 
 | Target | Deskripsi |
 |--------|-----------|
@@ -362,16 +536,16 @@ backend/
 
 ---
 
-## 6. Komponen 4: Backend (Supabase)
+## 7. Komponen 4: Backend (Supabase)
 
-### 6.1 Mengapa Supabase?
+### 7.1 Mengapa Supabase?
 
 - **Satu platform untuk semua**: Database, Auth, Storage, dan Realtime — tidak perlu bikin REST API terpisah
 - **Gratis** untuk skala proyek lomba (500MB database, 1GB storage, 50K MAU)
 - **Sudah terintegrasi** dengan Android app (Kotlin SDK) dan Web dashboard (JS SDK)
 - **Realtime** — laporan baru langsung muncul di dashboard tanpa refresh
 
-### 6.2 Skema Database
+### 7.2 Skema Database
 
 #### Tabel: `laporan`
 
@@ -418,7 +592,7 @@ CREATE POLICY "User dapat upload foto" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'laporan-foto' AND auth.role() = 'authenticated');
 ```
 
-### 6.3 Kredensial
+### 7.3 Kredensial
 
 Kredensial Supabase disimpan di environment variables, **tidak di-commit ke git**:
 
@@ -436,13 +610,13 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJI...
 
 ---
 
-## 7. Data Pipeline & Versioning
+## 8. Data Pipeline & Versioning
 
-### 7.1 Sumber Data
+### 8.1 Sumber Data
 
 Gambar retakan tanah di-scrape dari DuckDuckGo Images dengan **70+ keyword** dalam bahasa Indonesia dan Inggris.
 
-### 7.2 Kualitas Data
+### 8.2 Kualitas Data
 
 | Filter | Parameter |
 |--------|-----------|
@@ -451,7 +625,7 @@ Gambar retakan tanah di-scrape dari DuckDuckGo Images dengan **70+ keyword** dal
 | Near-duplicate | Perceptual hash (pHash), Hamming distance < 6 → ditolak |
 | Format | JPEG only, RGB |
 
-### 7.3 Dataset Final
+### 8.3 Dataset Final
 
 | Kelas | Jumlah Gambar | Proporsi |
 |-------|-------------|----------|
@@ -462,7 +636,7 @@ Gambar retakan tanah di-scrape dari DuckDuckGo Images dengan **70+ keyword** dal
 
 Dataset di-split secara stratified: **70% train, 15% validation, 15% test** dengan seed tetap (42).
 
-### 7.4 DVC Workflow
+### 8.4 DVC Workflow
 
 ```bash
 # Pull dataset dari DagsHub
@@ -480,9 +654,9 @@ Remote DVC: `https://dagshub.com/jaweed3/retakId.dvc`
 
 ---
 
-## 8. Model Machine Learning
+## 9. Model Machine Learning
 
-### 8.1 Arsitektur
+### 9.1 Arsitektur
 
 | Parameter | Nilai |
 |-----------|-------|
@@ -492,7 +666,7 @@ Remote DVC: `https://dagshub.com/jaweed3/retakId.dvc`
 | Total Parameter | ~2.26M |
 | Trainable | ~3.8K (head only, transfer learning) |
 
-### 8.2 Training
+### 9.2 Training
 
 | Parameter | Nilai |
 |-----------|-------|
@@ -502,7 +676,7 @@ Remote DVC: `https://dagshub.com/jaweed3/retakId.dvc`
 | Batch Size | 32 |
 | Class Weight | `balanced` (sklearn) |
 
-### 8.3 Augmentasi (In-Graph)
+### 9.3 Augmentasi (In-Graph)
 
 | Teknik | Range |
 |--------|-------|
@@ -513,7 +687,7 @@ Remote DVC: `https://dagshub.com/jaweed3/retakId.dvc`
 | RandomBrightness | 0.7–1.3× |
 | RandomContrast | 0.8–1.2× |
 
-### 8.4 Quantization
+### 9.4 Quantization
 
 | Metrik | FP32 | INT8 |
 |--------|------|------|
@@ -523,9 +697,9 @@ Remote DVC: `https://dagshub.com/jaweed3/retakId.dvc`
 
 ---
 
-## 9. Panduan Setup & Menjalankan
+## 10. Panduan Setup & Menjalankan
 
-### 9.1 Web Dashboard
+### 10.1 Web Dashboard
 
 ```bash
 cd web-app
@@ -549,7 +723,7 @@ npm run build
 npx vite preview
 ```
 
-### 9.2 ML Pipeline
+### 10.2 ML Pipeline
 
 ```bash
 cd backend
@@ -570,7 +744,7 @@ make test
 mlflow ui --backend-store-uri file://$(pwd)/logs/mlruns
 ```
 
-### 9.3 Android App
+### 10.3 Android App
 
 ```bash
 git checkout mobile-app
@@ -579,11 +753,31 @@ git checkout mobile-app
 # Build & run di emulator atau HP
 ```
 
+### 10.4 Telegram Bot
+
+```bash
+cd bot
+
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Setup environment
+cp .env.example .env
+# Isi TELEGRAM_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_KEY, dll.
+
+# 3. Jalankan bot
+python -m src.main
+
+# Atau via Docker:
+docker build -t retakid-bot .
+docker run --env-file .env retakid-bot
+```
+
 ---
 
-## 10. Deployment
+## 11. Deployment
 
-### 10.1 Web Dashboard → Vercel
+### 11.1 Web Dashboard → Vercel
 
 ```bash
 cd web-app
@@ -596,7 +790,7 @@ npx vercel --prod
 # VITE_SUPABASE_ANON_KEY
 ```
 
-### 10.2 Android App → APK
+### 11.2 Android App → APK
 
 ```bash
 cd mobile-app
@@ -604,7 +798,7 @@ cd mobile-app
 # APK di app/build/outputs/apk/release/
 ```
 
-### 10.3 ML Training → Docker
+### 11.3 ML Training → Docker
 
 ```bash
 cd backend
@@ -612,11 +806,19 @@ make docker-build
 make docker-train
 ```
 
+### 11.4 Telegram Bot → Docker
+
+```bash
+cd bot
+docker build -t retakid-bot .
+docker run --env-file .env retakid-bot
+```
+
 ---
 
-## 11. Testing
+## 12. Testing
 
-### 11.1 ML Pipeline (16 tests)
+### 12.1 ML Pipeline (16 tests)
 
 ```bash
 cd backend && make test
@@ -628,7 +830,7 @@ cd backend && make test
 | `test_model.py` | 6 | Build model, forward pass, augmentasi, seed |
 | `test_export.py` | 3 | TFLite export, labels, benchmark |
 
-### 11.2 Web Dashboard (TypeScript)
+### 12.2 Web Dashboard (TypeScript)
 
 ```bash
 cd web-app
@@ -638,7 +840,7 @@ npm run build        # Build (gagal kalau ada error TS)
 
 ---
 
-## 12. Tim & Peran
+## 13. Tim & Peran
 
 | Nama | Peran | Kontribusi |
 |------|-------|-----------|
@@ -648,7 +850,7 @@ npm run build        # Build (gagal kalau ada error TS)
 
 ---
 
-## 13. FAQ
+## 14. FAQ
 
 ### Q: Kenapa tidak pakai REST API sendiri (Express/Django/FastAPI)?
 
@@ -656,7 +858,7 @@ Supabase sudah menyediakan semua yang dibutuhkan (database, auth, storage, realt
 
 ### Q: Kenapa web dashboard pakai React + Vite, bukan vanilla HTML/CSS/JS?
 
-Dashboard memiliki 3 halaman dan 8+ komponen interaktif (map, filter, list, detail, realtime). React memberi component reusability, state management yang bersih, dan maintainability lebih baik. Vite sebagai build tool sangat cepat dibanding alternatif.
+Dashboard memiliki 11 halaman dan 25+ komponen interaktif (map, filter, list, detail, realtime, charts, onboarding). React memberi component reusability, state management yang bersih, dan maintainability lebih baik. Vite sebagai build tool sangat cepat dibanding alternatif.
 
 ### Q: Kenapa peta pakai Leaflet, bukan Google Maps?
 
@@ -683,7 +885,8 @@ Leaflet **gratis dan open-source** — tidak perlu API key berbayar. Cukup untuk
 | [docs/scraping_guide.md](docs/scraping_guide.md) | Panduan scraping dan anotasi data |
 | [docs/dvc_workflow.md](docs/dvc_workflow.md) | Workflow DVC untuk data versioning |
 | [docs/android_integration.md](docs/android_integration.md) | Panduan integrasi TFLite ke Android |
+| [bot/docs/deploy.md](bot/docs/deploy.md) | Panduan deploy Telegram Bot |
 
 ---
 
-_Dokumentasi terakhir diperbarui: 13 Mei 2026. Untuk pertanyaan, hubungi tim Retak.id._
+_Dokumentasi terakhir diperbarui: 15 Mei 2026. Untuk pertanyaan, hubungi tim Retak.id._
