@@ -59,7 +59,18 @@ object BitmapUtils {
      * Preprocessing (scaling to [-1, 1]) is baked into the TFLite model.
      */
     fun bitmapToByteBuffer(bitmap: Bitmap): ByteBuffer {
-        val resized = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+        // ── Pastikan bitmap adalah software-backed ────────────────────────
+        // ImageDecoder (API 28+) menghasilkan HARDWARE bitmap secara default.
+        // HARDWARE bitmap tidak support getPixels(), jadi harus dicopy ke
+        // ARGB_8888 (software) terlebih dahulu sebelum diproses.
+        val softBitmap = if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false)
+        } else {
+            bitmap
+        }
+
+        // Resize ke 224x224
+        val resized = Bitmap.createScaledBitmap(softBitmap, INPUT_SIZE, INPUT_SIZE, true)
 
         val buffer = ByteBuffer.allocateDirect(INPUT_SIZE * INPUT_SIZE * 3)
         buffer.order(ByteOrder.nativeOrder())

@@ -24,13 +24,8 @@ enum class DetectionResult(val label: String) {
     }
 }
 
-data class MLResult(
-    val detectionResult: DetectionResult,
-    val confidence: Float
-)
-
 interface MLAnalyzer {
-    suspend fun analyzeImage(bitmap: Bitmap): MLResult
+    suspend fun analyzeImage(bitmap: Bitmap): DetectionResult
 }
 
 class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
@@ -62,21 +57,23 @@ class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
         })
     }
 
-    override suspend fun analyzeImage(bitmap: Bitmap): MLResult =
+    override suspend fun analyzeImage(bitmap: Bitmap): DetectionResult =
         withContext(Dispatchers.Default) {
             if (interpreter == null) {
                 setupInterpreter()
             }
 
             if (interpreter == null) {
-                val random = DetectionResult.entries[Random.nextInt(3)]
-                return@withContext MLResult(random, 0.5f)
+                return@withContext DetectionResult.entries[Random.nextInt(3)]
             }
 
+            // 1. Preprocess: resize 224x224 → RGB ByteBuffer uint8 [0,255]
             val inputBuffer = BitmapUtils.bitmapToByteBuffer(bitmap)
 
+            // 2. Run inference
             interpreter?.run(inputBuffer, outputArray)
 
+            // 3. Softmax on float output
             val logits = outputArray[0]
             val maxLogit = logits.maxOrNull() ?: 0f
             val expSum = logits.sumOf { Math.exp((it - maxLogit).toDouble()) }.toFloat()
@@ -84,28 +81,27 @@ class TFLiteMLAnalyzer(private val context: Context) : MLAnalyzer {
                 Math.exp((logits[it] - maxLogit).toDouble()).toFloat() / expSum
             }
 
+            // 4. Get predicted class
             val maxIdx = probs.indices.maxByOrNull { probs[it] } ?: 0
             val confidence = probs[maxIdx]
 
-            if (confidence < DetectionResult.CONFIDENCE_THRESHOLD) {
-                return@withContext MLResult(DetectionResult.TIDAK_PASTI, confidence)
+            // 5. If confidence < 40%, default to AMAN (conservative)
+            if (confidence < 0.4f) {
+                return@withContext DetectionResult.AMAN
             }
 
-            val result = when (maxIdx) {
+            when (maxIdx) {
                 0 -> DetectionResult.AMAN
                 1 -> DetectionResult.WASPADA
                 2 -> DetectionResult.BAHAYA
                 else -> DetectionResult.AMAN
             }
-            MLResult(result, confidence)
         }
 }
 
 class MockMLAnalyzer : MLAnalyzer {
-    override suspend fun analyzeImage(bitmap: Bitmap): MLResult {
+    override suspend fun analyzeImage(bitmap: Bitmap): DetectionResult {
         kotlinx.coroutines.delay(2000)
-        val result = DetectionResult.entries[Random.nextInt(DetectionResult.entries.size)]
-        val confidence = 0.5f + Random.nextFloat() * 0.5f
-        return MLResult(result, confidence)
+        return DetectionResult.entries[Random.nextInt(DetectionResult.entries.size)]
     }
 }
