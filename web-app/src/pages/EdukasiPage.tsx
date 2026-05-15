@@ -28,7 +28,7 @@ const FAQS = [
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl bg-card border border-divider/60 overflow-hidden">
+    <div className="rounded-xl bg-card border border-divider overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-medium text-text-primary hover:bg-divider/10 transition-colors"
@@ -37,7 +37,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         {open ? <ChevronUp className="h-4 w-4 text-text-secondary shrink-0" /> : <ChevronDown className="h-4 w-4 text-text-secondary shrink-0" />}
       </button>
       {open && (
-        <div className="px-5 pb-4 text-sm text-text-secondary leading-relaxed border-t border-divider/40 pt-3">
+        <div className="px-5 pb-4 text-sm text-text-secondary leading-relaxed border-t border-divider pt-3">
           {a}
         </div>
       )}
@@ -97,7 +97,7 @@ export function EdukasiPage() {
                 </div>
                 <h3 className={cn('text-lg font-bold mb-2', item.color)}>{item.title}</h3>
                 <p className="text-xs text-text-secondary leading-relaxed mb-3">{item.desc}</p>
-                <div className="rounded-lg bg-card/60 border border-divider/40 px-3 py-2.5">
+                <div className="rounded-lg bg-card/60 border border-divider px-3 py-2.5">
                   <p className="text-[11px] font-semibold text-text-primary">Tindakan:</p>
                   <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5">{item.action}</p>
                 </div>
@@ -114,7 +114,7 @@ export function EdukasiPage() {
             Cara Melaporkan Retakan
           </h2>
           <div className="grid sm:grid-cols-2 gap-8 sm:gap-10 max-w-3xl mx-auto">
-            <div className="rounded-2xl bg-surface border border-divider/60 p-5 sm:p-6 text-center">
+            <div className="rounded-2xl bg-surface border border-divider p-5 sm:p-6 text-center">
               <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-xl bg-primary-surface mb-4">
                 <Smartphone className="h-6 w-6 text-primary" />
               </div>
@@ -131,7 +131,7 @@ export function EdukasiPage() {
                 <span className="flex items-center gap-1"><Wifi className="h-3 w-3" /> Kirim online</span>
               </div>
             </div>
-            <div className="rounded-2xl bg-surface border border-divider/60 p-5 sm:p-6 text-center">
+            <div className="rounded-2xl bg-surface border border-divider p-5 sm:p-6 text-center">
               <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-xl bg-primary-surface mb-4">
                 <Smartphone className="h-6 w-6 text-primary" />
               </div>
@@ -190,7 +190,7 @@ export function EdukasiPage() {
 
 function ContactCard({ label, phone }: { label: string; phone: string }) {
   return (
-    <div className="rounded-xl bg-card border border-divider/60 px-5 py-3.5 flex items-center justify-between">
+    <div className="rounded-xl bg-card border border-divider px-5 py-3.5 flex items-center justify-between">
       <span className="text-sm font-medium text-text-primary">{label}</span>
       <span className="text-sm font-bold text-bahaya tabular-nums">{phone}</span>
     </div>

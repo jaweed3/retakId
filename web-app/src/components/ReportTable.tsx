@@ -43,7 +43,7 @@ export function ReportTable({ data }: ReportTableProps) {
   });
 
   return (
-    <div className="rounded-xl border border-divider/60 overflow-hidden">
+    <div className="rounded-xl border border-divider overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

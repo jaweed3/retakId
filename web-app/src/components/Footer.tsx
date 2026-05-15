@@ -76,15 +76,19 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-divider/60 mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="border-t border-divider mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-4 text-[10px] text-text-secondary/60">
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               Jenangan, Ponorogo
             </span>
             <span className="inline-flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              +62 81 3337 31713
+            </span>
+            <span className="inline-flex items-center gap-1">
               <Mail className="h-3 w-3" />
-              retak.id@email.com
+              rektorat@unida.gontor.ac.id
             </span>
           </div>
           <span className="text-[10px] text-text-secondary/40">

@@ -24,6 +24,14 @@ stats:
 split:
 	$(PYTHON) backend/scripts/processing/split_dataset.py --data-dir backend/data/processed --output-dir backend/data/splits
 
+# Ingestion of admin-verified training data (HITL loop)
+# Usage: make ingest CSV=training_export.csv
+ingest:
+	$(PYTHON) backend/scripts/training/ingest_verification.py --csv $(CSV)
+
+# Full loop: ingest → split → train
+ingest-train: ingest split train
+
 # --- Training Pipeline ---
 
 train:

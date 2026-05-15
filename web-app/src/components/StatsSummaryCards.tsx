@@ -14,7 +14,7 @@ interface StatsSummaryCardsProps {
 
 function SkeletonCard() {
   return (
-    <div className="flex items-center gap-1.5 sm:gap-3 rounded-xl bg-card px-2.5 py-2.5 sm:px-4 sm:py-3.5 shadow-sm border border-divider/40 animate-pulse">
+    <div className="flex items-center gap-1.5 sm:gap-3 rounded-xl bg-card px-2.5 py-2.5 sm:px-4 sm:py-3.5 shadow-sm border border-divider animate-pulse">
       <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-divider/50" />
       <div className="flex-1 space-y-2">
         <div className="h-5 w-12 rounded bg-divider/50" />
@@ -50,7 +50,7 @@ export function StatsSummaryCards({ counts, isLoading }: StatsSummaryCardsProps)
           <div
             key={item.label}
             className={cn(
-              'flex items-center gap-1.5 sm:gap-3 rounded-xl bg-card px-2.5 py-2.5 sm:px-4 sm:py-3.5 shadow-sm border border-divider/40',
+              'flex items-center gap-1.5 sm:gap-3 rounded-xl bg-card px-2.5 py-2.5 sm:px-4 sm:py-3.5 shadow-sm border border-divider',
               'hover:shadow-md transition-shadow',
             )}
           >

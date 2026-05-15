@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    container_name: retakid-web
+    restart: unless-stopped
+    ports:
+      - "3400:80"
+    environment:
+      - TZ=Asia/Jakarta
