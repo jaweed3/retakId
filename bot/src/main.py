@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 
 from config import Config
-from handlers.admin import health_handler, stats_handler
+from handlers.admin import health_handler, stats_handler, test_handler
 from handlers.error_handler import error_handler
 from handlers.lapor import build_conversation_handler
 from handlers.photo import init_predictor
@@ -59,6 +59,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", start_handler), group=0)
     app.add_handler(CommandHandler("stats", stats_handler), group=1)
     app.add_handler(CommandHandler("health", health_handler), group=1)
+    app.add_handler(CommandHandler("test", test_handler), group=2)
 
     logger.info(
         "Bot started — mode=%s rate=%d/%ds admin_chat=%s",
