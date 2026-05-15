@@ -17,6 +17,7 @@ export interface Laporan {
   pelapor: string;
   terverifikasi: number;
   created_at: string;
+  is_resolved?: boolean;
 }
 
 export type RiskFactor = 'ML' | 'SLOPE' | 'RAIN' | 'ELEVATION' | 'SOIL';
@@ -86,6 +87,7 @@ export interface Database {
           pelapor: string;
           terverifikasi: number;
           created_at: string;
+          is_resolved?: boolean;
         };
         Insert: Omit<Database['public']['Tables']['laporan']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['laporan']['Row']>;

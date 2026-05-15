@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, Download } from 'lucide-react';
+import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, Download, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLaporan } from '../hooks/useLaporan';
+import { useLaporan, type ResolvedFilter } from '../hooks/useLaporan';
 import { useToast } from '../context/ToastContext';
 import { supabase, requireSupabase } from '../lib/supabase';
 import { StatusBadge } from '../components/StatusBadge';
@@ -25,9 +25,9 @@ function isAuthError(err: { message?: string; code?: string }): boolean {
   return msg.includes('jwt') || msg.includes('auth') || msg.includes('unauthorized') || msg.includes('session') || err.code === 'PGRST301' || err.code === '401';
 }
 
-function ActionsMenu({ report, onVerify, onEdit, onDelete, disabled, verified }: {
+function ActionsMenu({ report, onVerify, onEdit, onDelete, onResolve, disabled, verified }: {
   report: Laporan; onVerify: (r: Laporan) => void; onEdit: (r: Laporan) => void;
-  onDelete: (r: Laporan) => void; disabled: boolean; verified: boolean;
+  onDelete: (r: Laporan) => void; onResolve: (r: Laporan) => void; disabled: boolean; verified: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -68,7 +68,8 @@ export function AdminDashboardPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data, counts, isLoading, error, refetch } = useLaporan({ limit: 500 });
+  const [adminResolvedFilter, setAdminResolvedFilter] = useState<ResolvedFilter>('active');
+  const { data, counts, isLoading, error, refetch } = useLaporan({ limit: 500, resolvedFilter: adminResolvedFilter });
   const [search, setSearch] = useState('');
   const [filterVerif, setFilterVerif] = useState<'all' | 'verified' | 'unverified'>('all');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
@@ -100,6 +101,18 @@ export function AdminDashboardPage() {
   }, [data]);
 
   const handleSignOut = async () => { await signOut(); navigate('/admin/login'); };
+
+  const handleResolve = useCallback(async (report: Laporan) => {
+    if (!supabase) return;
+    const client = requireSupabase();
+    setActionLoading(true);
+    const newVal = !report.is_resolved;
+    const { error } = await (client as any).from('laporan').update({ is_resolved: newVal }).eq('id', report.id);
+    if (error) { toast('error', `Gagal: ${error.message}`); setActionLoading(false); return; }
+    try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: report.id, nama_lokasi: report.nama_lokasi, status: report.status, ditangani_oleh: user?.email || 'admin', tindakan: newVal ? 'ditanggulangi' : 'dipulihkan' }); } catch { /* */ }
+    toast('success', newVal ? 'Laporan ditandai teratasi.' : 'Laporan dikembalikan ke aktif.');
+    refetch(); setActionLoading(false);
+  }, [refetch, toast, user, signOut, navigate]);
 
   const handleVerifyOpen = useCallback((report: Laporan) => {
     if (verifiedIds.has(report.id)) { toast('info', 'Laporan ini sudah diverifikasi.'); return; }
@@ -239,6 +252,17 @@ export function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* Resolved filter tabs */}
+        <div className="flex gap-1.5 mb-4 sm:mb-5">
+          {[{ key: 'active' as ResolvedFilter, label: 'Aktif' }, { key: 'resolved' as ResolvedFilter, label: 'Teratasi' }].map((opt) => (
+            <button key={opt.key} onClick={() => setAdminResolvedFilter(opt.key)}
+              className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                adminResolvedFilter === opt.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30')}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {error && <ErrorState message={error} onRetry={refetch} />}
         {!error && data.length === 0 && <EmptyState title="Belum ada laporan" description="Laporan dari aplikasi mobile akan muncul di sini." />}
 
@@ -270,7 +294,7 @@ export function AdminDashboardPage() {
                             <Link to={`/reports/${r.id}`} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-text-primary hover:bg-divider/30 transition-colors" title="Detail" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></Link>
                             <button onClick={() => setDeleteTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-bahaya hover:bg-bahaya-bg transition-colors" title="Hapus"><Trash2 className="h-4 w-4" /></button>
                           </div>
-                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
+                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} onResolve={handleResolve} /></div>
                         </td>
                       </tr>
                     ))}
@@ -285,7 +309,7 @@ export function AdminDashboardPage() {
                 <div key={r.id} className="rounded-xl bg-card border border-divider p-3.5 sm:p-4 hover:shadow-sm transition-all cursor-pointer" onClick={() => navigate(`/reports/${r.id}`)}>
                   <div className="flex items-start justify-between mb-2">
                     <StatusBadge status={r.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5" />
-                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
+                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} onResolve={handleResolve} /></div>
                   </div>
                   <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-1.5 truncate">{r.nama_lokasi}</h3>
                   <div className="space-y-1 text-[10px] sm:text-[11px] text-text-secondary">
