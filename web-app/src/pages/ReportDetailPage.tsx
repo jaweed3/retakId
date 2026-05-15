@@ -1,20 +1,76 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, User, Calendar, ShieldCheck, ExternalLink } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Calendar, ShieldCheck, ExternalLink, Trash2, Pencil } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase, requireSupabase } from '../lib/supabase';
-import type { Laporan } from '../types/laporan';
+import type { Laporan, ReportStatus } from '../types/laporan';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { MapView } from '../components/MapView';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorState } from '../components/ErrorState';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { EditReportDialog } from '../components/EditReportDialog';
 import { formatRelativeTime } from '../utils/formatDate';
 
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { isAdmin, user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [report, setReport] = useState<Laporan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!supabase || !user?.email || !report) return;
+    (requireSupabase() as any).from('riwayat_penanganan')
+      .select('laporan_id').eq('ditangani_oleh', user.email).eq('tindakan', 'diverifikasi')
+      .then(({ data: rows }: { data: Array<{ laporan_id: string }> | null }) => {
+        if (rows) setVerifiedIds(new Set(rows.map((r: { laporan_id: string }) => r.laporan_id)));
+      }).catch(() => {});
+  }, [user?.email, report?.id]);
+
+  const handleVerify = async () => {
+    if (!report || !supabase || verifiedIds.has(report.id)) return;
+    const client = requireSupabase();
+    setActionLoading(true);
+    const { error: err } = await (client as any).from('laporan').update({ terverifikasi: report.terverifikasi + 1 }).eq('id', report.id);
+    if (err) { toast('error', `Gagal: ${err.message}`); setActionLoading(false); return; }
+    try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: report.id, nama_lokasi: report.nama_lokasi, status: report.status, ditangani_oleh: user?.email || 'admin', tindakan: 'diverifikasi' }); } catch { /* */ }
+    setVerifiedIds((prev) => new Set(prev).add(report.id));
+    setReport({ ...report, terverifikasi: report.terverifikasi + 1 });
+    toast('success', 'Laporan diverifikasi.');
+    setActionLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!report || !supabase) return;
+    const client = requireSupabase();
+    setActionLoading(true);
+    try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: report.id, nama_lokasi: report.nama_lokasi, status: report.status, ditangani_oleh: user?.email || 'admin', tindakan: 'dihapus', alasan: 'Laporan sudah ditanggulangi' }); } catch { /* */ }
+    const { error: err } = await (client as any).from('laporan').delete().eq('id', report.id);
+    if (err) { toast('error', `Gagal: ${err.message}`); setActionLoading(false); return; }
+    toast('success', 'Laporan dihapus.');
+    navigate('/admin');
+  };
+
+  const handleEditSave = async (rid: string, updates: { nama_lokasi: string; status: ReportStatus; catatan: string }) => {
+    if (!supabase) return;
+    const client = requireSupabase();
+    setActionLoading(true);
+    const { error: err } = await (client as any).from('laporan').update(updates).eq('id', rid);
+    if (err) { toast('error', `Gagal: ${err.message}`); setActionLoading(false); return; }
+    setReport({ ...report!, ...updates });
+    toast('success', 'Laporan diperbarui.');
+    setShowEdit(false); setActionLoading(false);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -71,14 +127,27 @@ export function ReportDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-3 py-4 sm:px-4 sm:py-6">
-      {/* Back */}
-      <Link
-        to="/reports"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary mb-3 sm:mb-4 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Kembali
-      </Link>
+      {/* Back + Admin actions */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <Link to={isAdmin ? "/admin" : "/reports"} className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Kembali
+        </Link>
+        {isAdmin && report && (
+          <div className="flex items-center gap-1.5">
+            {!verifiedIds.has(report.id) && (
+              <button onClick={handleVerify} disabled={actionLoading} className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-light transition-colors disabled:opacity-50">
+                <ShieldCheck className="h-3.5 w-3.5" /> Verifikasi
+              </button>
+            )}
+            <button onClick={() => setShowEdit(true)} disabled={actionLoading} className="flex items-center gap-1.5 rounded-xl border border-divider bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-waspada transition-colors disabled:opacity-50">
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </button>
+            <button onClick={() => setShowDelete(true)} disabled={actionLoading} className="flex items-center gap-1.5 rounded-xl border border-divider bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-bahaya transition-colors disabled:opacity-50">
+              <Trash2 className="h-3.5 w-3.5" /> Hapus
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -122,7 +191,7 @@ export function ReportDetailPage() {
 
       {/* Catatan */}
       {report.catatan && (
-        <div className="rounded-xl bg-card border border-divider/50 p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="rounded-xl bg-card border border-divider p-3 sm:p-4 mb-4 sm:mb-6">
           <h3 className="text-[11px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
             Catatan
           </h3>
@@ -131,8 +200,8 @@ export function ReportDetailPage() {
       )}
 
       {/* Mini map */}
-      <div className="rounded-xl overflow-hidden border border-divider/50 mb-4 sm:mb-6">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-divider/50">
+      <div className="rounded-xl overflow-hidden border border-divider mb-4 sm:mb-6">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-divider">
           <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
             Lokasi
           </h3>
@@ -153,6 +222,10 @@ export function ReportDetailPage() {
           className="h-48"
         />
       </div>
+
+      {/* Admin dialogs */}
+      <ConfirmDialog open={showDelete} title="Hapus Laporan?" message={`Laporan dari "${report.nama_lokasi}" akan dihapus permanen.`} confirmLabel="Hapus" variant="danger" onConfirm={handleDelete} onCancel={() => setShowDelete(false)} loading={actionLoading} />
+      {showEdit && <EditReportDialog open={showEdit} report={report} onSave={handleEditSave} onCancel={() => setShowEdit(false)} loading={actionLoading} />}
     </div>
   );
 }
@@ -167,7 +240,7 @@ function InfoItem({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 sm:gap-3 rounded-xl bg-card border border-divider/50 px-3 py-2.5 sm:px-4 sm:py-3">
+    <div className="flex items-center gap-2.5 sm:gap-3 rounded-xl bg-card border border-divider px-3 py-2.5 sm:px-4 sm:py-3">
       <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-primary-surface">
         <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
       </div>

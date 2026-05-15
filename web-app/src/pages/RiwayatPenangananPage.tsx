@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Clock, CheckCircle, Pencil, Trash2 } from 'lucide-react';
 import { supabase, requireSupabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorState } from '../components/ErrorState';
@@ -98,6 +99,7 @@ function RiwayatContent() {
               <p className="text-[10px] sm:text-xs text-text-secondary">Audit trail semua aksi admin</p>
             </div>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -114,7 +116,7 @@ function RiwayatContent() {
               return (
                 <div
                   key={entry.id}
-                  className="rounded-xl bg-card border border-divider/60 p-4 sm:p-5 flex items-start gap-4"
+                  className="rounded-xl bg-card border border-divider p-4 sm:p-5 flex items-start gap-4"
                 >
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TINDAKAN_COLOR[entry.tindakan]}`}>
                     <Icon className="h-4 w-4" />
