@@ -12,6 +12,7 @@ import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { RiwayatPenangananPage } from './pages/RiwayatPenangananPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { OnboardingTour } from './components/OnboardingTour';
 import { ScrollToTop } from './components/ScrollToTop';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
@@ -53,6 +54,8 @@ export function App() {
           }
         />
       </Routes>
+
+      <OnboardingTour />
     </>
   );
 }
