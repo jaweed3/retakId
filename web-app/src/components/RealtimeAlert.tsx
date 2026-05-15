@@ -25,8 +25,9 @@ export function RealtimeAlert() {
 
   useEffect(() => {
     if (!supabase) return;
+    const client = supabase;
 
-    const channel = supabase
+    const channel = client
       .channel(channelId.current)
       .on(
         'postgres_changes',
@@ -43,7 +44,7 @@ export function RealtimeAlert() {
 
     return () => {
       clearTimeout(bannerTimer.current);
-      supabase.removeChannel(channel);
+      client.removeChannel(channel);
     };
   }, [toast, updateConnection]);
 

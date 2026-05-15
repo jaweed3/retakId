@@ -55,14 +55,15 @@ export function useConnectionStatus(): UseConnectionStatusReturn {
       setStatus('unavailable');
       return;
     }
+    const client = supabase;
 
-    const channelId = `health-${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
-      .channel(channelId)
+    const healthChannelId = `health-${Math.random().toString(36).slice(2, 8)}`;
+    const channel = client
+      .channel(healthChannelId)
       .subscribe((state) => updateFromChannel(state));
 
     return () => {
-      supabase.removeChannel(channel);
+      client.removeChannel(channel);
     };
   }, [updateFromChannel]);
 
