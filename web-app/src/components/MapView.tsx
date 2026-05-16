@@ -17,25 +17,26 @@ interface MapViewProps {
 
 const DEFAULT_CENTER: [number, number] = [-7.876, 111.470];
 
-function createIcon(status: string): L.DivIcon {
-  const colors: Record<string, string> = {
-    AMAN: '#388E3C',
-    WASPADA: '#F57C00',
-    BAHAYA: '#D32F2F',
-  };
-  const color = colors[status] || '#999';
+const ACTIVE_COLORS: Record<string, string> = { AMAN: '#388E3C', WASPADA: '#F57C00', BAHAYA: '#D32F2F' };
+
+function createIcon(status: string, isResolved?: boolean): L.DivIcon {
+  const color = isResolved ? '#999' : (ACTIVE_COLORS[status] || '#999');
+  const opacity = isResolved ? '0.5' : '1';
+  const size = isResolved ? '16' : '24';
+  const border = isResolved ? '2' : '3';
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
-      width:24px;height:24px;
+      width:${size}px;height:${size}px;
       background:${color};
       border-radius:50%;
-      border:3px solid white;
+      border:${border}px solid white;
       box-shadow:0 2px 6px rgba(0,0,0,0.35);
+      opacity:${opacity};
     "></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -14],
+    iconSize: [Number(size), Number(size)],
+    iconAnchor: [Number(size)/2, Number(size)/2],
+    popupAnchor: [0, -Number(size)/2],
   });
 }
 
@@ -65,7 +66,7 @@ export function MapView({
           <Marker
             key={report.id}
             position={[report.latitude, report.longitude]}
-            icon={createIcon(report.status)}
+            icon={createIcon(report.status, report.is_resolved)}
           >
             <Popup>
               <LaporanMapPopup report={report} />

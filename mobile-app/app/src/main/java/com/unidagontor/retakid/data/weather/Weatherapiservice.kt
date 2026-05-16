@@ -77,13 +77,9 @@ object WeatherApiService {
     // Cache key: satu titik tetap per instance
     private val cacheKey = "${LATITUDE}_${LONGITUDE}"
 
-    private val BASE_URL = buildString {
-        append("https://api.open-meteo.com/v1/forecast")
-        append("?latitude=$LATITUDE")
-        append("&longitude=$LONGITUDE")
-        append("&current=temperature_2m,relative_humidity_2m,precipitation,rain,weathercode,windspeed_10m")
-        append("&timezone=$TIMEZONE")
-    }
+    /** Jenangan default — used by Peta screen (legacy). */
+    suspend fun getCurrentWeather(): Result<WeatherData> =
+        getCurrentWeather(LATITUDE, LONGITUDE)
 
     private var appContext: Context? = null
 

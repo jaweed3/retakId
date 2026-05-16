@@ -1,4 +1,4 @@
-import type { FactorContribution, ReportStatus } from '../types/laporan';
+import type { DetectionResult } from '../types/laporan';
 
 const EDGE_FUNCTION_URL =
   import.meta.env.VITE_SUPABASE_EDGE_FUNCTION_URL ??
@@ -8,18 +8,28 @@ const EDGE_FUNCTION_URL =
     return null;
   })();
 
+export type { DetectionResult };
+
+export interface FactorContribution {
+  factor: string;
+  weight: number;
+  score: number;
+  rawValue: string;
+  weightedScore: number;
+}
+
 export interface RiskFactorReport {
-  mlResult: ReportStatus;
+  mlResult: DetectionResult;
   mlConfidence: number;
   finalScore: number;
-  finalResult: ReportStatus;
+  finalResult: DetectionResult;
   factors: FactorContribution[];
   isUpgraded: boolean;
   isDowngraded: boolean;
 }
 
 interface CalculateRiskRequest {
-  mlResult: ReportStatus;
+  mlResult: DetectionResult;
   mlConfidence: number;
   latitude: number;
   longitude: number;

@@ -18,28 +18,7 @@ export interface Laporan {
   pelapor: string;
   terverifikasi: number;
   created_at: string;
-}
-
-export type RiskFactor = 'ML' | 'SLOPE' | 'RAIN' | 'ELEVATION' | 'SOIL';
-export type RiskLabel = 'RENDAH' | 'SEDANG' | 'TINGGI' | 'SANGAT_TINGGI';
-
-export interface FactorContribution {
-  factor: RiskFactor;
-  rawValue: string;
-  score: number;
-  weight: number;
-  weightedScore: number;
-  riskLabel: RiskLabel;
-}
-
-export interface RiskFactorReport {
-  mlResult: DetectionResult;
-  mlConfidence: number;
-  finalScore: number;
-  finalResult: DetectionResult;
-  factors: FactorContribution[];
-  isUpgraded: boolean;
-  isDowngraded: boolean;
+  is_resolved?: boolean;
 }
 
 export type VerifLabel = 'BENAR' | 'SALAH';
@@ -87,6 +66,7 @@ export interface Database {
           pelapor: string;
           terverifikasi: number;
           created_at: string;
+          is_resolved?: boolean;
         };
         Insert: Omit<Database['public']['Tables']['laporan']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['laporan']['Row']>;

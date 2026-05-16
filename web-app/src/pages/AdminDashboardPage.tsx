@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, Download } from 'lucide-react';
+import { LogOut, ShieldCheck, Trash2, Pencil, Search, ArrowLeft, ExternalLink, History, MoreVertical, Download, CheckCircle, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLaporan } from '../hooks/useLaporan';
+import { useLaporan, type ResolvedFilter } from '../hooks/useLaporan';
 import { useToast } from '../context/ToastContext';
 import { supabase, requireSupabase } from '../lib/supabase';
 import { StatusBadge } from '../components/StatusBadge';
@@ -25,9 +25,9 @@ function isAuthError(err: { message?: string; code?: string }): boolean {
   return msg.includes('jwt') || msg.includes('auth') || msg.includes('unauthorized') || msg.includes('session') || err.code === 'PGRST301' || err.code === '401';
 }
 
-function ActionsMenu({ report, onVerify, onEdit, onDelete, disabled, verified }: {
+function ActionsMenu({ report, onVerify, onEdit, onDelete, onResolve, disabled, verified }: {
   report: Laporan; onVerify: (r: Laporan) => void; onEdit: (r: Laporan) => void;
-  onDelete: (r: Laporan) => void; disabled: boolean; verified: boolean;
+  onDelete: (r: Laporan) => void; onResolve: (r: Laporan) => void; disabled: boolean; verified: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -48,6 +48,9 @@ function ActionsMenu({ report, onVerify, onEdit, onDelete, disabled, verified }:
               <ShieldCheck className="h-3.5 w-3.5" /> Verif. ML
             </button>
           )}
+          <button onClick={() => { onResolve(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-primary hover:bg-primary-surface transition-colors">
+            {report.is_resolved ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />} {report.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}
+          </button>
           <button onClick={() => { onEdit(report); setOpen(false); }} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-text-secondary hover:text-waspada hover:bg-waspada-bg transition-colors">
             <Pencil className="h-3.5 w-3.5" /> Edit
           </button>
@@ -68,7 +71,8 @@ export function AdminDashboardPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data, counts, isLoading, error, refetch } = useLaporan({ limit: 500 });
+  const [adminResolvedFilter, setAdminResolvedFilter] = useState<ResolvedFilter>('active');
+  const { data, counts, isLoading, error, refetch } = useLaporan({ limit: 500, resolvedFilter: adminResolvedFilter });
   const [search, setSearch] = useState('');
   const [filterVerif, setFilterVerif] = useState<'all' | 'verified' | 'unverified'>('all');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
@@ -100,6 +104,18 @@ export function AdminDashboardPage() {
   }, [data]);
 
   const handleSignOut = async () => { await signOut(); navigate('/admin/login'); };
+
+  const handleResolve = useCallback(async (report: Laporan) => {
+    if (!supabase) return;
+    const client = requireSupabase();
+    setActionLoading(true);
+    const newVal = !report.is_resolved;
+    const { error } = await (client as any).from('laporan').update({ is_resolved: newVal }).eq('id', report.id);
+    if (error) { toast('error', `Gagal: ${error.message}`); setActionLoading(false); return; }
+    try { await (client as any).from('riwayat_penanganan').insert({ laporan_id: report.id, nama_lokasi: report.nama_lokasi, status: report.status, ditangani_oleh: user?.email || 'admin', tindakan: newVal ? 'ditanggulangi' : 'dipulihkan' }); } catch { /* */ }
+    toast('success', newVal ? 'Laporan ditandai teratasi.' : 'Laporan dikembalikan ke aktif.');
+    refetch(); setActionLoading(false);
+  }, [refetch, toast, user, signOut, navigate]);
 
   const handleVerifyOpen = useCallback((report: Laporan) => {
     if (verifiedIds.has(report.id)) { toast('info', 'Laporan ini sudah diverifikasi.'); return; }
@@ -212,10 +228,10 @@ export function AdminDashboardPage() {
           <StatBadge label="Terverifikasi" value={data.filter((r) => r.terverifikasi > 0).length} color="text-primary" />
           <StatBadge label="Total" value={counts.total} color="text-text-primary" />
           <StatBadge
-            label="Akurasi ML"
-            value={verifStats ? `${verifStats.akurasi}%` : '-'}
-            color={verifStats ? (verifStats.akurasi >= 80 ? 'text-primary' : verifStats.akurasi >= 50 ? 'text-waspada' : 'text-bahaya') : 'text-text-secondary'}
-            subtitle={verifStats ? `${verifStats.benar}/${verifStats.total} sesuai` : undefined}
+            label="Sesuai Verifikasi"
+            value={verifStats && verifStats.total > 0 ? `${verifStats.akurasi}%` : '—'}
+            color={verifStats && verifStats.total > 0 ? (verifStats.akurasi >= 80 ? 'text-primary' : verifStats.akurasi >= 50 ? 'text-waspada' : 'text-bahaya') : 'text-text-secondary'}
+            subtitle={verifStats && verifStats.total > 0 ? `${verifStats.benar}/${verifStats.total} sesuai` + (verifStats.total < 10 ? ' (sample kecil)' : '') : 'Belum ada verifikasi'}
           />
         </div>
 
@@ -227,16 +243,27 @@ export function AdminDashboardPage() {
           <div className="flex items-center gap-1.5 justify-between">
             <div className="flex gap-1.5">
               {[{ key: 'all' as const, label: 'Semua', short: 'Semua' }, { key: 'unverified' as const, label: 'Belum Verif', short: 'B.V' }, { key: 'verified' as const, label: 'Terverifikasi', short: 'T.V' }].map((opt) => (
-                <button key={opt.key} onClick={() => setFilterVerif(opt.key)} className={cn('rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-colors', filterVerif === opt.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-divider/30')}>
+                <button key={opt.key} onClick={() => setFilterVerif(opt.key)} className={cn('rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-colors', filterVerif === opt.key ? 'bg-primary text-white shadow-sm' : 'bg-black/5 dark:bg-white/10 text-text-secondary/60 hover:text-text-primary hover:bg-black/10 dark:hover:bg-white/15')}>
                   <span className="hidden sm:inline">{opt.label}</span><span className="sm:hidden">{opt.short}</span>
                 </button>
               ))}
             </div>
             <div className="flex rounded-lg border border-divider bg-surface p-0.5">
-              <button onClick={() => setViewMode('table')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'table' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary')}>Tabel</button>
-              <button onClick={() => setViewMode('card')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'card' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary')}>Card</button>
+              <button onClick={() => setViewMode('table')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'table' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary/40 hover:text-text-primary')}>Tabel</button>
+              <button onClick={() => setViewMode('card')} className={cn('rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium transition-colors', viewMode === 'card' ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary/40 hover:text-text-primary')}>Card</button>
             </div>
           </div>
+        </div>
+
+        {/* Resolved filter tabs */}
+        <div className="flex gap-1.5 mb-4 sm:mb-5">
+          {[{ key: 'active' as ResolvedFilter, label: 'Aktif' }, { key: 'resolved' as ResolvedFilter, label: 'Teratasi' }].map((opt) => (
+            <button key={opt.key} onClick={() => setAdminResolvedFilter(opt.key)}
+              className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                adminResolvedFilter === opt.key ? 'bg-primary text-white shadow-sm' : 'bg-black/5 dark:bg-white/10 text-text-secondary/60 hover:text-text-primary hover:bg-black/10 dark:hover:bg-white/15')}>
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {error && <ErrorState message={error} onRetry={refetch} />}
@@ -247,7 +274,7 @@ export function AdminDashboardPage() {
             <div className="rounded-xl border border-divider overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs sm:text-sm">
-                  <thead><tr className="bg-divider/20">
+                  <thead><tr className="bg-black/10 dark:bg-white/10">
                     <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Status</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Lokasi</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-left text-[10px] sm:text-[11px] font-semibold text-text-secondary uppercase tracking-wider hidden sm:table-cell">Pelapor</th>
@@ -265,12 +292,13 @@ export function AdminDashboardPage() {
                         </td>
                         <td className="px-2 sm:px-3 py-2 sm:py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="hidden sm:flex items-center justify-end gap-1">
-                            {!isVerified(r.id) && <button onClick={() => handleVerifyOpen(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi ML"><ShieldCheck className="h-4 w-4" /></button>}
+                            {r.terverifikasi === 0 && !isVerified(r.id) && <button onClick={() => handleVerifyOpen(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title="Verifikasi ML"><ShieldCheck className="h-4 w-4" /></button>}
+                            <button onClick={() => handleResolve(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-primary hover:bg-primary-surface transition-colors" title={r.is_resolved ? 'Batal Teratasi' : 'Tandai Teratasi'}>{r.is_resolved ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}</button>
                             <button onClick={() => setEditTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-waspada hover:bg-waspada-bg transition-colors" title="Edit"><Pencil className="h-4 w-4" /></button>
                             <Link to={`/reports/${r.id}`} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-text-primary hover:bg-divider/30 transition-colors" title="Detail" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></Link>
                             <button onClick={() => setDeleteTarget(r)} disabled={actionLoading} className="p-1.5 rounded-lg text-text-secondary/50 hover:text-bahaya hover:bg-bahaya-bg transition-colors" title="Hapus"><Trash2 className="h-4 w-4" /></button>
                           </div>
-                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
+                          <div className="sm:hidden flex justify-end"><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={r.terverifikasi > 0 || isVerified(r.id)} onResolve={handleResolve} /></div>
                         </td>
                       </tr>
                     ))}
@@ -285,7 +313,7 @@ export function AdminDashboardPage() {
                 <div key={r.id} className="rounded-xl bg-card border border-divider p-3.5 sm:p-4 hover:shadow-sm transition-all cursor-pointer" onClick={() => navigate(`/reports/${r.id}`)}>
                   <div className="flex items-start justify-between mb-2">
                     <StatusBadge status={r.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5" />
-                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={isVerified(r.id)} /></div>
+                    <div onClick={(e) => e.stopPropagation()}><ActionsMenu report={r} onVerify={handleVerifyOpen} onEdit={setEditTarget} onDelete={setDeleteTarget} disabled={actionLoading} verified={r.terverifikasi > 0 || isVerified(r.id)} onResolve={handleResolve} /></div>
                   </div>
                   <h3 className="text-xs sm:text-sm font-semibold text-text-primary mb-1.5 truncate">{r.nama_lokasi}</h3>
                   <div className="space-y-1 text-[10px] sm:text-[11px] text-text-secondary">

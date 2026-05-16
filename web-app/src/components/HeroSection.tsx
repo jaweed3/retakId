@@ -139,6 +139,7 @@ export function HeroSection() {
       bg: 'bg-primary-surface',
       textColor: 'text-primary',
       ringColor: 'ring-primary/20',
+      to: '/reports',
     },
     {
       icon: Search,
@@ -148,6 +149,7 @@ export function HeroSection() {
       bg: 'bg-waspada-bg',
       textColor: 'text-waspada',
       ringColor: 'ring-waspada/20',
+      to: '/dashboard',
     },
     {
       icon: AlertTriangle,
@@ -157,6 +159,7 @@ export function HeroSection() {
       bg: 'bg-bahaya-bg',
       textColor: 'text-bahaya',
       ringColor: 'ring-bahaya/20',
+      to: '/reports?status=BAHAYA',
     },
   ];
 
@@ -209,8 +212,10 @@ export function HeroSection() {
 
         {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 max-w-2xl mx-auto">
-          {stats.map((stat) => (
-            <StatCard key={stat.label} {...stat} visible={visible && !isLoading} />
+          {stats.map(({ to, ...stat }) => (
+            <Link key={stat.label} to={to} className="block">
+              <StatCard {...stat} visible={visible && !isLoading} />
+            </Link>
           ))}
         </div>
 
