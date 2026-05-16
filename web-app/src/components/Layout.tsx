@@ -22,7 +22,7 @@ export function Layout() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-surface">
+    <div className="flex flex-col h-screen bg-surface">
       <RealtimeAlert />
       {/* ─── Top Navbar (desktop) ─── */}
       <header className="hidden lg:flex items-center justify-between h-16 shrink-0 border-b bg-white dark:bg-black border-gray-200 dark:border-white/10 px-6">
@@ -71,49 +71,46 @@ export function Layout() {
         </div>
       </header>
 
-      {/* ─── Main content ─── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-divider bg-card shrink-0">
-          <Link to="/" className="flex items-center gap-2.5">
-            <img src="/retak-favicon.svg" alt="Retak.id" className="h-7 w-7 rounded-lg shadow-sm" />
-            <div>
-              <h1 className="text-sm font-bold text-text-primary leading-tight">Retak.id</h1>
-              <p className="text-[10px] text-text-secondary">Monitoring</p>
-            </div>
-          </Link>
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
+      {/* Mobile header */}
+      <header className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-divider bg-card shrink-0">
+        <Link to="/" className="flex items-center gap-2.5">
+          <img src="/retak-favicon.svg" alt="Retak.id" className="h-7 w-7 rounded-lg shadow-sm" />
+          <div>
+            <h1 className="text-sm font-bold text-text-primary leading-tight">Retak.id</h1>
+            <p className="text-[10px] text-text-secondary">Monitoring</p>
           </div>
-        </header>
-
-        {/* Page content */}
-        <div className="flex-1 overflow-auto scroll-smooth pb-16 lg:pb-0" data-main-content>
-          <Outlet />
-          <Footer />
+        </Link>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
         </div>
+      </header>
 
-        {/* ─── Bottom nav (mobile) ─── */}
-        <nav className="lg:hidden flex items-center justify-around border-t border-divider bg-card py-1.5 shrink-0 safe-bottom">
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.to);
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  'flex flex-col items-center gap-0.5 py-1 px-3 text-[10px] font-medium min-w-0 transition-colors',
-                  active ? 'text-primary' : 'text-text-secondary/50',
-                )}
-                end={item.to === '/'}
-              >
-                <item.icon className={cn('h-5 w-5', active ? 'text-primary' : 'text-text-secondary/40')} />
-                {item.label}
-              </NavLink>
-            );
-          })}
-        </nav>
+      {/* ─── Main scrollable content ─── */}
+      <main className="flex-1 overflow-y-auto scroll-smooth pb-16 lg:pb-0" data-main-content>
+        <Outlet />
+        <Footer />
       </main>
+
+      {/* ─── Bottom nav (mobile) — fixed to viewport ─── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-divider bg-card py-1.5 safe-bottom shadow-lg">
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(item.to);
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={cn(
+                'flex flex-col items-center gap-0.5 py-1 px-3 text-[10px] font-medium min-w-0 transition-colors',
+                active ? 'text-primary' : 'text-text-secondary/50',
+              )}
+              end={item.to === '/'}
+            >
+              <item.icon className={cn('h-5 w-5', active ? 'text-primary' : 'text-text-secondary/40')} />
+              {item.label}
+            </NavLink>
+          );
+        })}
+      </nav>
     </div>
   );
 }
