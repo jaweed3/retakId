@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, AlertCircle, Cpu, Crosshair, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,8 +7,9 @@ import { supabase, requireSupabase } from '../lib/supabase';
 import { ImageUploadPreview } from '../components/ImageUploadPreview';
 import { LocationPicker } from '../components/LocationPicker';
 import { useModelInference } from '../hooks/useModelInference';
-import { calculateRisk } from '../lib/risk';
-import type { RiskFactorReport, FactorContribution, DetectionResult } from '../lib/risk';
+import { fetchAllEnv } from '../lib/envApi';
+import { analyze } from '../lib/riskEngine';
+import type { RiskFactorReport, FactorContribution } from '../lib/risk';
 import type { ReportStatus, PredictionLabel } from '../types/laporan';
 
 interface FormState {
@@ -63,6 +64,69 @@ export function ReportFormPage() {
   const latitude = form.gpsLat ?? form.manualLat;
   const longitude = form.gpsLng ?? form.manualLng;
 
+  const envDataRef = useRef<{
+    slope: number | null; rain: number | null; elevation: number | null;
+    soilRisk: number | null; soilName: string | null;
+    lat: number; lng: number;
+  } | null>(null);
+
+  const runEnvAnalysis = useCallback(async (lat: number, lng: number) => {
+    setRiskLoading(true);
+    setRiskError(null);
+
+    try {
+      const env = await fetchAllEnv(lat, lng);
+
+      envDataRef.current = {
+        slope: env.slope, rain: env.weather?.rain ?? null,
+        elevation: env.elevation, soilRisk: env.soil?.riskScore ?? null,
+        soilName: env.soil?.name ?? null, lat, lng,
+      };
+
+      if (predictionLabel && predictionLabel !== 'TIDAK_PASTI' && predictionConfidence) {
+        const report = analyze({
+          mlLabel: predictionLabel,
+          mlConfidence: predictionConfidence,
+          slopeDeg: env.slope,
+          rainMm: env.weather?.rain,
+          elevationM: env.elevation,
+          soilRiskScore: env.soil?.riskScore,
+          soilName: env.soil?.name,
+        });
+        setRiskReport(report);
+        setForm((prev) => ({ ...prev, status: report.finalResult.status }));
+      } else {
+        setRiskReport(null);
+      }
+    } catch {
+      setRiskError('Gagal menganalisis faktor lingkungan');
+    } finally {
+      setRiskLoading(false);
+    }
+  }, [predictionLabel, predictionConfidence]);
+
+  useEffect(() => {
+    const stored = envDataRef.current;
+    if (!stored) return;
+    if (!predictionLabel || predictionLabel === 'TIDAK_PASTI' || !predictionConfidence) return;
+
+    setRiskLoading(true);
+    setRiskError(null);
+
+    const report = analyze({
+      mlLabel: predictionLabel,
+      mlConfidence: predictionConfidence,
+      slopeDeg: stored.slope,
+      rainMm: stored.rain,
+      elevationM: stored.elevation,
+      soilRiskScore: stored.soilRisk,
+      soilName: stored.soilName,
+    });
+    setRiskReport(report);
+    setForm((prev) => ({ ...prev, status: report.finalResult.status }));
+    setRiskLoading(false);
+  }, [predictionLabel]);
+
   const handleImage = useCallback(async (file: File, preview: string, gps: { latitude: number; longitude: number } | null) => {
     setForm((prev) => ({
       ...prev,
@@ -82,6 +146,7 @@ export function ReportFormPage() {
     setRiskReport(null);
     setRiskLoading(false);
     setRiskError(null);
+    envDataRef.current = null;
 
     // Validate image quality
     try {
@@ -112,27 +177,10 @@ export function ReportFormPage() {
 
         setForm((prev) => ({ ...prev, status: result.status as ReportStatus }));
 
-        const lat = gps?.latitude ?? null;
-        const lng = gps?.longitude ?? null;
-        if (lat != null && lng != null) {
-          setRiskLoading(true);
-          setRiskError(null);
-          try {
-            const report = await calculateRisk({
-              mlResult: result as DetectionResult,
-              mlConfidence: result.confidence,
-              latitude: lat,
-              longitude: lng,
-            });
-            if (!predictingRef.current) return;
-            setRiskReport(report);
-            if (report) setForm((prev) => ({ ...prev, status: report.finalResult.status }));
-          } catch {
-            if (!predictingRef.current) return;
-            setRiskError('Gagal menganalisis faktor lingkungan');
-          } finally {
-            if (predictingRef.current) setRiskLoading(false);
-          }
+        const photoLat = gps?.latitude ?? null;
+        const photoLng = gps?.longitude ?? null;
+        if (photoLat != null && photoLng != null) {
+          runEnvAnalysis(photoLat, photoLng);
         }
       })
       .catch((err) => {
@@ -143,7 +191,7 @@ export function ReportFormPage() {
       .finally(() => {
         predictingRef.current = false;
       });
-  }, [isModelReady, predict]);
+  }, [isModelReady, predict, runEnvAnalysis]);
 
   async function validateImageQuality(file: File): Promise<{ valid: boolean; message: string }> {
     const img = new Image();
@@ -202,7 +250,8 @@ export function ReportFormPage() {
   const handleLocation = useCallback((lat: number, lng: number) => {
     setForm((prev) => ({ ...prev, manualLat: lat, manualLng: lng }));
     setErrors((prev) => { const { gps, ...r } = prev; return r; });
-  }, []);
+    runEnvAnalysis(lat, lng);
+  }, [runEnvAnalysis]);
 
   const handleGPSClick = useCallback(() => {
     if (!navigator.geolocation) {
@@ -216,6 +265,7 @@ export function ReportFormPage() {
         setForm((prev) => ({ ...prev, manualLat: pos.coords.latitude, manualLng: pos.coords.longitude }));
         setErrors((prev) => { const { gps, ...r } = prev; return r; });
         setGpsLoading(false);
+        runEnvAnalysis(pos.coords.latitude, pos.coords.longitude);
       },
       (err) => {
         setGpsError(err.code === 1 ? 'Izin akses lokasi ditolak.' : 'Gagal mendapatkan lokasi.');
@@ -223,7 +273,7 @@ export function ReportFormPage() {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
-  }, []);
+  }, [runEnvAnalysis]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -328,7 +378,11 @@ export function ReportFormPage() {
                 placeholder="Latitude (contoh: -7.876)"
                 onChange={(e) => {
                   const v = parseFloat(e.target.value);
-                  if (!isNaN(v)) setForm((prev) => ({ ...prev, manualLat: v }));
+                  if (!isNaN(v)) {
+                    setForm((prev) => ({ ...prev, manualLat: v }));
+                    const lng = form.manualLng ?? form.gpsLng;
+                    if (lng != null) runEnvAnalysis(v, lng);
+                  }
                 }}
                 className="rounded-xl border border-divider bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
@@ -338,7 +392,11 @@ export function ReportFormPage() {
                 placeholder="Longitude (contoh: 111.470)"
                 onChange={(e) => {
                   const v = parseFloat(e.target.value);
-                  if (!isNaN(v)) setForm((prev) => ({ ...prev, manualLng: v }));
+                  if (!isNaN(v)) {
+                    setForm((prev) => ({ ...prev, manualLng: v }));
+                    const lat = form.manualLat ?? form.gpsLat;
+                    if (lat != null) runEnvAnalysis(lat, v);
+                  }
                 }}
                 className="rounded-xl border border-divider bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
