@@ -165,31 +165,34 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
                 val isOnline = NetworkMonitor.isOnline(getApplication())
                 val finalLocation = state.location ?: locationService.getCurrentLocation()
 
-                val json = org.json.JSONObject().apply {
-                    put("nama_lokasi", namaLokasi)
-                    put("status", finalResult.name)
-                    put("catatan", catatan)
-                    put("latitude", finalLocation?.latitude ?: 0.0)
-                    put("longitude", finalLocation?.longitude ?: 0.0)
-                    put("pelapor", "User")
-                    put("terverifikasi", 0)
-                }.toString()
+                if (isOnline) {
+                    // ── ONLINE: kirim langsung ke Supabase ────────────────────────
+                    val fotoUrl = state.capturedImage?.let { uploadFoto(it) }
 
-                withContext(Dispatchers.IO) {
-                    val url = URL("${com.unidagontor.retakid.BuildConfig.SUPABASE_URL}/rest/v1/laporan")
-                    val conn = url.openConnection() as java.net.HttpURLConnection
-                    conn.requestMethod = "POST"
-                    conn.setRequestProperty("Content-Type", "application/json")
-                    conn.setRequestProperty("apikey", com.unidagontor.retakid.BuildConfig.SUPABASE_ANON_KEY)
-                    conn.setRequestProperty("Authorization", "Bearer ${com.unidagontor.retakid.BuildConfig.SUPABASE_ANON_KEY}")
-                    conn.doOutput = true
-                    conn.connectTimeout = 15_000
-                    conn.readTimeout = 15_000
-                    conn.outputStream.use { it.write(json.toByteArray()) }
-                    val code = conn.responseCode
-                    if (code !in 200..299) {
-                        val error = conn.errorStream?.bufferedReader()?.readText() ?: "Unknown"
-                        throw RuntimeException("HTTP $code: $error")
+                    supabase.from("laporan").insert(
+                        LaporanInsert(
+                            userId     = user.id,
+                            namaLokasi = namaLokasi,
+                            status     = state.detectionResult.name,
+                            catatan    = catatan,
+                            latitude   = finalLocation?.latitude  ?: 0.0,
+                            longitude  = finalLocation?.longitude ?: 0.0,
+                            fotoUrl    = fotoUrl,
+                            pelapor    = user.email ?: "User"
+                        )
+                    )
+                    tambahPoin(user.id, poin = 10)
+                    _uiState.update { it.copy(isSubmitting = false, sentOffline = false, stage = DeteksiStage.SUCCESS) }
+
+                } else {
+                    // ── OFFLINE: simpan ke Room, jadwalkan sync ──────────────────
+                    // Simpan foto ke file lokal
+                    val fotoPath: String? = state.capturedImage?.let { bmp ->
+                        val file = File(getApplication<Application>().cacheDir, "pending_foto_${UUID.randomUUID()}.jpg")
+                        val out  = ByteArrayOutputStream()
+                        resizeBitmapToMax1024(bmp).compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+                        file.writeBytes(out.toByteArray())
+                        file.absolutePath
                     }
                 }
 
@@ -201,13 +204,26 @@ class DeteksiViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun resizeBitmapToMax1024(bitmap: Bitmap): Bitmap {
+        val maxDim = 1024
+        if (bitmap.width <= maxDim && bitmap.height <= maxDim) return bitmap
+        val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
+        val (width, height) = if (ratio > 1) {
+            maxDim to (maxDim / ratio).toInt()
+        } else {
+            (maxDim * ratio).toInt() to maxDim
+        }
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+    }
+
     private suspend fun uploadFoto(bitmap: Bitmap): String {
         val supabase   = SupabaseClient.client
         val bucketName = "laporan-images"
         val fileName   = "laporan/${UUID.randomUUID()}.jpg"
 
+        val scaledBmp = resizeBitmapToMax1024(bitmap)
         val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+        scaledBmp.compress(Bitmap.CompressFormat.JPEG, 80, stream)
         val bytes = stream.toByteArray()
 
         supabase.storage.from(bucketName).upload(fileName, bytes) { upsert = false }

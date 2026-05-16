@@ -22,18 +22,30 @@ object NetworkMonitor {
         // Emit kondisi awal
         trySend(isOnline(cm))
 
+        val validNetworks = mutableSetOf<Network>()
+
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                trySend(true)
+                // Hanya tracking saat kapabilitas berubah
             }
+
             override fun onLost(network: Network) {
-                trySend(isOnline(cm))  // cek apakah ada network lain
+                validNetworks.remove(network)
+                trySend(validNetworks.isNotEmpty())
             }
+
             override fun onCapabilitiesChanged(
                 network: Network,
                 caps  : NetworkCapabilities
             ) {
-                trySend(caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
+                val hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                                  caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                if (hasInternet) {
+                    validNetworks.add(network)
+                } else {
+                    validNetworks.remove(network)
+                }
+                trySend(validNetworks.isNotEmpty())
             }
         }
 

@@ -1,0 +1,52 @@
+[
+  {
+    "min_lat": -8.2, "max_lat": -7.7, "min_lon": 111.0, "max_lon": 111.6,
+    "soil_name": "Ferralsols", "soil_indonesian": "Tanah Laterit", "risk": "SEDANG",
+    "description": "Lereng barat daya Gunung Wilis, Ponorogo"
+  },
+  {
+    "min_lat": -7.7, "max_lat": -7.5, "min_lon": 111.3, "max_lon": 111.7,
+    "soil_name": "Acrisols", "soil_indonesian": "Tanah Liat Merah", "risk": "TINGGI",
+    "description": "Wilayah Madiun - Magetan, lereng curam"
+  },
+  {
+    "min_lat": -8.0, "max_lat": -7.7, "min_lon": 111.6, "max_lon": 112.0,
+    "soil_name": "Vertisols", "soil_indonesian": "Tanah Liat Ekspansif", "risk": "SANGAT_TINGGI",
+    "description": "Dataran rendah timur Ponorogo menuju Madiun"
+  },
+  {
+    "min_lat": -8.2, "max_lat": -8.0, "min_lon": 111.3, "max_lon": 111.7,
+    "soil_name": "Cambisols", "soil_indonesian": "Tanah Lempung", "risk": "SEDANG",
+    "description": "Selatan Ponorogo menuju Trenggalek"
+  },
+  {
+    "min_lat": -8.5, "max_lat": -7.5, "min_lon": 110.0, "max_lon": 111.3,
+    "soil_name": "Andosols", "soil_indonesian": "Tanah Vulkanik", "risk": "SEDANG",
+    "description": "Wilayah lereng gunung berapi Jawa Tengah (Merbabu, Lawu)"
+  },
+  {
+    "min_lat": -8.5, "max_lat": -7.0, "min_lon": 111.5, "max_lon": 113.0,
+    "soil_name": "Cambisols", "soil_indonesian": "Tanah Lempung", "risk": "SEDANG",
+    "description": "Jawa Timur bagian tengah"
+  },
+  {
+    "min_lat": -9.0, "max_lat": -8.0, "min_lon": 114.0, "max_lon": 116.0,
+    "soil_name": "Arenosols", "soil_indonesian": "Tanah Pasir", "risk": "RENDAH",
+    "description": "Bali - Lombok pesisir"
+  },
+  {
+    "min_lat": -3.0, "max_lat": 3.0, "min_lon": 108.0, "max_lon": 116.0,
+    "soil_name": "Histosols", "soil_indonesian": "Tanah Gambut", "risk": "RENDAH",
+    "description": "Kalimantan (lahan gambut)"
+  },
+  {
+    "min_lat": -8.0, "max_lat": -5.0, "min_lon": 120.0, "max_lon": 130.0,
+    "soil_name": "Cambisols", "soil_indonesian": "Tanah Lempung", "risk": "SEDANG",
+    "description": "Sulawesi Selatan dan Tenggara"
+  },
+  {
+    "min_lat": -11.0, "max_lat": 6.0, "min_lon": 95.0, "max_lon": 141.0,
+    "soil_name": "Cambisols", "soil_indonesian": "Tanah Lempung (Umum)", "risk": "SEDANG",
+    "description": "Catch-all wilayah Indonesia"
+  }
+]
