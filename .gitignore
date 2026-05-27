@@ -42,3 +42,6 @@ mobile-app/local.properties
 .DS_Store
 Thumbs.db
 test_ddgs.py
+
+# Graphify output (auto-generated graph artifacts)
+graphify-out/
