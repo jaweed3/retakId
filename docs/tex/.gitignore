@@ -1,6 +1,7 @@
 .venv/
 charts/
 *.pdf
+!paper.pdf
 *.aux
 *.log
 *.nav
