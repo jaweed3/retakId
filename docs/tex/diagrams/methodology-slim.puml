@@ -1,0 +1,19 @@
+@startuml
+skinparam backgroundColor White
+skinparam ArrowColor #2c3e50
+skinparam ArrowThickness 2
+skinparam activityBorderColor #1a5276
+skinparam activityBackgroundColor #eaf2f8
+skinparam activityBorderThickness 2
+skinparam activityFontSize 13
+skinparam activityFontStyle bold
+skinparam activityShape roundRect
+skinparam defaultTextColor #1a1a1a
+
+start
+:Dataset\nConstruction;
+:Model\nDevelopment;
+:System\nImplementation;
+:Evaluation;
+stop
+@enduml
