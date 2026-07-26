@@ -1,0 +1,77 @@
+digraph {
+  rankdir=LR;
+  newrank=true;
+  splines=polyline;
+  nodesep=0.3;
+  ranksep=0.8;
+  bgcolor="white";
+  fontname="Helvetica";
+
+  node [shape=box, style="rounded,filled", fillcolor="#eaf2f8", color="#1a5276", fontsize=10, fontname="Helvetica", margin="0.15,0.1"];
+
+  subgraph cluster_dataset {
+    label="Dataset Construction";
+    fontsize=12;
+    fontname="Helvetica-Bold";
+    fontcolor="#1a5276";
+    color="#2c3e50";
+    style=rounded;
+    fillcolor="#f0f8ff";
+
+    a1 [label="Image Crawling\n70+ keywords, DuckDuckGo"];
+    a2 [label="Manual Triage\nAMAN / WASPADA / BAHAYA"];
+    a3 [label="Validation & Dedup\nPIL, blur reject, pHash"];
+    a4 [label="Stratified Split\n70/15/15, DVC versioned"];
+    {rank=same; a1 -> a2 -> a3 -> a4 [style=invis] }
+  }
+
+  subgraph cluster_model {
+    label="Model Development";
+    fontsize=12;
+    fontname="Helvetica-Bold";
+    fontcolor="#1a5276";
+    color="#2c3e50";
+    style=rounded;
+    fillcolor="#f0fff0";
+
+    b1 [label="MobileNetV2\nImageNet pretrained, 224x224"];
+    b2 [label="Fine-tuning\n24/154 layers, Adam 5e-6, 70 ep"];
+    b3 [label="INT8 PTQ\n100 calibration samples, 2.6 MB"];
+    b4 [label="Safety Gates\n7 checks + 5-fold CV"];
+    {rank=same; b1 -> b2 -> b3 -> b4 [style=invis] }
+  }
+
+  subgraph cluster_system {
+    label="System Implementation";
+    fontsize=12;
+    fontname="Helvetica-Bold";
+    fontcolor="#1a5276";
+    color="#2c3e50";
+    style=rounded;
+    fillcolor="#fff0f0";
+
+    c1 [label="3 Platform Clients\nAndroid + Web + Telegram"];
+    c2 [label="Supabase Backend\nPG, auth, storage, edge functions"];
+    c3 [label="Multi-Factor Risk Engine\nML + Slope + Rain + Elev + Soil"];
+    {rank=same; c1 -> c2 -> c3 [style=invis] }
+  }
+
+  subgraph cluster_eval {
+    label="Evaluation";
+    fontsize=12;
+    fontname="Helvetica-Bold";
+    fontcolor="#1a5276";
+    color="#2c3e50";
+    style=rounded;
+    fillcolor="#f5f0ff";
+
+    d1 [label="Model Performance\n84.9% accuracy, 0.83 F1"];
+    d2 [label="INT8 Agreement\n93.75% vs FP32 baseline"];
+    d3 [label="Delta OTA\n98.2% bandwidth saving, .rkd"];
+    {rank=same; d1 -> d2 -> d3 [style=invis] }
+  }
+
+  a4 -> b1 [color="#2c3e50", penwidth=2];
+  b4 -> c1 [color="#2c3e50", penwidth=2];
+  c3 -> d1 [color="#2c3e50", penwidth=2];
+}
