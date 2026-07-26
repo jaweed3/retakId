@@ -1,56 +1,39 @@
 @startuml
-!define RECTANGLE_STYLE_LINE
-
 skinparam backgroundColor White
 skinparam ArrowColor #2c3e50
-skinparam ArrowFontSize 11
+skinparam ArrowThickness 2
 skinparam activityBorderColor #1a5276
 skinparam activityBackgroundColor #eaf2f8
-skinparam activityBorderThickness 1
-skinparam activityFontSize 12
+skinparam activityBorderThickness 2
+skinparam activityFontSize 13
 skinparam activityFontStyle bold
 skinparam activityShape roundRect
 skinparam defaultTextColor #1a1a1a
-skinparam noteBackgroundColor #fef9e7
-skinparam noteBorderColor #d4a017
-skinparam noteFontSize 10
+skinparam partitionBorderColor #2c3e50
+skinparam partitionFontStyle bold
 
-partition "Phase 1: Dataset Construction" #f0f8ff {
-  :Image Crawling\nduckduckgo, 70+ keywords;
-  :Manual Triage\nAMAN(2011) / WASPADA(766) / BAHAYA(770);
-  :Validation & Filter\nPIL verify, 300x300, 20MB, blur reject;
-  :Deduplication\npHash, Hamming distance <=6;
-  :Stratified Split\n70/15/15, seed=42;
-  note right
-    DVC versioned on DagsHub
-  end note
+partition "Dataset" #f0f8ff {
+  :Image Collection;
+  :Triage & Validation;
+  :Stratified Split;
 }
 
-partition "Phase 2: Model Development" #f5faf5 {
-  :MobileNetV2\nImageNet pretrained, 224x224x3;
-  :Fine-tuning\n24/154 layers, Adam 5e-6, 70 epochs;
-  :In-Graph Augmentation\nflip, rotate, zoom, brightness;
-  :INT8 PT Quantization\n100 calibration samples, 2.6MB;
-  :Safety Gates\n7 checks + 5-fold CV consistency;
+partition "Model Development" #f5faf5 {
+  :MobileNetV2\nTransfer Learning;
+  :Fine-tuning;
+  :INT8 Quantization;
 }
 
-partition "Phase 3: System Implementation" #fff5f5 {
-  :Android App\nKotlin, CameraX, TFLite 2.16.1;
-  :Web PWA\nReact/TS, Leaflet, LiteRT.js WASM;
-  :Telegram Bot\nPython, /lapor 3-step wizard;
-  :Supabase Backend\nPG, auth, storage, edge functions;
-  :Multi-Factor Risk Engine\nML(50%)+Slope(20%)+Rain(15%)\n+Elevation(10%)+Soil(5%);
-  note right
-    Graceful degradation:
-    failed API weights redistributed
-  end note
+partition "System Implementation" #fff5f5 {
+  :3 Platform Clients\n(Android, Web, Telegram);
+  :Backend +\nEdge Functions;
+  :Risk Engine\nIntegration;
 }
 
-partition "Phase 4: Evaluation" #f5f0ff {
-  :Model Metrics\n84.9% acc, 0.83 F1, 84.9% recall;
-  :INT8 Agreement\n93.75% vs FP32;
-  :Delta OTA\n98.2% bandwidth saving, .rkd format;
-  :Cross-Platform\nidentical pipeline on all clients;
+partition "Evaluation" #f5f0ff {
+  :Performance\nMetrics;
+  :Quantization\nAgreement;
+  :Delta OTA\nValidation;
 }
 
 @enduml
