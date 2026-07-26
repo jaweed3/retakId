@@ -1,27 +1,35 @@
 UV := uv run
-LATEX := lualatex
-LATEX_OPT := -interaction=nonstopmode -halt-on-error
+LATEX := tectonic
+PUML := plantuml
 
-.PHONY: all charts clean clean-all
+.PHONY: all diagrams charts clean clean-all
 
-all: charts pitch.pdf
+all: diagrams charts paper.pdf pitch.pdf
+
+diagrams:
+	@echo "Generating PUML diagrams..."
+	@$(PUML) -tpng -charset UTF-8 diagrams/*.puml
+	@echo "Diagrams done."
 
 charts:
 	@echo "Generating charts..."
 	@$(UV) python generate_charts.py
 	@echo "Charts done."
 
+paper.pdf: paper.tex diagrams
+	@echo "Compiling paper.tex..."
+	@$(LATEX) paper.tex
+	@echo "Done — paper.pdf"
+
 pitch.pdf: pitch.tex charts
-	@echo "Compiling LaTeX (pass 1)..."
-	@$(LATEX) $(LATEX_OPT) pitch.tex > /dev/null 2>&1 || \
-		($(LATEX) $(LATEX_OPT) pitch.tex 2>&1 | head -40 && false)
-	@echo "Compiling LaTeX (pass 2)..."
-	@$(LATEX) $(LATEX_OPT) pitch.tex > /dev/null 2>&1 || true
+	@echo "Compiling pitch.tex..."
+	@$(LATEX) pitch.tex
 	@echo "Done — pitch.pdf"
 
 clean:
-	rm -f *.aux *.log *.nav *.out *.snm *.toc *.vrb *.fdb_latexmk *.fls *.synctex.gz
+	rm -f *.aux *.log *.nav *.out *.snm *.toc *.vrb *.fdb_latexmk *.fls *.synctex.gz *.bbl *.blg
 	rm -f charts/*.png
 
 clean-all: clean
 	rm -rf .venv
+	rm -f diagrams/*.png

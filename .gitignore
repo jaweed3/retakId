@@ -47,3 +47,6 @@ test_ddgs.py
 graphify-out/
 
 AGENTS.md
+
+# Generated docx from pandoc conversion
+paper.docx

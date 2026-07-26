@@ -86,6 +86,13 @@ All client platforms communicate through Supabase, a Backend-as-a-Service provid
 
 \section{Methodology}
 
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\columnwidth]{diagrams/research-methodology.png}
+	\caption{Research methodology flowchart showing the four-phase pipeline: dataset construction, model development, system implementation, and evaluation}
+	\label{fig:methodology}
+\end{figure}
+
 \subsection{Dataset Construction}
 
 We constructed a dataset of 3,547 soil crack images through DuckDuckGo image search with 70+ keywords in Indonesian and English. Images were manually triaged into three classes:
@@ -150,6 +157,13 @@ ML classification alone is insufficient for reliable risk assessment. We propose
 		\text{BAHAYA},  & \text{Score} > 0.66
 	\end{cases}
 \end{equation}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\columnwidth]{diagrams/report-flow.png}
+	\caption{Report processing flow from image capture through multi-factor risk assessment to alert delivery across all platforms}
+	\label{fig:report-flow}
+\end{figure}
 
 Table~\ref{tab:risk_factors} details each factor's weight and scoring basis. The ML contribution uses a floor of 0.1 even when confidence is high, ensuring environmental factors can override an overly confident but incorrect ML prediction.
 

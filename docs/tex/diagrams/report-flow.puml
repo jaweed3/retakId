@@ -1,0 +1,65 @@
+@startuml
+skinparam backgroundColor White
+skinparam ArrowColor #2c3e50
+skinparam ArrowFontSize 10
+skinparam activityBorderColor #1a5276
+skinparam activityBackgroundColor #eaf2f8
+skinparam activityBorderThickness 1
+skinparam activityFontSize 11
+skinparam activityFontStyle bold
+skinparam activityShape roundRect
+skinparam defaultTextColor #1a1a1a
+skinparam partitionBackgroundColor #f8f9fa
+skinparam partitionBorderColor #2c3e50
+
+title "Report Processing Flow"
+
+:User captures\nsoil crack photo;
+note right: Android / Web / Telegram
+
+:Barcode detection\nfor context;
+
+split
+  :Android Inference\nTFLite, 4 CPU threads;
+split again
+  :Web Inference\nLiteRT.js XNNPack W ASM;
+split again
+  :Telegram Inference\nPython TFLite runtime;
+end split
+
+note right
+  84.9% accuracy, 450ms avg
+end note
+
+:ML Classification\nAMAN / WASPADA / BAHAYA;
+
+fork
+  :Fetch Slope\nOpen-Meteo SRTM;
+fork again
+  :Fetch Rainfall\nOpen-Meteo API;
+fork again
+  :Fetch Elevation\nOpen-Meteo SRTM;
+fork again
+  :Fetch Soil Type\nISRIC SoilGrids;
+end fork
+
+note right
+  Failed APIs → weight redistribution
+end note
+
+:Multi-Factor Risk Calculation\nWeighted score with graceful degradation;
+
+if (Score <= 0.33) then (AMAN)
+  :Display Safe\ngreen indicator;
+elseif (Score <= 0.66) then (WASPADA)
+  :Display Caution\nyellow indicator;
+  :Notify local\nadmin;
+else (BAHAYA)
+  :Display Danger\nred indicator;
+  :Telegram Alert\nnotify-bahaya edge function;
+endif
+
+:Report submitted\nto Supabase;
+:Update map marker\nreal-time dashboard;
+
+@enduml
